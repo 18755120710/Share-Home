@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { TransferTask } from '../types/transfer';
 import { generateUUID } from '../lib/utils';
+import { SocketClient } from '../lib/socketClient';
 
 export interface IncomingRequest {
   taskId: string;
@@ -17,71 +18,50 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
   
   // 缓存远端发来的接收文件请求 (同一时间只弹窗处理一个)
   const [incomingRequest, setIncomingRequest] = useState<IncomingRequest | null>(null);
-  
-  const wsRef = useRef<WebSocket | null>(null);
 
-  // 1. 建立与本地后端的 WebSocket 监听，动态捕获文件传输的物理进度
+  // 1. 统一订阅全局共享 WebSocket 监听，动态捕获文件传输的物理进度
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:3001');
-    wsRef.current = ws;
+    const socket = SocketClient.getInstance();
 
-    ws.onmessage = (event) => {
-      try {
-        const { event: evName, data } = JSON.parse(event.data);
-        
-        switch (evName) {
-          case 'transfer:request':
-            // 收到局域网其他设备发来的发送大文件申请
-            setIncomingRequest(data as IncomingRequest);
-            break;
-            
-          case 'transfer:progress':
-            // 收到本地 Node.js 汇报的高速下载进度与速度
-            const updatedTask = data as TransferTask;
-            setTasks(prev => ({
-              ...prev,
-              [updatedTask.id]: updatedTask
-            }));
-            break;
-            
-          case 'transfer:complete':
-            // 本地大文件极速接收完成
-            const completeInfo = data as { taskId: string; filePath: string };
-            setTasks(prev => {
-              const target = prev[completeInfo.taskId];
-              if (!target) return prev;
-              return {
-                ...prev,
-                [completeInfo.taskId]: {
-                  ...target,
-                  status: 'completed',
-                  progress: 100,
-                  speed: 0
-                }
-              };
-            });
-            break;
-            
-          default:
-            break;
-        }
-      } catch (err) {
-        // 忽略非标帧
-      }
-    };
+    // 订阅局域网大文件互传请求信令
+    const unsubRequest = socket.subscribe('transfer:request', (data: IncomingRequest) => {
+      setIncomingRequest(data);
+    });
+
+    // 订阅高速拉取进度广播
+    const unsubProgress = socket.subscribe('transfer:progress', (data: TransferTask) => {
+      setTasks(prev => ({
+        ...prev,
+        [data.id]: data
+      }));
+    });
+
+    // 订阅传输完成信号
+    const unsubComplete = socket.subscribe('transfer:complete', (data: { taskId: string; filePath: string }) => {
+      setTasks(prev => {
+        const target = prev[data.taskId];
+        if (!target) return prev;
+        return {
+          ...prev,
+          [data.taskId]: {
+            ...target,
+            status: 'completed',
+            progress: 100,
+            speed: 0
+          }
+        };
+      });
+    });
 
     return () => {
-      ws.close();
+      unsubRequest();
+      unsubProgress();
+      unsubComplete();
     };
   }, []);
 
   /**
    * 发送大文件给远端 Peer (核心物理大闭环)
-   * @param targetPeerIp 对方 IP
-   * @param targetPeerPort 对方运行端口
-   * @param targetPeerId 对方 Peer ID
-   * @param targetPeerName 对方昵称
-   * @param file 浏览器拖拽的 File 实体
    */
   const sendFile = async (
     targetPeerIp: string,
@@ -136,7 +116,6 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
             ...target,
             status: 'transferring',
             progress: Math.round(((i + 1) / totalChunks) * 100),
-            // 本地缓存时假定一个速度
             speed: 50 * 1024 * 1024 
           }
         };
@@ -250,7 +229,6 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
     setIncomingRequest(null); // 关闭弹窗
 
     try {
-      // 调用自己本地后端 API 启动高速拉取
       const res = await fetch('/api/transfer/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

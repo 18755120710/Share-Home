@@ -6,6 +6,7 @@ import Button from '../../ui/Button';
 import { Clipboard, Code, Send, ClipboardCopy, Check } from 'lucide-react';
 import { generateUUID } from '@/lib/utils';
 import Prism from 'prismjs';
+import { SocketClient } from '@/lib/socketClient';
 // 导入常用的 Prism 语法高亮主题样式
 import 'prismjs/themes/prism-tomorrow.css';
 
@@ -21,27 +22,16 @@ export const Board: React.FC<BoardProps> = ({ peers, self }) => {
   const [codeLanguage, setCodeLanguage] = useState('javascript');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const wsRef = useRef<WebSocket | null>(null);
-
   // 1. 建立 WebSocket 监听，捕获由局域网其他设备投递来的公告更新
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:3001');
-    wsRef.current = ws;
+    const socket = SocketClient.getInstance();
 
-    ws.onmessage = (event) => {
-      try {
-        const { event: evName, data } = JSON.parse(event.data);
-        if (evName === 'board:message') {
-          const newMessage = data as BoardMessage;
-          setMessages(prev => [newMessage, ...prev].slice(0, 100)); // 缓存最近 100 条
-        }
-      } catch (err) {
-        // 忽略
-      }
-    };
+    const unsub = socket.subscribe('board:message', (data: BoardMessage) => {
+      setMessages(prev => [data, ...prev].slice(0, 100)); // 缓存最近 100 条
+    });
 
     return () => {
-      ws.close();
+      unsub();
     };
   }, []);
 

@@ -1,13 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
-import { Peer, SelfConfig } from '../types/peer';
+import { Peer } from '../types/peer';
+import { SocketClient } from '../lib/socketClient';
 
 export function useMdnsPeers() {
   const [peers, setPeers] = useState<Peer[]>([]);
   const [self, setSelf] = useState<Peer | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   
-  const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const selfRef = useRef<Peer | null>(null);
+
+  // 保证 selfRef 永远指向最新的 self
+  useEffect(() => {
+    selfRef.current = self;
+  }, [self]);
 
   // 初始化本地宿主服务
   const initHostServices = async () => {
@@ -15,13 +21,15 @@ export function useMdnsPeers() {
       const res = await fetch('/api/init');
       const data = await res.json();
       if (data.status === 'ready') {
-        setSelf({
+        const selfData = {
           ...data.self,
           isSelf: true,
           lastSeen: Date.now(),
-        });
-        // 初始化成功后，连接 WebSocket
-        connectWebSocket();
+        };
+        setSelf(selfData);
+        setIsConnected(SocketClient.getInstance().isConnected());
+        // 拉取一次初始列表
+        fetchPeersList(selfData.id);
       }
     } catch (err) {
       console.error('[useMdnsPeers] 宿主服务启动失败，将在 3 秒后重试:', err);
@@ -29,63 +37,16 @@ export function useMdnsPeers() {
     }
   };
 
-  // 建立与本地后端的 WebSocket 双向长连接
-  const connectWebSocket = () => {
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-
-    // 默认使用 3001 端口进行本地前后端事件派发
-    const ws = new WebSocket('ws://localhost:3001');
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('[useMdnsPeers] 与本地 WebSocket 通信成功建立。');
-      setIsConnected(true);
-      // 成功连接后，主动请求拉取一次初始 Peer 列表
-      fetchPeersList();
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const { event: evName, data } = JSON.parse(event.data);
-        
-        switch (evName) {
-          case 'peers:update':
-            // 剔除可能在列表中的自己
-            const filteredPeers = (data as Peer[]).filter(p => p.id !== self?.id);
-            setPeers(filteredPeers);
-            break;
-          case 'system:ready':
-            console.log('[useMdnsPeers] 收到宿主系统就绪信号');
-            break;
-          default:
-            break;
-        }
-      } catch (err) {
-        // 忽略非标准的帧
-      }
-    };
-
-    ws.onclose = () => {
-      console.warn('[useMdnsPeers] 与本地 WebSocket 通信断开，3秒后尝试重连...');
-      setIsConnected(false);
-      reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000);
-    };
-
-    ws.onerror = (err) => {
-      console.error('[useMdnsPeers] WebSocket 出现异常:', err);
-      ws.close();
-    };
-  };
-
   // HTTP 兜底拉取在线节点
-  const fetchPeersList = async () => {
+  const fetchPeersList = async (currentSelfId?: string) => {
+    const targetSelfId = currentSelfId || selfRef.current?.id;
+    if (!targetSelfId) return;
+
     try {
       const res = await fetch('/api/peers');
       const data = await res.json();
-      if (data.peers && self) {
-        const filtered = (data.peers as Peer[]).filter(p => p.id !== self.id);
+      if (data.peers) {
+        const filtered = (data.peers as Peer[]).filter(p => p.id !== targetSelfId);
         setPeers(filtered);
       }
     } catch (err) {
@@ -108,6 +69,8 @@ export function useMdnsPeers() {
       if (data.success) {
         setSelf(prev => prev ? { ...prev, nickname, avatar } : null);
         console.log('[useMdnsPeers] 个人资料更新广播成功！');
+        // 主动刷新一次列表
+        fetchPeersList();
         return true;
       }
     } catch (err) {
@@ -117,12 +80,35 @@ export function useMdnsPeers() {
   };
 
   useEffect(() => {
+    // 1. 触发本地宿主初始化挂载
     initHostServices();
 
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
+    // 2. 统一订阅全局共享 WebSocket 连接与事件
+    const socket = SocketClient.getInstance();
+
+    const unsubConnected = socket.subscribe('system:connected', () => {
+      setIsConnected(true);
+      fetchPeersList();
+    });
+
+    const unsubDisconnected = socket.subscribe('system:disconnected', () => {
+      setIsConnected(false);
+    });
+
+    const unsubPeers = socket.subscribe('peers:update', (data: Peer[]) => {
+      const currentSelf = selfRef.current;
+      if (currentSelf) {
+        const filtered = data.filter(p => p.id !== currentSelf.id);
+        setPeers(filtered);
+      } else {
+        setPeers(data);
       }
+    });
+
+    return () => {
+      unsubConnected();
+      unsubDisconnected();
+      unsubPeers();
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -134,6 +120,6 @@ export function useMdnsPeers() {
     self,
     isConnected,
     updateProfile,
-    refreshPeers: fetchPeersList,
+    refreshPeers: () => fetchPeersList(),
   };
 }
