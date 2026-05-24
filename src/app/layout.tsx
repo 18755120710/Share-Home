@@ -76,6 +76,10 @@ export default function RootLayout({
                   removeEventListener() {}
                   dispatchEvent() { return true; }
                 }
+                HmrMutedWebSocket.CONNECTING = 0;
+                HmrMutedWebSocket.OPEN = 1;
+                HmrMutedWebSocket.CLOSING = 2;
+                HmrMutedWebSocket.CLOSED = 3;
                 window.WebSocket = HmrMutedWebSocket;
               }
             `
