@@ -6,7 +6,7 @@ import Button from '../../ui/Button';
 import { 
   Plus, FileText, Trash2, Edit2, Check, X, Eye, Edit3, 
   Bold, Italic, Heading, Quote, List, Code, Copy, 
-  CheckSquare, Globe, Save
+  CheckSquare, Globe, Save, Columns
 } from 'lucide-react';
 import { generateUUID } from '@/lib/utils';
 import { SocketClient } from '@/lib/socketClient';
@@ -20,8 +20,7 @@ interface KnowledgeBaseProps {
 
 export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => {
   const [documents, setDocuments] = useState<KBDocument[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editMode, setEditMode] = useState<'edit' | 'preview'>('edit');
+  const [viewMode, setViewMode] = useState<'split' | 'write' | 'read'>('split');
   
   // 编辑中的临时状态
   const [titleInput, setTitleInput] = useState('');
@@ -107,18 +106,18 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
 
   // 渲染时高亮代码块
   useEffect(() => {
-    if (editMode === 'preview') {
+    if (viewMode === 'split' || viewMode === 'read') {
       // 延迟确保 DOM 已经渲染完毕
       setTimeout(() => Prism.highlightAll(), 50);
     }
-  }, [editMode, selectedId, contentInput]);
+  }, [viewMode, selectedId, contentInput]);
 
   const selectDocument = (doc: KBDocument) => {
     setSelectedId(doc.id);
     setTitleInput(doc.title);
     setContentInput(doc.content);
     setSaveStatus('saved');
-    setEditMode('preview'); // 默认选中进入精致预览模式
+    setViewMode('split'); // 默认选中后进入极致直观的实时分栏对照模式！
   };
 
   /**
@@ -150,7 +149,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       if (data.success) {
         setDocuments(prev => [newDoc, ...prev]);
         selectDocument(newDoc);
-        setEditMode('edit'); // 新建后直接进入编辑态
+        setViewMode('split'); // 新建后直接进入分栏态
 
         // 局域网广播广播：并发投递给局域网其他所有在线设备后端
         broadcastSync(newDoc);
@@ -691,17 +690,36 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                 )}
               </div>
 
-              {/* 模式切换 (Edit / Preview) */}
+              {/* 模式切换胶囊按钮 (Split / Write / Read) */}
               <div style={{ display: 'flex', gap: '4px', background: 'rgba(255, 255, 255, 0.03)', padding: '2px', borderRadius: '6px' }}>
                 <button
-                  onClick={() => setEditMode('edit')}
+                  onClick={() => setViewMode('split')}
                   style={{
                     padding: '5px 12px',
                     fontSize: '0.75rem',
                     fontWeight: 500,
                     border: 'none',
-                    background: editMode === 'edit' ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
-                    color: editMode === 'edit' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    background: viewMode === 'split' ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+                    color: viewMode === 'split' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Columns size={12} />
+                  实时分栏
+                </button>
+                <button
+                  onClick={() => setViewMode('write')}
+                  style={{
+                    padding: '5px 12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    border: 'none',
+                    background: viewMode === 'write' ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+                    color: viewMode === 'write' ? 'var(--text-primary)' : 'var(--text-secondary)',
                     borderRadius: '4px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -710,17 +728,17 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   }}
                 >
                   <Edit3 size={12} />
-                  编辑
+                  纯编辑
                 </button>
                 <button
-                  onClick={() => setEditMode('preview')}
+                  onClick={() => setViewMode('read')}
                   style={{
                     padding: '5px 12px',
                     fontSize: '0.75rem',
                     fontWeight: 500,
                     border: 'none',
-                    background: editMode === 'preview' ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
-                    color: editMode === 'preview' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    background: viewMode === 'read' ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+                    color: viewMode === 'read' ? 'var(--text-primary)' : 'var(--text-secondary)',
                     borderRadius: '4px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -729,7 +747,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   }}
                 >
                   <Eye size={12} />
-                  预览
+                  纯预览
                 </button>
               </div>
             </div>
@@ -740,7 +758,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                 type="text"
                 value={titleInput}
                 onChange={handleTitleChange}
-                disabled={editMode === 'preview'}
+                disabled={viewMode === 'read'}
                 placeholder="请输入文档标题..."
                 style={{
                   fontSize: '1.75rem',
@@ -761,91 +779,106 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
               <div style={{ height: '1px', background: 'var(--border-color)', marginTop: '8px' }} />
             </div>
 
-            {/* 编辑/展示 主体区 */}
-            {editMode === 'edit' ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                {/* 格式工具栏 (Markdown Toolbar) */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 20px',
-                  background: 'rgba(255, 255, 255, 0.01)',
-                  borderBottom: '1px solid var(--border-color)',
-                  overflowX: 'auto'
+            {/* 主体视窗联动区 */}
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', flexDirection: 'row' }}>
+              
+              {/* 左侧：编辑编辑区 (在 read 模式下隐藏) */}
+              {viewMode !== 'read' && (
+                <div style={{ 
+                  flex: 1, 
+                  borderRight: viewMode === 'split' ? '1px solid var(--border-color)' : 'none', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  overflow: 'hidden',
+                  transition: 'all 0.2s'
                 }}>
-                  <button onClick={() => insertText('**', '**')} title="加粗" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                    <Bold size={13} />
-                  </button>
-                  <button onClick={() => insertText('*', '*')} title="斜体" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                    <Italic size={13} />
-                  </button>
-                  <button onClick={() => insertText('# ', '')} title="一级标题" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                    <Heading size={13} />
-                  </button>
-                  <button onClick={() => insertText('> ', '')} title="引用块" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                    <Quote size={13} />
-                  </button>
-                  <button onClick={() => insertText('- ', '')} title="无序列表" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                    <List size={13} />
-                  </button>
-                  <span style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 4px' }} />
-                  <button 
-                    onClick={() => insertText('```javascript\n', '\n```')} 
-                    title="插入 JS 代码块"
-                    style={{ 
-                      background: 'rgba(59, 130, 246, 0.08)', 
-                      border: '1px solid rgba(59, 130, 246, 0.2)', 
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      cursor: 'pointer', 
-                      color: 'var(--accent-color)',
-                      fontSize: '0.7rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Code size={12} />
-                    代码块
-                  </button>
-                </div>
+                  {/* 格式工具栏 (Markdown Toolbar) */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 20px',
+                    background: 'rgba(255, 255, 255, 0.01)',
+                    borderBottom: '1px solid var(--border-color)',
+                    overflowX: 'auto'
+                  }}>
+                    <button onClick={() => insertText('**', '**')} title="加粗" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                      <Bold size={13} />
+                    </button>
+                    <button onClick={() => insertText('*', '*')} title="斜体" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                      <Italic size={13} />
+                    </button>
+                    <button onClick={() => insertText('# ', '')} title="一级标题" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                      <Heading size={13} />
+                    </button>
+                    <button onClick={() => insertText('> ', '')} title="引用块" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                      <Quote size={13} />
+                    </button>
+                    <button onClick={() => insertText('- ', '')} title="无序列表" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                      <List size={13} />
+                    </button>
+                    <span style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 4px' }} />
+                    <button 
+                      onClick={() => insertText('```javascript\n', '\n```')} 
+                      title="插入 JS 代码块"
+                      style={{ 
+                        background: 'rgba(59, 130, 246, 0.08)', 
+                        border: '1px solid rgba(59, 130, 246, 0.2)', 
+                        padding: '4px 8px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer', 
+                        color: 'var(--accent-color)',
+                        fontSize: '0.7rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Code size={12} />
+                      代码块
+                    </button>
+                  </div>
 
-                {/* 编辑 TextArea */}
-                <textarea
-                  ref={textareaRef}
-                  value={contentInput}
-                  onChange={handleContentChange}
-                  placeholder="在这里支持使用丰富的 Markdown 语法进行书写，并在文字之间自由插入代码块..."
-                  style={{
-                    flex: 1,
-                    width: '100%',
-                    padding: '24px 32px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: '0.925rem',
-                    lineHeight: 1.7,
-                    resize: 'none',
-                    outline: 'none',
-                    overflowY: 'auto'
-                  }}
-                />
-              </div>
-            ) : (
-              // 预览展示区 (飞书排版大厂体验)
-              <div style={{ 
-                flex: 1, 
-                padding: '24px 32px', 
-                overflowY: 'auto',
-                background: 'transparent'
-              }}>
-                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                  {renderMarkdown(contentInput)}
+                  {/* 编辑 TextArea */}
+                  <textarea
+                    ref={textareaRef}
+                    value={contentInput}
+                    onChange={handleContentChange}
+                    placeholder="在这里支持使用丰富的 Markdown 语法进行书写，并在文字之间自由插入代码块..."
+                    style={{
+                      flex: 1,
+                      width: '100%',
+                      padding: '24px 32px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: '0.925rem',
+                      lineHeight: 1.7,
+                      resize: 'none',
+                      outline: 'none',
+                      overflowY: 'auto'
+                    }}
+                  />
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* 右侧：实时渲染预览区 (在 write 模式下隐藏) */}
+              {viewMode !== 'write' && (
+                <div style={{ 
+                  flex: 1, 
+                  padding: '24px 32px', 
+                  overflowY: 'auto',
+                  background: 'transparent',
+                  transition: 'all 0.2s'
+                }}>
+                  <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                    {renderMarkdown(contentInput)}
+                  </div>
+                </div>
+              )}
+
+            </div>
           </>
         ) : (
           /* 未选中状态 */
