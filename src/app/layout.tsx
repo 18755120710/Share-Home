@@ -24,6 +24,53 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* 局域网开发模式静默拦截防御脚本：防止非本地开发终端请求 Next.js HMR 导致控制台报错 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                const NativeWebSocket = window.WebSocket;
+                class HmrMutedWebSocket {
+                  constructor(url, protocols) {
+                    const urlStr = url.toString();
+                    if (!urlStr.includes('/_next/webpack-hmr') && !urlStr.includes(':3000')) {
+                      return new NativeWebSocket(url, protocols);
+                    }
+                    
+                    console.log('[HMR Muter] 已静默释放外部终端的开发期 HMR 订阅: ' + urlStr);
+                    
+                    this.readyState = 3; // CLOSED
+                    this.binaryType = 'blob';
+                    this.bufferedAmount = 0;
+                    this.extensions = '';
+                    this.protocol = '';
+                    this.onopen = null;
+                    this.onclose = null;
+                    this.onerror = null;
+                    this.onmessage = null;
+                    
+                    setTimeout(() => {
+                      if (typeof this.onerror === 'function') {
+                        try { this.onerror(new Event('error')); } catch(e) {}
+                      }
+                      if (typeof this.onclose === 'function') {
+                        try { this.onclose(new CloseEvent('close', { code: 1006, reason: 'LAN HMR Muted' })); } catch(e) {}
+                      }
+                    }, 50);
+                  }
+                  close() {}
+                  send() {}
+                  addEventListener() {}
+                  removeEventListener() {}
+                  dispatchEvent() { return true; }
+                }
+                window.WebSocket = HmrMutedWebSocket;
+              }
+            `
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
