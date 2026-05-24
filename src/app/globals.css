@@ -1,35 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* 大厂级 Zinc/Slate 中性冷色体系 */
+  /* 大厂高端极简 Zinc/Slate 中性冷色体系 */
   --bg-app: #09090b;
-  --bg-card: rgba(24, 24, 27, 0.65);
-  --bg-card-hover: rgba(39, 39, 42, 0.8);
-  --border-color: rgba(63, 63, 70, 0.4);
-  --border-color-hover: rgba(82, 82, 91, 0.6);
+  --bg-sidebar: #121215;
+  --bg-card: rgba(20, 20, 23, 0.7);
+  --bg-card-hover: rgba(28, 28, 32, 0.85);
+  --border-color: rgba(255, 255, 255, 0.06);
+  --border-color-hover: rgba(255, 255, 255, 0.15);
   
   /* 品牌高亮与微光效 */
-  --accent-color: #3b82f6; /* 电蓝色 */
-  --accent-glow: rgba(59, 130, 246, 0.15);
+  --accent-color: #2563eb; /* 优雅的电蓝 */
+  --accent-glow: rgba(37, 99, 235, 0.1);
   --success-color: #10b981; /* 翡翠绿 */
-  --success-glow: rgba(16, 185, 129, 0.15);
+  --success-glow: rgba(16, 185, 129, 0.1);
   --warning-color: #f59e0b; /* 琥珀黄 */
   --error-color: #ef4444; /* 胭脂红 */
   
-  /* 文字分层清晰度 */
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
+  /* 文字分层清晰度（大厂严格规范） */
+  --text-primary: #f4f4f5;   /* 纯净浅灰 */
+  --text-secondary: #a1a1aa; /* 优雅中灰 */
+  --text-muted: #52525b;     /* 沉稳暗灰 */
   
   /* 阴影与圆角 */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.7);
-  --shadow-glow: 0 0 24px rgba(59, 130, 246, 0.2);
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 32px rgba(37, 99, 235, 0.15);
   
-  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
@@ -43,18 +45,18 @@
 
 /* 优雅的自定义滚动条 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--text-muted);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 body {
@@ -62,24 +64,25 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
-  /* 极简网格微光背景 (Minimal Grid Background) */
+  
+  /* 极简精致大厂网格背景 */
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 24px 24px;
+    linear-gradient(rgba(255, 255, 255, 0.008) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.008) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-/* 顶部与底部的炫彩渐变微光，营造高档的流光质感 */
+/* 顶部流光氛围感，营造出高级的立体层次感 */
 body::before {
   content: "";
   position: absolute;
   top: -10%;
-  left: 20%;
-  width: 60%;
-  height: 400px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+  left: 25%;
+  width: 50%;
+  height: 350px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
   z-index: -1;
   pointer-events: none;
 }
@@ -88,4 +91,25 @@ body::before {
 .drag-over {
   border-color: var(--accent-color) !important;
   box-shadow: var(--shadow-glow) !important;
+}
+
+/* 优雅的渐入动效，让组件切换极其丝滑 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Prism 语法高亮覆盖，融入 Zinc 中性黑深邃色调 */
+pre[class*="language-"] {
+  background: #0e0e11 !important;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+code[class*="language-"] {
+  font-family: var(--font-mono) !important;
+  font-size: 0.85rem !important;
 }
