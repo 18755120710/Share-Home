@@ -12,6 +12,15 @@ export interface FileMetadata {
   fileSize: number;
 }
 
+export interface SharedFile {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  uploadedAt: number;
+  deviceInfo: string;
+  filePath: string;
+}
+
 export class FileService {
   private static instance: FileService | null = null;
   
@@ -220,5 +229,129 @@ export class FileService {
 
   public getDownloadsDir(): string {
     return ConfigService.getInstance().getStoragePath();
+  }
+
+  /**
+   * 获取共享文件元数据文件路径
+   */
+  private getSharedFilesPath(): string {
+    const storageDir = ConfigService.getInstance().getStoragePath();
+    return path.join(storageDir, 'shared_files.json');
+  }
+
+  /**
+   * 获取公共共享物理目录
+   */
+  public getSharedDir(): string {
+    const storageDir = ConfigService.getInstance().getStoragePath();
+    const sharedDir = path.join(storageDir, 'shared');
+    if (!fs.existsSync(sharedDir)) {
+      fs.mkdirSync(sharedDir, { recursive: true });
+    }
+    return sharedDir;
+  }
+
+  /**
+   * 将共享文件列表元数据写入 JSON
+   */
+  private writeSharedFilesMetadata(files: SharedFile[]): void {
+    const filePath = this.getSharedFilesPath();
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(files, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('[FileService] 写入共享文件元数据失败:', err);
+    }
+  }
+
+  /**
+   * 获取所有注册的公共共享文件列表，并自动清洗无效的丢失文件
+   */
+  public getSharedFiles(): SharedFile[] {
+    const filePath = this.getSharedFilesPath();
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+    try {
+      const data = fs.readFileSync(filePath, 'utf-8');
+      const files: SharedFile[] = JSON.parse(data);
+      
+      // 物理文件校验，确保文件在磁盘上真实存在
+      const validFiles = files.filter(f => {
+        try {
+          return fs.existsSync(f.filePath);
+        } catch {
+          return false;
+        }
+      });
+      
+      // 自动修正同步
+      if (validFiles.length !== files.length) {
+        this.writeSharedFilesMetadata(validFiles);
+      }
+      
+      return validFiles.sort((a, b) => b.uploadedAt - a.uploadedAt);
+    } catch (err) {
+      console.error('[FileService] 读取共享文件元数据失败:', err);
+      return [];
+    }
+  }
+
+  /**
+   * 注册一个公共共享文件
+   */
+  public registerSharedFile(id: string, fileName: string, fileSize: number, filePath: string, deviceInfo: string): void {
+    const files = this.getSharedFiles();
+    const newFile: SharedFile = {
+      id,
+      fileName,
+      fileSize,
+      uploadedAt: Date.now(),
+      deviceInfo,
+      filePath
+    };
+
+    const filtered = files.filter(f => f.id !== id);
+    filtered.push(newFile);
+
+    this.writeSharedFilesMetadata(filtered);
+    console.log(`[FileService] 公共共享文件已保存并写入索引: ${fileName} (${id})`);
+
+    // 广播事件通知局域网所有在线伙伴
+    SocketService.getInstance().broadcast('shared-files:update', filtered.sort((a, b) => b.uploadedAt - a.uploadedAt));
+  }
+
+  /**
+   * 获取指定公共文件详情
+   */
+  public getSharedFile(id: string): SharedFile | undefined {
+    const files = this.getSharedFiles();
+    return files.find(f => f.id === id);
+  }
+
+  /**
+   * 物理删除某个公共共享文件
+   */
+  public deleteSharedFile(id: string): boolean {
+    const files = this.getSharedFiles();
+    const target = files.find(f => f.id === id);
+    if (!target) return false;
+
+    // 1. 从物理磁盘中删除
+    try {
+      if (fs.existsSync(target.filePath)) {
+        fs.unlinkSync(target.filePath);
+        console.log(`[FileService] 共享物理文件已从磁盘中彻底清除: ${target.filePath}`);
+      }
+    } catch (err) {
+      console.error(`[FileService] 物理删除共享文件失败: ${target.filePath}`, err);
+    }
+
+    // 2. 清理元数据索引
+    const filtered = files.filter(f => f.id !== id);
+    this.writeSharedFilesMetadata(filtered);
+
+    // 3. 广播更新
+    SocketService.getInstance().broadcast('shared-files:update', filtered.sort((a, b) => b.uploadedAt - a.uploadedAt));
+    return true;
   }
 }

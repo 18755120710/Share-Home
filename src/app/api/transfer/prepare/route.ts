@@ -12,6 +12,8 @@ export async function POST(request: NextRequest) {
     const totalChunks = parseInt(searchParams.get('totalChunks') || '1', 10);
     const fileName = searchParams.get('fileName') || 'file';
     const fileSize = parseInt(searchParams.get('fileSize') || '0', 10);
+    const isPublic = searchParams.get('isPublic') === 'true';
+    const deviceInfo = searchParams.get('deviceInfo') || '未知设备';
 
     if (!taskId) {
       return NextResponse.json({ success: false, error: '缺少 taskId' }, { status: 400 });
@@ -36,7 +38,8 @@ export async function POST(request: NextRequest) {
       // 执行大文件分片合并
       console.log(`[PrepareUpload] 收到全部 ${totalChunks} 个分片，正在合并大文件: ${fileName}`);
       
-      const finalDir = ConfigService.getInstance().getStoragePath();
+      const fileService = FileService.getInstance();
+      const finalDir = isPublic ? fileService.getSharedDir() : ConfigService.getInstance().getStoragePath();
       
       // 合并目标物理路径 (如果重名，自动加时间戳防覆盖)
       let finalPath = path.join(finalDir, fileName);
@@ -62,8 +65,14 @@ export async function POST(request: NextRequest) {
       fs.rmdirSync(cacheDir);
 
       const actualName = path.basename(finalPath);
-      // 向本地 FileService 注册为允许他人下载的实体
-      FileService.getInstance().registerUpload(taskId, finalPath, actualName, fileSize);
+      
+      if (isPublic) {
+        // 向 FileService 注册为公共共享文件，记录设备平台信息并持久化
+        fileService.registerSharedFile(taskId, actualName, fileSize, finalPath, deviceInfo);
+      } else {
+        // 向本地 FileService 注册为允许他人下载的实体
+        fileService.registerUpload(taskId, finalPath, actualName, fileSize);
+      }
 
       return NextResponse.json({
         success: true,

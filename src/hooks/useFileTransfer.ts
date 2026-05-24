@@ -266,11 +266,63 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
     setIncomingRequest(null);
   };
 
+  /**
+   * 上传文件到公共共享空间 (本机直接落盘合并)
+   */
+  const uploadPublicFile = async (
+    file: File,
+    deviceInfo: string,
+    onProgress?: (progress: number) => void
+  ): Promise<boolean> => {
+    const taskId = generateUUID();
+    const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB 一个分片
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+    console.log(`[useFileTransfer] 正在以上传共享文件: ${file.name}, 总共 ${totalChunks} 分片, 设备: ${deviceInfo}`);
+    
+    let isSuccess = true;
+    
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = file.slice(start, end);
+      
+      const currentProgress = Math.round(((i + 1) / totalChunks) * 100);
+      if (onProgress) {
+        onProgress(currentProgress);
+      }
+
+      try {
+        const arrayBuffer = await chunk.arrayBuffer();
+        const res = await fetch(
+          `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}&isPublic=true&deviceInfo=${encodeURIComponent(deviceInfo)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: arrayBuffer
+          }
+        );
+        
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || '分片写入失败');
+        }
+      } catch (err: any) {
+        console.error(`[useFileTransfer] 公共分片 ${i} 投递失败:`, err);
+        isSuccess = false;
+        break;
+      }
+    }
+
+    return isSuccess;
+  };
+
   return {
     tasks,
     incomingRequest,
     sendFile,
     acceptRequest,
-    rejectRequest
+    rejectRequest,
+    uploadPublicFile
   };
 }

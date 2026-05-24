@@ -5,6 +5,7 @@ import { useMdnsPeers } from '@/hooks/useMdnsPeers';
 import { useFileTransfer } from '@/hooks/useFileTransfer';
 import PeerList from '@/components/features/peers/PeerList';
 import Transfer from '@/components/features/transfer/Transfer';
+import SharedFiles from '@/components/features/transfer/SharedFiles';
 import KnowledgeBase from '@/components/features/knowledge-base/KnowledgeBase';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -21,7 +22,7 @@ export default function Home() {
   const { peers, self, isConnected, updateProfile, refreshPeers } = useMdnsPeers();
 
   // 2. 初始化局域网极速传输引擎逻辑
-  const { tasks, incomingRequest, sendFile, acceptRequest, rejectRequest } = useFileTransfer(
+  const { tasks, incomingRequest, sendFile, acceptRequest, rejectRequest, uploadPublicFile } = useFileTransfer(
     self?.id,
     self?.nickname
   );
@@ -401,24 +402,35 @@ export default function Home() {
           {activeTab === 'transfer' && (
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
               gap: '24px',
               alignItems: 'stretch'
             }} className="fade-in">
-              {/* 雷达发现设备 */}
-              <PeerList 
-                peers={peers} 
-                onSendFile={(peer, file) => {
-                  sendFile(peer.ip, peer.port, peer.id, peer.nickname, file);
-                }} 
-              />
-              {/* 文件收发传输进度 */}
-              <Transfer 
-                tasks={tasks} 
-                incomingRequest={incomingRequest} 
-                onAccept={acceptRequest} 
-                onReject={rejectRequest} 
-              />
+              
+              {/* 左侧：物理资源空间 (自发现雷达 & 公共共享空间) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {/* 雷达发现设备 */}
+                <PeerList 
+                  peers={peers} 
+                  onSendFile={(peer, file) => {
+                    sendFile(peer.ip, peer.port, peer.id, peer.nickname, file);
+                  }} 
+                />
+
+                {/* 公共文件共享空间 */}
+                <SharedFiles uploadPublicFile={uploadPublicFile} />
+              </div>
+
+              {/* 右侧：实时传输控制台 */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Transfer 
+                  tasks={tasks} 
+                  incomingRequest={incomingRequest} 
+                  onAccept={acceptRequest} 
+                  onReject={rejectRequest} 
+                />
+              </div>
+              
             </div>
           )}
 

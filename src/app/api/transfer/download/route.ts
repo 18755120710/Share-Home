@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     headers.set('Content-Length', chunksize.toString());
     headers.set('Content-Type', 'application/octet-stream');
 
-    return new Response(webStream, {
+    return new Response(webStream as any, {
       status: 206, // Partial Content
       headers
     });
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     headers.set('Content-Length', fileSize.toString());
     headers.set('Content-Type', 'application/octet-stream');
 
-    return new Response(webStream, {
+    return new Response(webStream as any, {
       status: 200,
       headers
     });
