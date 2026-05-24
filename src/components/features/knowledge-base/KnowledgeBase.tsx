@@ -20,6 +20,7 @@ interface KnowledgeBaseProps {
 
 export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => {
   const [documents, setDocuments] = useState<KBDocument[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'split' | 'write' | 'read'>('split');
   
   // 编辑中的临时状态
@@ -455,7 +456,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
             </blockquote>
           );
         } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-          parts.push(<li key={i} style={{ marginLeft: '24px', listStyleType: 'disc', marginY: '4px', fontSize: '0.95rem' }}>{trimmed.substring(2)}</li>);
+          parts.push(<li key={i} style={{ marginLeft: '24px', listStyleType: 'disc', marginTop: '4px', marginBottom: '4px', fontSize: '0.95rem' }}>{trimmed.substring(2)}</li>);
         } else if (line === '') {
           parts.push(<div key={i} style={{ height: '8px' }} />);
         } else {
