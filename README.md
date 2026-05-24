@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Share Home (局域网协作平台)
 
-## Getting Started
+**Share Home** 是一款专为局域网（Lan）办公打造的**去中心化、私密极速、零配置**的高端协作办公平台。平台融合了极速点对点大文件收发、类飞书云文档知识库协作、以及动态持久化配置等功能，并采用前沿大厂极简 Zinc 中性冷灰视觉规范重塑，为团队局域网协作带来极致高效、安全的轻量化体验。
 
-First, run the development server:
+---
 
+## ✨ 核心特性
+
+### 1. 📂 极速文件流 (File Transfer Hub)
+- **免压极速**：支持局域网内任意大小大文件、文本文件的极速无损传输，不经过外网服务器，速度受限仅取决于局域网物理带宽。
+- **自发现雷达**：基于 mDNS (多播 DNS) 协议，开启即自动捕获同一局域网内所有在线的协作节点，无需手动配置 IP。
+- **断点续传**：基于流式写和 Range 请求，完美支持网络瞬断后的续传保护。
+- **动态路径**：传输文件物理落盘路径支持在系统配置中动态修改。
+
+### 2. 📝 去中心化“飞书云文档”知识库 (Knowledge Base)
+- **混合编写**：打破富文本与代码的壁垒，支持在一个编辑器内自由书写段落，并插入多语种标准 Markdown 代码块。
+- **物理落盘**：文档在服务器端均以标准的 `.md` 格式文件物理存储（包含 Front Matter 元数据头部），对第三方工具（如 Obsidian、VS Code）完全透明且兼容。
+- **防抖自动保存**：内置 `1000ms` 无感防抖自动落盘逻辑，打字即存，免去手动保存烦恼。
+- **多端秒级同步**：采用 WebSocket + 局域网广播机制，本端编辑完成落盘后自动投递至所有在线 Peer 节点。对端接收后不仅刷新浏览器视图，还直接在各自的本地存储路径下物理落盘，实现去中心化的完美分布式备份。
+
+### 3. ⚙️ 动态参数持久化配置 (System Configuration)
+- **零重启应用**：支持在页面中实时更改默认的文件和文档存储目录（默认相对路径为 `./storage`）。
+- **写权限预检**：后端在保存配置时会自动对目标目录执行物理写权限预检测试（通过测试写入并销毁 `.write_test` 文件），校验通过方可应用，防错防灾。
+- **硬核参数展示**：一站式展示本端设备 IP 地址、信道端口、以及系统各底层微服务运行状态。
+
+### 4. 🎨 科技大厂极简视觉 (Premium UI/UX)
+- **Zinc 奢华灰度**：基于大厂高端 Zinc/Slate 冷灰色调进行全面重构，配合精致的毛玻璃材质（Backdrop Filter）与极细微光边框，信息层级清晰、视感大气耐看。
+- **Sidebar 交互规范**：采用 `Sidebar（左侧边栏） + Workspace（右主工作区）` 的专业后台交互体系，配合贝塞尔曲线平滑淡入动效，让每一次切换都纵享丝滑。
+
+---
+
+## 🛠️ 技术栈
+
+- **前端核心**：React 19, Next.js 16, TypeScript
+- **视觉层**：Vanilla CSS (CSS Variables), Lucide Icons
+- **通信/发现**：WebSocket (ws), mDNS (bonjour-service)
+- **渲染与高亮**：Prism.js (Tomorrow Dark Theme)
+- **底层存贮**：Node.js fs, path 流式文件系统
+
+---
+
+## 🚀 快速启动
+
+在开始之前，请确保本地已安装 [Node.js](https://nodejs.org/) 以及包管理器 [pnpm](https://pnpm.io/)。
+
+### 1. 克隆并安装依赖
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 复制项目并进入目录
+git clone https://github.com/18755120710/Share-Home.git
+cd Share-Home
+
+# 使用 pnpm 安装依赖
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 启动开发服务器
+```bash
+pnpm dev
+```
+启动后，控制台将输出本端设备在局域网中的监听端口及 Web 访问地址。打开浏览器访问对应的 `http://localhost:3000` 或本地 IP 即可进入平台。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. 系统持久化配置
+项目根目录下会生成一个 `config-settings.json` 隐藏参数配置文件：
+```json
+{
+  "storagePath": "./storage"
+}
+```
+- **相对路径**：以 `./` 开头，将自动创建于项目根目录下。
+- **绝对路径**：可以直接填写您本机的绝对物理目录路径（如 `D:/MySharedDocuments`）。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🌐 局域网协同要点
 
-To learn more about Next.js, take a look at the following resources:
+为了让多台设备相互发现并进行极速协同，请确保：
+1. 所有协作设备均接入**同一局域网**（或连接同一 Wi-Fi）。
+2. 本机防火墙已为 Node.js / Next.js 放行相应的 TCP **网络端口端口**。
+3. 如果在协同编辑文档或收发大文件时遇到握手失败，建议手动重启一下各端开发服务。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📄 开源许可证
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+本项目基于 MIT License 协议开源。
