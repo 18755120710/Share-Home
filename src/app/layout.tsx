@@ -36,7 +36,7 @@ export default function RootLayout({
             `
           }}
         />
-        {/* 局域网开发模式静默拦截防御脚本：防止非本地开发终端请求 Next.js HMR 导致控制台报错 */}
+        {/* 局域网开发模式静默拦截防御脚本：仅精确拦截 webpack-hmr，放行所有其他 WebSocket */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -45,11 +45,10 @@ export default function RootLayout({
                 class HmrMutedWebSocket {
                   constructor(url, protocols) {
                     const urlStr = url.toString();
-                    if (!urlStr.includes('/_next/webpack-hmr') && !urlStr.includes(':3000')) {
+                    // 仅精确拦截 webpack-hmr 路径，放行所有其他 WebSocket（包括业务 WS 和 Next.js 内部 dev client）
+                    if (!urlStr.includes('/_next/webpack-hmr')) {
                       return new NativeWebSocket(url, protocols);
                     }
-                    
-                    console.log('[HMR Muter] 已静默释放外部终端的开发期 HMR 订阅: ' + urlStr);
                     
                     this.readyState = 3; // CLOSED
                     this.binaryType = 'blob';
@@ -60,20 +59,36 @@ export default function RootLayout({
                     this.onclose = null;
                     this.onerror = null;
                     this.onmessage = null;
+                    this._listeners = {};
                     
-                    setTimeout(() => {
-                      if (typeof this.onerror === 'function') {
-                        try { this.onerror(new Event('error')); } catch(e) {}
+                    var self = this;
+                    setTimeout(function() {
+                      if (typeof self.onerror === 'function') {
+                        try { self.onerror(new Event('error')); } catch(e) {}
                       }
-                      if (typeof this.onclose === 'function') {
-                        try { this.onclose(new CloseEvent('close', { code: 1006, reason: 'LAN HMR Muted' })); } catch(e) {}
+                      if (typeof self.onclose === 'function') {
+                        try { self.onclose(new CloseEvent('close', { code: 1006, reason: 'LAN HMR Muted' })); } catch(e) {}
+                      }
+                      // 同时触发 addEventListener 注册的监听器
+                      if (self._listeners['error']) {
+                        self._listeners['error'].forEach(function(fn) { try { fn(new Event('error')); } catch(e) {} });
+                      }
+                      if (self._listeners['close']) {
+                        self._listeners['close'].forEach(function(fn) { try { fn(new CloseEvent('close', { code: 1006, reason: 'LAN HMR Muted' })); } catch(e) {} });
                       }
                     }, 50);
                   }
                   close() {}
                   send() {}
-                  addEventListener() {}
-                  removeEventListener() {}
+                  addEventListener(type, fn) {
+                    if (!this._listeners) this._listeners = {};
+                    if (!this._listeners[type]) this._listeners[type] = [];
+                    this._listeners[type].push(fn);
+                  }
+                  removeEventListener(type, fn) {
+                    if (!this._listeners || !this._listeners[type]) return;
+                    this._listeners[type] = this._listeners[type].filter(function(f) { return f !== fn; });
+                  }
                   dispatchEvent() { return true; }
                 }
                 HmrMutedWebSocket.CONNECTING = 0;
