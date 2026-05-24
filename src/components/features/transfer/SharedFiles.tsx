@@ -177,52 +177,32 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
   // 根据设备信息渲染不同的专属高端 Badge 图标
   const renderDeviceBadge = (deviceInfo: string) => {
     let icon = <HelpCircle size={12} />;
-    let style: React.CSSProperties = {
-      background: 'rgba(255, 255, 255, 0.04)',
-      color: 'var(--text-secondary)',
-      border: '1px solid var(--border-color)'
-    };
+    let badgeClass = 'device-badge general';
 
     if (deviceInfo.includes('Windows')) {
-      icon = <Laptop size={12} style={{ color: '#60a5fa' }} />;
-      style = {
-        background: 'rgba(59, 130, 246, 0.08)',
-        color: '#93c5fd',
-        border: '1px solid rgba(59, 130, 246, 0.2)'
-      };
+      icon = <Laptop size={12} />;
+      badgeClass = 'device-badge windows';
     } else if (deviceInfo.includes('macOS') || deviceInfo.includes('iOS')) {
-      icon = <Monitor size={12} style={{ color: '#f4f4f5' }} />;
-      style = {
-        background: 'rgba(255, 255, 255, 0.06)',
-        color: '#f4f4f5',
-        border: '1px solid rgba(255, 255, 255, 0.15)'
-      };
+      icon = <Monitor size={12} />;
+      badgeClass = 'device-badge macos';
     } else if (deviceInfo.includes('Android')) {
-      icon = <Smartphone size={12} style={{ color: '#34d399' }} />;
-      style = {
-        background: 'rgba(16, 185, 129, 0.08)',
-        color: '#6ee7b7',
-        border: '1px solid rgba(16, 185, 129, 0.2)'
-      };
+      icon = <Smartphone size={12} />;
+      badgeClass = 'device-badge android';
     } else if (deviceInfo.includes('Linux')) {
-      icon = <Cpu size={12} style={{ color: '#fb923c' }} />;
-      style = {
-        background: 'rgba(249, 115, 22, 0.08)',
-        color: '#fdba74',
-        border: '1px solid rgba(249, 115, 22, 0.2)'
-      };
+      icon = <Cpu size={12} />;
+      badgeClass = 'device-badge linux';
     }
 
     return (
-      <span style={{
+      <span className={badgeClass} style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '5px',
         padding: '3px 8px',
         borderRadius: '12px',
         fontSize: '0.72rem',
-        fontWeight: 500,
-        ...style
+        fontWeight: 600,
+        transition: 'all 0.15s'
       }}>
         {icon}
         {deviceInfo}
@@ -252,9 +232,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
+        className={`upload-zone ${isDragOver ? 'drag-over' : ''}`}
         style={{
           border: isDragOver ? '2px dashed var(--accent-color)' : '1px dashed var(--border-color)',
-          background: isDragOver ? 'var(--accent-glow)' : 'rgba(255, 255, 255, 0.008)',
+          background: isDragOver ? 'var(--accent-glow)' : 'var(--bg-item)',
           borderRadius: 'var(--radius-md)',
           padding: '24px 20px',
           textAlign: 'center',
@@ -265,18 +246,6 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
           alignItems: 'center',
           justifyContent: 'center',
           gap: '8px'
-        }}
-        onMouseEnter={(e) => {
-          if (status !== 'uploading') {
-            e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.015)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (status !== 'uploading') {
-            e.currentTarget.style.borderColor = isDragOver ? 'var(--accent-color)' : 'var(--border-color)';
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.008)';
-          }
         }}
       >
         <input
@@ -345,7 +314,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
         maxHeight: '320px',
         border: '1px solid var(--border-color)',
         borderRadius: 'var(--radius-md)',
-        background: 'rgba(0, 0, 0, 0.1)'
+        background: 'var(--bg-item)'
       }}>
         {files.length === 0 ? (
           <div style={{ 
@@ -382,12 +351,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                 return (
                   <tr 
                     key={file.id} 
+                    className="shared-file-row"
                     style={{ 
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.02)',
-                      transition: 'background-color 0.15s' 
+                      borderBottom: '1px solid var(--border-color)',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.01)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     {/* 文件名 */}
                     <td style={{ 
@@ -396,7 +363,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                       maxWidth: '220px', 
                       overflow: 'hidden', 
                       textOverflow: 'ellipsis', 
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      color: 'var(--text-primary)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <File size={13} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
@@ -430,10 +398,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                         >
                           <button
                             title="流式下载"
+                            className="action-btn download-btn"
                             style={{
-                              background: 'rgba(255, 255, 255, 0.04)',
+                              background: 'var(--bg-item)',
                               border: '1px solid var(--border-color)',
-                              color: 'var(--text-primary)',
                               width: '26px',
                               height: '26px',
                               borderRadius: '4px',
@@ -442,14 +410,6 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                               justifyContent: 'center',
                               cursor: 'pointer',
                               transition: 'all 0.15s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = 'var(--success-color)';
-                              e.currentTarget.style.background = 'var(--success-glow)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = 'var(--border-color)';
-                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
                             }}
                           >
                             <Download size={12} style={{ color: 'var(--success-color)' }} />
@@ -463,10 +423,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                             handleDelete(file.id);
                           }}
                           title="物理删除"
+                          className="action-btn delete-btn"
                           style={{
-                            background: 'rgba(255, 255, 255, 0.04)',
+                            background: 'var(--bg-item)',
                             border: '1px solid var(--border-color)',
-                            color: 'var(--text-primary)',
                             width: '26px',
                             height: '26px',
                             borderRadius: '4px',
@@ -475,14 +435,6 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                             justifyContent: 'center',
                             cursor: 'pointer',
                             transition: 'all 0.15s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--error-color)';
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--border-color)';
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
                           }}
                         >
                           <Trash2 size={12} style={{ color: 'var(--error-color)' }} />
@@ -497,6 +449,86 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
         )}
       </div>
 
+      {/* 亮暗双色主题高精美 Badge 与表格微交互 CSS */}
+      <style jsx global>{`
+        .upload-zone:hover {
+          border-color: var(--border-color-hover) !important;
+          background: var(--bg-item-hover) !important;
+        }
+        .upload-zone.drag-over {
+          border-color: var(--accent-color) !important;
+          background: var(--accent-glow) !important;
+        }
+        .shared-file-row {
+          transition: background-color 0.15s;
+        }
+        .shared-file-row:hover {
+          background-color: var(--bg-item-hover) !important;
+        }
+        .download-btn:hover {
+          border-color: var(--success-color) !important;
+          background: var(--success-glow) !important;
+        }
+        .delete-btn:hover {
+          border-color: var(--error-color) !important;
+          background: rgba(239, 68, 68, 0.08) !important;
+        }
+
+        /* 局域网设备 Badge 在不同模式下的高端色彩深度定制 */
+        .device-badge {
+          border: 1px solid var(--border-color);
+        }
+        .device-badge.general {
+          background: rgba(255, 255, 255, 0.04);
+          color: var(--text-secondary);
+        }
+        .device-badge.windows {
+          background: rgba(59, 130, 246, 0.1);
+          color: #60a5fa;
+          border-color: rgba(59, 130, 246, 0.2);
+        }
+        .device-badge.macos {
+          background: rgba(255, 255, 255, 0.06);
+          color: #f4f4f5;
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+        .device-badge.android {
+          background: rgba(16, 185, 129, 0.1);
+          color: #34d399;
+          border-color: rgba(16, 185, 129, 0.2);
+        }
+        .device-badge.linux {
+          background: rgba(249, 115, 22, 0.1);
+          color: #fb923c;
+          border-color: rgba(249, 115, 22, 0.2);
+        }
+
+        /* 亮色模式特殊高可见度覆盖（消除原本白底白字的痛点） */
+        [data-theme='light'] .device-badge.general {
+          background: rgba(9, 9, 11, 0.04);
+          color: var(--text-secondary);
+        }
+        [data-theme='light'] .device-badge.windows {
+          background: rgba(37, 99, 235, 0.08);
+          color: #1d4ed8;
+          border-color: rgba(37, 99, 235, 0.2);
+        }
+        [data-theme='light'] .device-badge.macos {
+          background: rgba(9, 9, 11, 0.05);
+          color: #18181b;
+          border-color: rgba(9, 9, 11, 0.12);
+        }
+        [data-theme='light'] .device-badge.android {
+          background: rgba(5, 150, 105, 0.08);
+          color: #047857;
+          border-color: rgba(5, 150, 105, 0.2);
+        }
+        [data-theme='light'] .device-badge.linux {
+          background: rgba(234, 88, 12, 0.08);
+          color: #c2410c;
+          border-color: rgba(234, 88, 12, 0.2);
+        }
+      `}</style>
     </Card>
   );
 };

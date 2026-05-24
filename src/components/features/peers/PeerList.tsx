@@ -147,18 +147,18 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
                 onDragOver={(e) => handleDragOver(e, peer.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, peer)}
+                className="peer-card"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '16px',
-                  background: isDragOver ? 'var(--bg-card-hover)' : 'rgba(255, 255, 255, 0.02)',
-                  border: isDragOver ? '1px dashed var(--accent-color)' : '1px solid var(--border-color)',
                   borderRadius: 'var(--radius-md)',
-                  transition: 'all 0.2s ease',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                   cursor: 'pointer',
-                  transform: isDragOver ? 'scale(1.02)' : 'scale(1)',
-                  boxShadow: isDragOver ? 'var(--shadow-glow)' : 'none'
+                  transform: isDragOver ? 'scale(1.02)' : 'translateY(0)',
+                  boxShadow: isDragOver ? 'var(--shadow-glow)' : 'none',
+                  border: isDragOver ? '1px dashed var(--accent-color)' : '1px solid var(--border-color)'
                 }}
               >
                 {/* 左侧头像与基本信息 */}
@@ -167,7 +167,7 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
                     width: '44px',
                     height: '44px',
                     borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.03)',
+                    background: 'var(--bg-app)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -184,11 +184,11 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
                       height: '8px',
                       borderRadius: '50%',
                       background: 'var(--success-color)',
-                      border: '2px solid var(--bg-app)'
+                      border: '2px solid var(--bg-card)'
                     }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>{peer.nickname}</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{peer.nickname}</span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                       {peer.ip}
                     </span>
@@ -214,6 +214,15 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
 
       {/* 雷达心跳脉冲与旋转扫射动画定义 */}
       <style jsx global>{`
+        .peer-card {
+          background: var(--bg-item);
+        }
+        .peer-card:hover {
+          background: var(--bg-item-hover) !important;
+          border-color: var(--border-color-hover) !important;
+          transform: translateY(-2px) !important;
+          box-shadow: var(--shadow-md) !important;
+        }
         @keyframes sonar-pulse {
           0% {
             box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
