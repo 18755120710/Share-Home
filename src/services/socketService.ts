@@ -2,7 +2,6 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Peer } from '../types/peer';
 
 export class SocketService {
-  private static instance: SocketService | null = null;
   private wss: WebSocketServer | null = null;
   private clients: Set<WebSocket> = new Set();
   private isStarted = false;
@@ -10,51 +9,68 @@ export class SocketService {
   private constructor() {}
 
   public static getInstance(): SocketService {
-    if (!SocketService.instance) {
-      SocketService.instance = new SocketService();
+    const globalSymbols = global as any;
+    if (!globalSymbols.__socket_service_instance__) {
+      globalSymbols.__socket_service_instance__ = new SocketService();
     }
-    return SocketService.instance;
+    return globalSymbols.__socket_service_instance__;
   }
 
   /**
-   * 在指定端口启动 WebSocket 服务器，服务于本机浏览器前端
+   * 在指定端口启动 WebSocket 服务器，服务于本机浏览器前端 (绑定 0.0.0.0 以支持局域网外端穿透)
    */
   public start(port: number): void {
-    if (this.isStarted) return;
+    if (this.isStarted) {
+      console.log(`[WebSocket] 通信服务已在运行中，无需重复启动。`);
+      return;
+    }
 
-    console.log(`[WebSocket] 正在启动通信服务, 监听端口: ${port}`);
-    this.wss = new WebSocketServer({ port });
+    console.log(`[WebSocket] 正在启动通信服务, 监听端口: ${port}, 绑定 Host: 0.0.0.0`);
+    try {
+      this.wss = new WebSocketServer({ port, host: '0.0.0.0' });
 
-    this.wss.on('connection', (ws: WebSocket) => {
-      this.clients.add(ws);
-      console.log(`[WebSocket] 本地浏览器客户端已建立连接. 当前连接数: ${this.clients.size}`);
+      this.wss.on('connection', (ws: WebSocket) => {
+        this.clients.add(ws);
+        console.log(`[WebSocket] 本地浏览器客户端已建立连接. 当前连接数: ${this.clients.size}`);
 
-      // 监听客户端发来的测试或控制指令
-      ws.on('message', (message: string) => {
-        try {
-          const parsed = JSON.parse(message);
-          console.log('[WebSocket] 收到前端控制消息:', parsed);
-          // 这里可以处理前端发来的个性化事件
-        } catch (e) {
-          // 忽略非 JSON 数据
+        // 监听客户端发来的测试或控制指令
+        ws.on('message', (message: string) => {
+          try {
+            const parsed = JSON.parse(message);
+            console.log('[WebSocket] 收到前端控制消息:', parsed);
+            // 这里可以处理前端发来的个性化事件
+          } catch (e) {
+            // 忽略非 JSON 数据
+          }
+        });
+
+        ws.on('close', () => {
+          this.clients.delete(ws);
+          console.log(`[WebSocket] 本地浏览器客户端已断开连接. 当前连接数: ${this.clients.size}`);
+        });
+
+        ws.on('error', (err) => {
+          console.error('[WebSocket] 连接出现异常:', err);
+          this.clients.delete(ws);
+        });
+        
+        // 建立连接后，给前端发送一个欢迎及就绪包
+        this.sendTo(ws, 'system:ready', { timestamp: Date.now() });
+      });
+
+      this.wss.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          console.warn(`[WebSocket] 端口 ${port} 已被占用，可能之前的热更新进程仍在活动中。将跳过重新绑定。`);
+          this.isStarted = true;
+        } else {
+          console.error('[WebSocket] 服务端捕获到未知异常:', err);
         }
       });
 
-      ws.on('close', () => {
-        this.clients.delete(ws);
-        console.log(`[WebSocket] 本地浏览器客户端已断开连接. 当前连接数: ${this.clients.size}`);
-      });
-
-      ws.on('error', (err) => {
-        console.error('[WebSocket] 连接出现异常:', err);
-        this.clients.delete(ws);
-      });
-      
-      // 建立连接后，给前端发送一个欢迎及就绪包
-      this.sendTo(ws, 'system:ready', { timestamp: Date.now() });
-    });
-
-    this.isStarted = true;
+      this.isStarted = true;
+    } catch (err: any) {
+      console.error('[WebSocket] 服务启动发生异常:', err);
+    }
   }
 
   /**

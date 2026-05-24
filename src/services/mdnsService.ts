@@ -3,7 +3,6 @@ import os from 'os';
 import { Peer } from '../types/peer';
 
 export class MdnsService {
-  private static instance: MdnsService | null = null;
   private bonjour: Bonjour | null = null;
   private publishedService: Service | null = null;
   private browser: any = null;
@@ -21,10 +20,11 @@ export class MdnsService {
   }
 
   public static getInstance(): MdnsService {
-    if (!MdnsService.instance) {
-      MdnsService.instance = new MdnsService();
+    const globalSymbols = global as any;
+    if (!globalSymbols.__mdns_service_instance__) {
+      globalSymbols.__mdns_service_instance__ = new MdnsService();
     }
-    return MdnsService.instance;
+    return globalSymbols.__mdns_service_instance__;
   }
 
   /**
@@ -172,20 +172,73 @@ export class MdnsService {
   }
 
   /**
-   * 获取本机的局域网 IPv4 地址
+   * 获取本机的局域网 IPv4 地址 (智能过滤虚拟网卡，优先获取物理 WLAN/以太网网口 IP)
    */
   private detectLocalIp(): string {
     const interfaces = os.networkInterfaces();
+    const candidates: Array<{ name: string; address: string; isVirtual: boolean; isPreferred: boolean }> = [];
+
+    // 虚拟/代理/虚拟网卡等常见关键字过滤
+    const virtualKeywords = [
+      'vmware', 'virtualbox', 'vbox', 'wsl', 'vethernet', 
+      'meta', 'clash', 'zerotier', 'tailscale', 'tun', 
+      'tap', 'loopback', 'vpn', 'host-only', 'sandbox'
+    ];
+
+    // 物理网卡优先关键字
+    const physicalKeywords = [
+      'wlan', 'wifi', 'wireless', '无线', 'ethernet', 
+      '以太', '乙太', '本地连接', '区域连接'
+    ];
+
     for (const devName in interfaces) {
       const iface = interfaces[devName];
       if (!iface) continue;
+
+      const nameLower = devName.toLowerCase();
+      const isVirtual = virtualKeywords.some(keyword => nameLower.includes(keyword));
+      const isPreferred = physicalKeywords.some(keyword => nameLower.includes(keyword));
+
       for (let i = 0; i < iface.length; i++) {
         const alias = iface[i];
         if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-          return alias.address;
+          candidates.push({
+            name: devName,
+            address: alias.address,
+            isVirtual,
+            isPreferred
+          });
         }
       }
     }
+
+    // 1. 优先筛选出非虚拟且被选为 Preferred 的物理网卡
+    const preferredPhysical = candidates.filter(c => !c.isVirtual && c.isPreferred);
+    if (preferredPhysical.length > 0) {
+      console.log(`[mDNS] 精准选择物理网卡: ${preferredPhysical[0].name} (${preferredPhysical[0].address})`);
+      return preferredPhysical[0].address;
+    }
+
+    // 2. 其次筛选出非虚拟的其他网卡
+    const realCandidates = candidates.filter(c => !c.isVirtual);
+    if (realCandidates.length > 0) {
+      console.log(`[mDNS] 选择非虚拟网卡: ${realCandidates[0].name} (${realCandidates[0].address})`);
+      return realCandidates[0].address;
+    }
+
+    // 3. 如果全部是虚拟网卡，看是否有 Preferred 的虚拟网卡
+    const preferredVirtual = candidates.filter(c => c.isPreferred);
+    if (preferredVirtual.length > 0) {
+      console.log(`[mDNS] 未检测到物理网卡，选择首选虚拟网卡: ${preferredVirtual[0].name} (${preferredVirtual[0].address})`);
+      return preferredVirtual[0].address;
+    }
+
+    // 4. 兜底返回第一个非本地回环地址
+    if (candidates.length > 0) {
+      console.log(`[mDNS] 未检测到匹配网卡，使用首个 IPv4 网卡: ${candidates[0].name} (${candidates[0].address})`);
+      return candidates[0].address;
+    }
+
     return '127.0.0.1';
   }
 }

@@ -22,8 +22,6 @@ export interface SharedFile {
 }
 
 export class FileService {
-  private static instance: FileService | null = null;
-  
   // 共享下载文件夹目录
   private downloadsDir: string;
   
@@ -44,10 +42,11 @@ export class FileService {
   }
 
   public static getInstance(): FileService {
-    if (!FileService.instance) {
-      FileService.instance = new FileService();
+    const globalSymbols = global as any;
+    if (!globalSymbols.__file_service_instance__) {
+      globalSymbols.__file_service_instance__ = new FileService();
     }
-    return FileService.instance;
+    return globalSymbols.__file_service_instance__;
   }
 
   /**

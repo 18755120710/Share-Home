@@ -4,15 +4,14 @@ import { KBDocument } from '@/types/document';
 import { ConfigService } from './configService';
 
 export class DocumentService {
-  private static instance: DocumentService | null = null;
-
   private constructor() {}
 
   public static getInstance(): DocumentService {
-    if (!DocumentService.instance) {
-      DocumentService.instance = new DocumentService();
+    const globalSymbols = global as any;
+    if (!globalSymbols.__document_service_instance__) {
+      globalSymbols.__document_service_instance__ = new DocumentService();
     }
-    return DocumentService.instance;
+    return globalSymbols.__document_service_instance__;
   }
 
   /**

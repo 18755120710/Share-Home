@@ -6,7 +6,6 @@ interface AppConfig {
 }
 
 export class ConfigService {
-  private static instance: ConfigService | null = null;
   private configFilePath: string;
   private currentConfig: AppConfig;
 
@@ -16,10 +15,11 @@ export class ConfigService {
   }
 
   public static getInstance(): ConfigService {
-    if (!ConfigService.instance) {
-      ConfigService.instance = new ConfigService();
+    const globalSymbols = global as any;
+    if (!globalSymbols.__config_service_instance__) {
+      globalSymbols.__config_service_instance__ = new ConfigService();
     }
-    return ConfigService.instance;
+    return globalSymbols.__config_service_instance__;
   }
 
   /**
