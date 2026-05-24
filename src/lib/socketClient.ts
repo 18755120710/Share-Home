@@ -28,8 +28,9 @@ export class SocketClient {
     if (this.ws || this.isConnecting) return;
     this.isConnecting = true;
 
-    console.log('[SocketClient] 正在建立全局共享通信长连接...');
-    const ws = new WebSocket('ws://localhost:3001');
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    console.log(`[SocketClient] 正在建立全局共享通信长连接: ws://${host}:3001`);
+    const ws = new WebSocket(`ws://${host}:3001`);
     this.ws = ws;
 
     ws.onopen = () => {
