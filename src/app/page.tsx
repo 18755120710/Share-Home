@@ -12,7 +12,7 @@ import Card from '@/components/ui/Card';
 import { 
   Radio, RefreshCw, Laptop, Edit3, Check, 
   Files, FileText, Settings, ShieldAlert, FolderOpen,
-  Info, Cpu, Link, Server
+  Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X
 } from 'lucide-react';
 
 type ActiveTab = 'transfer' | 'knowledge' | 'settings';
@@ -30,6 +30,13 @@ export default function Home() {
   // 页面当前激活的大 Tab
   const [activeTab, setActiveTab] = useState<ActiveTab>('transfer');
 
+  // 主题颜色状态
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // 文件传输中心抽屉显隐状态
+  const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
+  const [prevTasksLength, setPrevTasksLength] = useState(0);
+
   // 个人资料编辑状态
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [newNickname, setNewNickname] = useState('');
@@ -40,6 +47,37 @@ export default function Home() {
   const [absolutePath, setAbsolutePath] = useState('');
   const [configStatus, setConfigStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [configErrorMsg, setConfigErrorMsg] = useState('');
+
+  // 初始化拉取主题设置
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = (localStorage.getItem('theme') as 'dark' | 'light') || 'dark';
+      setTheme(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+  }, []);
+
+  // 监听任务长度变化：当新文件传输任务加入时，自动滑出传输抽屉 3 秒
+  useEffect(() => {
+    const currentTasks = Object.values(tasks);
+    if (currentTasks.length > prevTasksLength) {
+      setIsTransferDrawerOpen(true);
+      const timer = setTimeout(() => {
+        setIsTransferDrawerOpen(false);
+      }, 3000);
+      setPrevTasksLength(currentTasks.length);
+      return () => clearTimeout(timer);
+    } else if (currentTasks.length !== prevTasksLength) {
+      setPrevTasksLength(currentTasks.length);
+    }
+  }, [tasks, prevTasksLength]);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+  };
 
   // 初始化拉取系统配置
   const fetchConfig = async () => {
@@ -101,6 +139,12 @@ export default function Home() {
     }
   };
 
+  // 统计互传任务数
+  const activeTasksCount = Object.values(tasks).filter(
+    t => t.status === 'transferring' || t.status === 'pending'
+  ).length;
+  const totalTasksCount = Object.values(tasks).length;
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)' }}>
       
@@ -138,7 +182,7 @@ export default function Home() {
               <Radio size={16} style={{ color: 'var(--accent-color)' }} />
             </div>
             <div>
-              <h1 style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#ffffff' }}>Share Home</h1>
+              <h1 style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Share Home</h1>
               <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>局域网协作平台</p>
             </div>
           </div>
@@ -153,9 +197,9 @@ export default function Home() {
                 gap: '10px',
                 width: '100%',
                 padding: '10px 14px',
-                background: activeTab === 'transfer' ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-                border: activeTab === 'transfer' ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid transparent',
-                color: activeTab === 'transfer' ? '#ffffff' : 'var(--text-secondary)',
+                background: activeTab === 'transfer' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
+                border: activeTab === 'transfer' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
+                color: activeTab === 'transfer' ? 'var(--text-primary)' : 'var(--text-secondary)',
                 borderRadius: 'var(--radius-sm)',
                 fontSize: '0.85rem',
                 fontWeight: activeTab === 'transfer' ? 600 : 500,
@@ -164,7 +208,7 @@ export default function Home() {
                 transition: 'all 0.15s'
               }}
               onMouseEnter={(e) => {
-                if (activeTab !== 'transfer') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.015)';
+                if (activeTab !== 'transfer') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
               }}
               onMouseLeave={(e) => {
                 if (activeTab !== 'transfer') e.currentTarget.style.background = 'transparent';
@@ -182,9 +226,9 @@ export default function Home() {
                 gap: '10px',
                 width: '100%',
                 padding: '10px 14px',
-                background: activeTab === 'knowledge' ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-                border: activeTab === 'knowledge' ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid transparent',
-                color: activeTab === 'knowledge' ? '#ffffff' : 'var(--text-secondary)',
+                background: activeTab === 'knowledge' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
+                border: activeTab === 'knowledge' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
+                color: activeTab === 'knowledge' ? 'var(--text-primary)' : 'var(--text-secondary)',
                 borderRadius: 'var(--radius-sm)',
                 fontSize: '0.85rem',
                 fontWeight: activeTab === 'knowledge' ? 600 : 500,
@@ -193,7 +237,7 @@ export default function Home() {
                 transition: 'all 0.15s'
               }}
               onMouseEnter={(e) => {
-                if (activeTab !== 'knowledge') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.015)';
+                if (activeTab !== 'knowledge') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
               }}
               onMouseLeave={(e) => {
                 if (activeTab !== 'knowledge') e.currentTarget.style.background = 'transparent';
@@ -211,9 +255,9 @@ export default function Home() {
                 gap: '10px',
                 width: '100%',
                 padding: '10px 14px',
-                background: activeTab === 'settings' ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-                border: activeTab === 'settings' ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid transparent',
-                color: activeTab === 'settings' ? '#ffffff' : 'var(--text-secondary)',
+                background: activeTab === 'settings' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
+                border: activeTab === 'settings' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
+                color: activeTab === 'settings' ? 'var(--text-primary)' : 'var(--text-secondary)',
                 borderRadius: 'var(--radius-sm)',
                 fontSize: '0.85rem',
                 fontWeight: activeTab === 'settings' ? 600 : 500,
@@ -222,7 +266,7 @@ export default function Home() {
                 transition: 'all 0.15s'
               }}
               onMouseEnter={(e) => {
-                if (activeTab !== 'settings') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.015)';
+                if (activeTab !== 'settings') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
               }}
               onMouseLeave={(e) => {
                 if (activeTab !== 'settings') e.currentTarget.style.background = 'transparent';
@@ -234,98 +278,136 @@ export default function Home() {
           </nav>
         </div>
 
-        {/* 侧边栏底部本端身份管理区 */}
+        {/* 侧边栏底部本端身份管理与主题切换区 */}
         <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)' }}>
           {self && (
-            <div>
-              {isEditingProfile ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid var(--border-color)',
-                  padding: '10px',
-                  borderRadius: 'var(--radius-sm)'
-                }}>
-                  <input
-                    type="text"
-                    value={newNickname}
-                    onChange={(e) => setNewNickname(e.target.value)}
-                    style={{
-                      background: 'var(--bg-app)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.8rem',
-                      padding: '4px 6px',
-                      borderRadius: '4px',
-                      outline: 'none',
-                      width: '100%'
-                    }}
-                    maxLength={10}
-                    placeholder="昵称"
-                  />
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <select
-                      value={newAvatar}
-                      onChange={(e) => setNewAvatar(e.target.value)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {isEditingProfile ? (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    background: 'rgba(128, 128, 128, 0.04)',
+                    border: '1px solid var(--border-color)',
+                    padding: '10px',
+                    borderRadius: 'var(--radius-sm)'
+                  }}>
+                    <input
+                      type="text"
+                      value={newNickname}
+                      onChange={(e) => setNewNickname(e.target.value)}
                       style={{
-                        background: '#09090b',
-                        color: 'var(--text-primary)',
+                        background: 'var(--bg-app)',
                         border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.8rem',
+                        padding: '4px 6px',
                         borderRadius: '4px',
-                        fontSize: '0.75rem',
                         outline: 'none',
-                        padding: '3px',
-                        flex: 1
+                        width: '100%'
                       }}
-                    >
-                      <option value="avatar-1">笔记本</option>
-                      <option value="avatar-2">显示器</option>
-                      <option value="avatar-3">手机</option>
-                    </select>
-                    <button onClick={saveProfile} style={{ 
-                      background: 'var(--accent-color)', 
-                      border: 'none', 
-                      color: '#ffffff', 
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      cursor: 'pointer',
-                      fontSize: '0.75rem',
+                      maxLength={10}
+                      placeholder="昵称"
+                    />
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <select
+                        value={newAvatar}
+                        onChange={(e) => setNewAvatar(e.target.value)}
+                        style={{
+                          background: 'var(--bg-app)',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          outline: 'none',
+                          padding: '3px',
+                          flex: 1
+                        }}
+                      >
+                        <option value="avatar-1">笔记本</option>
+                        <option value="avatar-2">显示器</option>
+                        <option value="avatar-3">手机</option>
+                      </select>
+                      <button onClick={saveProfile} style={{ 
+                        background: 'var(--accent-color)', 
+                        border: 'none', 
+                        color: '#ffffff', 
+                        padding: '4px 8px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}>
+                        <Check size={12} />
+                        存
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    onClick={startEditProfile}
+                    style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '2px'
-                    }}>
-                      <Check size={12} />
-                      存
-                    </button>
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      background: 'rgba(128, 128, 128, 0.04)',
+                      border: '1px solid var(--border-color)',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      transition: 'all 0.2s',
+                      overflow: 'hidden'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-color-hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', minWidth: 0 }}>
+                      <Laptop size={13} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {self.nickname}
+                      </span>
+                    </div>
+                    <Edit3 size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                   </div>
-                </div>
-              ) : (
-                <div 
-                  onClick={startEditProfile}
+                )}
+              </div>
+
+              {!isEditingProfile && (
+                <button
+                  onClick={toggleTheme}
+                  title={theme === 'dark' ? '切换至亮色模式' : '切换至暗色模式'}
                   style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(128, 128, 128, 0.04)',
+                    border: '1px solid var(--border-color)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
+                    justifyContent: 'center',
                     cursor: 'pointer',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-color)',
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    color: 'var(--text-primary)',
+                    flexShrink: 0
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-color-hover)'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-color-hover)';
+                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+                  }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                    <Laptop size={14} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {self.nickname}
-                    </span>
-                  </div>
-                  <Edit3 size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                </div>
+                  {theme === 'dark' ? (
+                    <Sun size={15} style={{ color: '#f59e0b' }} />
+                  ) : (
+                    <Moon size={15} style={{ color: '#6366f1' }} />
+                  )}
+                </button>
               )}
             </div>
           )}
@@ -353,7 +435,7 @@ export default function Home() {
           paddingBottom: '16px'
         }}>
           <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.01em' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
               {activeTab === 'transfer' && '文件传输工作台'}
               {activeTab === 'knowledge' && '知识协作云文档'}
               {activeTab === 'settings' && '全局系统配置'}
@@ -388,6 +470,62 @@ export default function Home() {
               {isConnected ? '局域网信道在线' : '离线状态'}
             </span>
 
+            {/* 传输任务触发按钮 */}
+            <button
+              onClick={() => setIsTransferDrawerOpen(!isTransferDrawerOpen)}
+              style={{
+                position: 'relative',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 14px',
+                background: 'rgba(128, 128, 128, 0.04)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-primary)',
+                fontSize: '0.82rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: activeTasksCount > 0 ? '0 0 12px var(--accent-glow)' : 'none'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+                e.currentTarget.style.borderColor = 'var(--border-color-hover)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+                e.currentTarget.style.borderColor = 'var(--border-color)';
+              }}
+            >
+              <ArrowUpDown 
+                size={14} 
+                style={{ 
+                  color: activeTasksCount > 0 ? 'var(--accent-color)' : 'var(--text-secondary)',
+                }} 
+              />
+              <span>传输任务</span>
+              
+              {/* 任务徽标 (Badge) */}
+              {totalTasksCount > 0 && (
+                <span style={{
+                  minWidth: '18px',
+                  height: '18px',
+                  borderRadius: '9px',
+                  background: activeTasksCount > 0 ? 'var(--accent-color)' : 'var(--text-muted)',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 5px'
+                }}>
+                  {totalTasksCount}
+                </span>
+              )}
+            </button>
+
             <Button variant="secondary" onClick={refreshPeers} style={{ padding: '8px 12px' }}>
               <RefreshCw size={14} />
               刷新雷达
@@ -402,33 +540,24 @@ export default function Home() {
           {activeTab === 'transfer' && (
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
+              gridTemplateColumns: '45% 55%', 
               gap: '24px',
               alignItems: 'stretch'
             }} className="fade-in">
               
-              {/* 左侧：物理资源空间 (自发现雷达 & 公共共享空间) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {/* 雷达发现设备 */}
+              {/* 左侧：自发现设备雷达 */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <PeerList 
                   peers={peers} 
                   onSendFile={(peer, file) => {
                     sendFile(peer.ip, peer.port, peer.id, peer.nickname, file);
                   }} 
                 />
-
-                {/* 公共文件共享空间 */}
-                <SharedFiles uploadPublicFile={uploadPublicFile} />
               </div>
 
-              {/* 右侧：实时传输控制台 */}
+              {/* 右侧：公共文件共享空间 */}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <Transfer 
-                  tasks={tasks} 
-                  incomingRequest={incomingRequest} 
-                  onAccept={acceptRequest} 
-                  onReject={rejectRequest} 
-                />
+                <SharedFiles uploadPublicFile={uploadPublicFile} />
               </div>
               
             </div>
@@ -605,6 +734,16 @@ export default function Home() {
 
         </div>
       </main>
+
+      {/* 全局局域网极速文件传输中心抽屉 (Drawer) */}
+      <Transfer 
+        tasks={tasks} 
+        incomingRequest={incomingRequest} 
+        onAccept={acceptRequest} 
+        onReject={rejectRequest} 
+        isOpen={isTransferDrawerOpen}
+        onClose={() => setIsTransferDrawerOpen(false)}
+      />
 
     </div>
   );
