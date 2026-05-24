@@ -1,23 +1,27 @@
 import React from 'react';
 import { TransferTask } from '@/types/transfer';
 import { IncomingRequest } from '@/hooks/useFileTransfer';
-import Card from '../../ui/Card';
 import Button from '../../ui/Button';
+import Card from '../../ui/Card';
 import { formatBytes, formatSpeed, formatTime } from '@/lib/format';
-import { Download, Upload, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Download, Upload, Clock, CheckCircle2, XCircle, AlertCircle, X, HelpCircle } from 'lucide-react';
 
 interface TransferProps {
   tasks: Record<string, TransferTask>;
   incomingRequest: IncomingRequest | null;
   onAccept: () => void;
   onReject: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export const Transfer: React.FC<TransferProps> = ({ 
   tasks, 
   incomingRequest, 
   onAccept, 
-  onReject 
+  onReject,
+  isOpen,
+  onClose
 }) => {
   const taskList = Object.values(tasks).sort((a, b) => b.startedAt - a.startedAt);
 
@@ -45,127 +49,226 @@ export const Transfer: React.FC<TransferProps> = ({
     return formatTime(remainingSeconds);
   };
 
-  return (
-    <Card style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', minHeight: '400px' }}>
-      {/* 标题 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.025em' }}>文件传输中心</h2>
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          已载入任务: {taskList.length} 个
-        </span>
-      </div>
+  // 抽屉容器样式
+  const drawerStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: 0,
+    right: 0,
+    width: '420px',
+    height: '100vh',
+    background: 'var(--bg-sidebar)',
+    borderLeft: '1px solid var(--border-color)',
+    boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.45)',
+    zIndex: 9999,
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+    transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+  };
 
-      {/* 传输卡片列表 */}
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: '12px',
-        overflowY: 'auto',
-        maxHeight: '400px',
-        paddingRight: '4px'
-      }}>
-        {taskList.length === 0 ? (
-          <div style={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            padding: '40px 0',
-            opacity: 0.5 
-          }}>
-            <Download size={28} style={{ color: 'var(--text-muted)' }} />
-            <p style={{ fontSize: '0.85rem', marginTop: '12px' }}>当前没有任何传输任务</p>
+  // 背景遮罩 Overlay 样式
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.5)',
+    backdropFilter: 'blur(4px)',
+    WebkitBackdropFilter: 'blur(4px)',
+    zIndex: 9998,
+    opacity: isOpen ? 1 : 0,
+    pointerEvents: isOpen ? 'auto' : 'none',
+    transition: 'opacity 0.3s ease'
+  };
+
+  return (
+    <>
+      {/* 侧边滑动背景遮罩 */}
+      <div style={overlayStyle} onClick={onClose} />
+
+      {/* 悬浮传输中心抽屉容器 */}
+      <div style={drawerStyle}>
+        
+        {/* 顶部头部栏 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>文件传输中心</h2>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+              已载入任务: {taskList.length} 个
+            </span>
           </div>
-        ) : (
-          taskList.map(task => {
-            const isCompleted = task.status === 'completed';
-            const isFailed = task.status === 'failed';
-            const isPending = task.status === 'pending';
-            
-            return (
-              <div
-                key={task.id}
-                style={{
-                  padding: '16px',
-                  background: 'rgba(255, 255, 255, 0.015)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px'
-                }}
-              >
-                {/* 任务元数据栏 */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '75%' }}>
-                    {renderStatusBadge(task)}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+          
+          <button
+            onClick={onClose}
+            title="关闭面板"
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: 'rgba(128, 128, 128, 0.05)',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--text-primary)';
+              e.currentTarget.style.background = 'rgba(128, 128, 128, 0.1)';
+              e.currentTarget.style.borderColor = 'var(--border-color-hover)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-secondary)';
+              e.currentTarget.style.background = 'rgba(128, 128, 128, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--border-color)';
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* 科技感新手引导看板 */}
+        <div style={{
+          background: 'var(--accent-glow)',
+          border: '1px solid rgba(37, 99, 235, 0.15)',
+          borderRadius: 'var(--radius-md)',
+          padding: '12px 14px',
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'flex-start'
+        }}>
+          <HelpCircle size={16} style={{ color: 'var(--accent-color)', flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)' }}>什么是传输中心？</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              实时展示您在局域网中发送和接收的文件进度。您可以随时通过右上角“传输任务”按钮展开此抽屉，查看任务的速度与剩余时间。
+            </span>
+          </div>
+        </div>
+
+        {/* 传输卡片列表滚动区 */}
+        <div style={{ 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '12px',
+          overflowY: 'auto',
+          paddingRight: '4px'
+        }}>
+          {taskList.length === 0 ? (
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              padding: '60px 0',
+              opacity: 0.5 
+            }}>
+              <Download size={28} style={{ color: 'var(--text-muted)' }} />
+              <p style={{ fontSize: '0.8rem', marginTop: '12px', color: 'var(--text-secondary)' }}>当前没有任何传输任务</p>
+            </div>
+          ) : (
+            taskList.map(task => {
+              const isCompleted = task.status === 'completed';
+              const isFailed = task.status === 'failed';
+              const isPending = task.status === 'pending';
+              
+              return (
+                <div
+                  key={task.id}
+                  style={{
+                    padding: '14px',
+                    background: 'rgba(128, 128, 128, 0.02)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-color-hover)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                >
+                  {/* 任务元数据栏 */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '75%' }}>
+                      {renderStatusBadge(task)}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                        <span style={{ 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          color: 'var(--text-primary)'
+                        }} title={task.fileName}>
+                          {task.fileName}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                          大小: {formatBytes(task.fileSize)} | {task.type === 'send' ? `发给 ${task.peerName}` : `来自 ${task.peerName}`}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* 速度与ETA */}
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <span style={{ 
-                        fontSize: '0.9rem', 
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
+                        fontSize: '0.8rem', 
+                        fontWeight: 600, 
+                        color: isCompleted ? 'var(--success-color)' : isFailed ? 'var(--error-color)' : 'var(--text-primary)' 
                       }}>
-                        {task.fileName}
+                        {isCompleted ? '已完成' : isFailed ? '失败' : isPending ? '待接收' : formatSpeed(task.speed)}
                       </span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        大小: {formatBytes(task.fileSize)} | {task.type === 'send' ? `发给 ${task.peerName}` : `来自 ${task.peerName}`}
-                      </span>
+                      {!isCompleted && !isFailed && !isPending && (
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                          <Clock size={10} />
+                          剩余: {getETA(task)}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* 速度与ETA */}
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ 
-                      fontSize: '0.85rem', 
-                      fontWeight: 600, 
-                      color: isCompleted ? 'var(--success-color)' : 'var(--text-primary)' 
-                    }}>
-                      {isCompleted ? '已完成' : isFailed ? '失败' : isPending ? '待接收' : formatSpeed(task.speed)}
-                    </span>
-                    {!isCompleted && !isFailed && !isPending && (
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
-                        <Clock size={10} />
-                        剩余: {getETA(task)}
-                      </span>
-                    )}
-                  </div>
-                </div>
 
-                {/* 极窄科技发光进度条 */}
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ 
-                    width: '100%', 
-                    height: '4px', 
-                    background: 'rgba(255, 255, 255, 0.05)', 
-                    borderRadius: '2px',
-                    overflow: 'hidden',
-                    position: 'relative'
-                  }}>
-                    <div style={{
-                      width: `${task.progress}%`,
-                      height: '100%',
-                      background: isCompleted ? 'var(--success-color)' : isFailed ? 'var(--error-color)' : 'linear-gradient(90deg, var(--accent-color), #60a5fa)',
+                  {/* 极窄科技发光进度条 */}
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ 
+                      width: '100%', 
+                      height: '4px', 
+                      background: 'rgba(128, 128, 128, 0.08)', 
                       borderRadius: '2px',
-                      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: isCompleted ? '0 0 6px var(--success-color)' : isFailed ? 'none' : '0 0 6px var(--accent-color)'
-                    }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    <span>{task.progress}%</span>
-                    <span>{formatBytes(task.transferredBytes)} / {formatBytes(task.fileSize)}</span>
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      <div style={{
+                        width: `${task.progress}%`,
+                        height: '100%',
+                        background: isCompleted ? 'var(--success-color)' : isFailed ? 'var(--error-color)' : 'linear-gradient(90deg, var(--accent-color), #60a5fa)',
+                        borderRadius: '2px',
+                        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: isCompleted ? '0 0 6px var(--success-color)' : isFailed ? 'none' : '0 0 6px var(--accent-color)'
+                      }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                      <span>{task.progress}%</span>
+                      <span>{formatBytes(task.transferredBytes)} / {formatBytes(task.fileSize)}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
+
       </div>
 
-      {/* 接收大文件弹窗 (Dialog) - Frosted Glass 遮罩询问器 */}
+      {/* 接收大文件弹窗 (Dialog) - Frosted Glass 遮罩询问器 (独立于抽屉全局弹出) */}
       {incomingRequest && (
         <div style={{
           position: 'fixed',
@@ -179,7 +282,7 @@ export const Transfer: React.FC<TransferProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 99999,
           animation: 'fade-in 0.2s ease-out'
         }}>
           <Card style={{ 
@@ -222,7 +325,7 @@ export const Transfer: React.FC<TransferProps> = ({
               gap: '6px',
               textAlign: 'center'
             }}>
-              <span style={{ fontSize: '0.95rem', fontWeight: 600, wordBreak: 'break-all' }}>
+              <span style={{ fontSize: '0.95rem', fontWeight: 600, wordBreak: 'break-all', color: 'var(--text-primary)' }}>
                 {incomingRequest.fileName}
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -250,7 +353,8 @@ export const Transfer: React.FC<TransferProps> = ({
           to { opacity: 1; transform: scale(1); }
         }
       `}</style>
-    </Card>
+    </>
   );
 };
+
 export default Transfer;
