@@ -30,8 +30,9 @@ export class SocketClient {
 
     const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss' : 'ws';
-    console.log(`[SocketClient] 正在建立全局共享通信长连接: ${protocol}://${host}:3001`);
-    const ws = new WebSocket(`${protocol}://${host}:3001`);
+    const clientId = typeof window !== 'undefined' ? localStorage.getItem('share_home_client_id') || '' : '';
+    console.log(`[SocketClient] 正在建立全局共享通信长连接: ${protocol}://${host}:3001?clientId=${clientId}`);
+    const ws = new WebSocket(`${protocol}://${host}:3001?clientId=${clientId}`);
     this.ws = ws;
 
     ws.onopen = () => {

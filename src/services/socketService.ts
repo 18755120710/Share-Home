@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Peer } from '../types/peer';
+import { MdnsService } from './mdnsService';
 
 export class SocketService {
   private wss: WebSocketServer | null = null;
@@ -29,9 +30,16 @@ export class SocketService {
     try {
       this.wss = new WebSocketServer({ port, host: '0.0.0.0' });
 
-      this.wss.on('connection', (ws: WebSocket) => {
+      this.wss.on('connection', (ws: WebSocket, req: any) => {
         this.clients.add(ws);
-        console.log(`[WebSocket] 本地浏览器客户端已建立连接. 当前连接数: ${this.clients.size}`);
+        
+        let clientId: string | null = null;
+        try {
+          const urlObj = new URL(req.url || '', 'http://localhost');
+          clientId = urlObj.searchParams.get('clientId');
+        } catch (e) {}
+
+        console.log(`[WebSocket] 客户端已建立连接. ClientId: ${clientId || 'unknown'}. 当前连接数: ${this.clients.size}`);
 
         // 监听客户端发来的测试或控制指令
         ws.on('message', (message: string) => {
@@ -46,7 +54,14 @@ export class SocketService {
 
         ws.on('close', () => {
           this.clients.delete(ws);
-          console.log(`[WebSocket] 本地浏览器客户端已断开连接. 当前连接数: ${this.clients.size}`);
+          console.log(`[WebSocket] 客户端已断开连接. ClientId: ${clientId || 'unknown'}. 当前连接数: ${this.clients.size}`);
+          
+          if (clientId) {
+            const mdns = MdnsService.getInstance();
+            if (clientId !== mdns.getSelfId()) {
+              mdns.unregisterWebPeer(clientId);
+            }
+          }
         });
 
         ws.on('error', (err) => {

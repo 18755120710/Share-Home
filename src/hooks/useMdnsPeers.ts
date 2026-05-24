@@ -18,7 +18,15 @@ export function useMdnsPeers() {
   // 初始化本地宿主服务
   const initHostServices = async () => {
     try {
-      const res = await fetch('/api/init');
+      let cid = '';
+      if (typeof window !== 'undefined') {
+        cid = localStorage.getItem('share_home_client_id') || '';
+        if (!cid) {
+          cid = `peer_web_${Math.random().toString(36).substring(2, 11)}`;
+          localStorage.setItem('share_home_client_id', cid);
+        }
+      }
+      const res = await fetch(`/api/init?clientId=${cid}`);
       const data = await res.json();
       if (data.status === 'ready') {
         const selfData = {
@@ -60,10 +68,11 @@ export function useMdnsPeers() {
   const updateProfile = async (nickname: string, avatar: string) => {
     if (!self) return false;
     try {
+      const cid = typeof window !== 'undefined' ? localStorage.getItem('share_home_client_id') || '' : '';
       const res = await fetch('/api/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, avatar }),
+        body: JSON.stringify({ nickname, avatar, clientId: cid }),
       });
       const data = await res.json();
       if (data.success) {

@@ -141,6 +141,39 @@ export class MdnsService {
   }
 
   /**
+   * 注册由 Web 浏览器访问建立的虚拟 Peer
+   */
+  public registerWebPeer(id: string, ip: string, nickname: string, avatar: string, port = 3000): void {
+    if (id === this.selfId) return;
+    
+    const newPeer: Peer = {
+      id,
+      nickname,
+      avatar,
+      ip,
+      port,
+      lastSeen: Date.now(),
+      isSelf: false
+    };
+    
+    this.peers.set(id, newPeer);
+    console.log(`[mDNS] 收到 Web 浏览器虚拟终端注册: ${nickname} (${ip})`);
+    this.notifyListeners();
+  }
+
+  /**
+   * 注销指定 Web 虚拟 Peer
+   */
+  public unregisterWebPeer(id: string): void {
+    if (this.peers.has(id)) {
+      const removedPeer = this.peers.get(id);
+      this.peers.delete(id);
+      console.log(`[mDNS] Web 浏览器虚拟终端下线: ${removedPeer?.nickname}`);
+      this.notifyListeners();
+    }
+  }
+
+  /**
    * 获取所有在线设备列表
    */
   public getPeers(): Peer[] {
