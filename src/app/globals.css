@@ -1,72 +1,63 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* 大厂高端极简 Zinc/Slate 中性冷色体系 */
-  --bg-app: #09090b;
-  --bg-sidebar: #121215;
-  --bg-card: rgba(20, 20, 23, 0.7);
-  --bg-card-hover: rgba(28, 28, 32, 0.85);
-  --border-color: rgba(255, 255, 255, 0.06);
-  --border-color-hover: rgba(255, 255, 255, 0.15);
+  --bg-app: #030303;
+  --bg-sidebar: #09090b;
+  --bg-card: rgba(9, 9, 11, 0.6);
+  --border-color: rgba(255, 255, 255, 0.04);
+  --border-color-hover: rgba(255, 255, 255, 0.08);
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
   
-  /* 品牌高亮与微光效 */
-  --accent-color: #2563eb; /* 优雅的电蓝 */
-  --accent-glow: rgba(37, 99, 235, 0.1);
-  --success-color: #10b981; /* 翡翠绿 */
+  --accent-color: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.1);
+  
+  --success-color: #10b981;
   --success-glow: rgba(16, 185, 129, 0.1);
-  --warning-color: #f59e0b; /* 琥珀黄 */
-  --error-color: #ef4444; /* 胭脂红 */
   
-  /* 文字分层清晰度（大厂严格规范） */
-  --text-primary: #f4f4f5;   /* 纯净浅灰 */
-  --text-secondary: #a1a1aa; /* 优雅中灰 */
-  --text-muted: #52525b;     /* 沉稳暗灰 */
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
   
-  /* 按钮自适应变量（暗色下） */
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 0 16px rgba(59, 130, 246, 0.15);
+  
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --grid-color: rgba(255, 255, 255, 0.015);
+  --glow-color: rgba(59, 130, 246, 0.02);
+  
   --btn-primary-bg: #ffffff;
   --btn-primary-text: #000000;
   
-  /* 阴影与圆角 */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 32px rgba(37, 99, 235, 0.15);
-  
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-
-  /* 网格线颜色与背景发光（暗色下） */
-  --grid-color: rgba(255, 255, 255, 0.008);
-  --glow-color: rgba(37, 99, 235, 0.06);
+  --bg-item: rgba(255, 255, 255, 0.015);
+  --bg-item-hover: rgba(255, 255, 255, 0.04);
 }
 
-/* 大厂高端极简 Zinc-Light 中性银灰色调亮色主题 */
 [data-theme='light'] {
   --bg-app: #f4f4f5;
-  --bg-sidebar: #ebebec;
-  --bg-card: rgba(255, 255, 255, 0.75);
-  --bg-card-hover: rgba(255, 255, 255, 0.95);
-  --border-color: rgba(9, 9, 11, 0.08);
-  --border-color-hover: rgba(9, 9, 11, 0.16);
+  --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-sidebar: #ffffff;
+  --border-color: #e4e4e7;
+  --border-color-hover: #d4d4d8;
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
   
-  /* 品牌色微调以适应亮色背景 */
   --accent-color: #2563eb;
   --accent-glow: rgba(37, 99, 235, 0.06);
+  
   --success-color: #059669;
   --success-glow: rgba(5, 150, 105, 0.06);
-  --warning-color: #d97706;
-  --error-color: #dc2626;
   
-  /* 亮色文字分层 */
-  --text-primary: #09090b;
-  --text-secondary: #71717a;
-  --text-muted: #a1a1aa;
-  
-  /* 按钮自适应变量（亮色下） */
-  --btn-primary-bg: #09090b;
+  --btn-primary-bg: #18181b;
   --btn-primary-text: #ffffff;
   
   /* 亮色阴影与微光效 */

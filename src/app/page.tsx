@@ -15,7 +15,7 @@ import {
   Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X
 } from 'lucide-react';
 
-type ActiveTab = 'transfer' | 'knowledge' | 'settings';
+type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings';
 
 export default function Home() {
   // 1. 初始化局域网在线节点发现逻辑
@@ -216,6 +216,35 @@ export default function Home() {
             >
               <Files size={15} style={{ color: activeTab === 'transfer' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
               极速文件流
+            </button>
+
+            <button
+              onClick={() => setActiveTab('share')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                width: '100%',
+                padding: '10px 14px',
+                background: activeTab === 'share' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
+                border: activeTab === 'share' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
+                color: activeTab === 'share' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.85rem',
+                fontWeight: activeTab === 'share' ? 600 : 500,
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.15s'
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== 'share') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== 'share') e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <FolderOpen size={15} style={{ color: activeTab === 'share' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
+              共享中心
             </button>
 
             <button
@@ -437,11 +466,13 @@ export default function Home() {
           <div>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
               {activeTab === 'transfer' && '文件传输工作台'}
+              {activeTab === 'share' && '公共共享中心'}
               {activeTab === 'knowledge' && '知识协作云文档'}
               {activeTab === 'settings' && '全局系统配置'}
             </h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
               {activeTab === 'transfer' && '安全、无压缩的局域网零阻碍点对点极速传输'}
+              {activeTab === 'share' && '长效、大文件零压缩合并存储的局域网公共共享空间'}
               {activeTab === 'knowledge' && '支持富文本与代码的局域网去中心化物理落盘云文档'}
               {activeTab === 'settings' && '修改默认存储路径以及查看本端硬件和网络特征'}
             </p>
@@ -539,27 +570,27 @@ export default function Home() {
           {/* TAB 1: 极速文件传输工作台 */}
           {activeTab === 'transfer' && (
             <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '45% 55%', 
-              gap: '24px',
-              alignItems: 'stretch'
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px'
             }} className="fade-in">
-              
-              {/* 左侧：自发现设备雷达 */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <PeerList 
-                  peers={peers} 
-                  onSendFile={(peer, file) => {
-                    sendFile(peer.ip, peer.port, peer.id, peer.nickname, file);
-                  }} 
-                />
-              </div>
+              <PeerList 
+                peers={peers} 
+                onSendFile={(peer, file) => {
+                  sendFile(peer.ip, peer.port, peer.id, peer.nickname, file);
+                }} 
+              />
+            </div>
+          )}
 
-              {/* 右侧：公共文件共享空间 */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <SharedFiles uploadPublicFile={uploadPublicFile} />
-              </div>
-              
+          {/* TAB 2: 公共共享中心 */}
+          {activeTab === 'share' && (
+            <div style={{ 
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px'
+            }} className="fade-in">
+              <SharedFiles uploadPublicFile={uploadPublicFile} />
             </div>
           )}
 
