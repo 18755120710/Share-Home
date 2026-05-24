@@ -3,6 +3,7 @@ import path from 'path';
 import http from 'http';
 import { TransferTask } from '../types/transfer';
 import { SocketService } from './socketService';
+import { ConfigService } from './configService';
 
 export interface FileMetadata {
   taskId: string;
@@ -28,11 +29,9 @@ export class FileService {
   }> = new Map();
 
   private constructor() {
-    // 默认在项目根目录下创建 shared_downloads 文件夹
-    this.downloadsDir = path.join(process.cwd(), 'shared_downloads');
-    if (!fs.existsSync(this.downloadsDir)) {
-      fs.mkdirSync(this.downloadsDir, { recursive: true });
-    }
+    // 动态获取由 ConfigService 提供的存储路径
+    const configService = ConfigService.getInstance();
+    this.downloadsDir = configService.getStoragePath();
   }
 
   public static getInstance(): FileService {
@@ -65,7 +64,8 @@ export class FileService {
     peerId: string,
     peerName: string
   ): void {
-    const savePath = path.join(this.downloadsDir, fileName);
+    const currentStorageDir = ConfigService.getInstance().getStoragePath();
+    const savePath = path.join(currentStorageDir, fileName);
     
     // 检查是否已有下载任务，支持从上次的断点处继续下载
     let offset = 0;
@@ -219,6 +219,6 @@ export class FileService {
   }
 
   public getDownloadsDir(): string {
-    return this.downloadsDir;
+    return ConfigService.getInstance().getStoragePath();
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { FileService } from '@/services/fileService';
+import { ConfigService } from '@/services/configService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,10 +36,7 @@ export async function POST(request: NextRequest) {
       // 执行大文件分片合并
       console.log(`[PrepareUpload] 收到全部 ${totalChunks} 个分片，正在合并大文件: ${fileName}`);
       
-      const finalDir = path.join(process.cwd(), 'shared_downloads');
-      if (!fs.existsSync(finalDir)) {
-        fs.mkdirSync(finalDir, { recursive: true });
-      }
+      const finalDir = ConfigService.getInstance().getStoragePath();
       
       // 合并目标物理路径 (如果重名，自动加时间戳防覆盖)
       let finalPath = path.join(finalDir, fileName);
