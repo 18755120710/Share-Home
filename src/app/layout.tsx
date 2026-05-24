@@ -25,6 +25,17 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
+        {/* 局域网全局主题防闪烁预设置脚本 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const savedTheme = localStorage.getItem('theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', savedTheme);
+              } catch (e) {}
+            `
+          }}
+        />
         {/* 局域网开发模式静默拦截防御脚本：防止非本地开发终端请求 Next.js HMR 导致控制台报错 */}
         <script
           dangerouslySetInnerHTML={{

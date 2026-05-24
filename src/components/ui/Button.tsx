@@ -17,9 +17,9 @@ export const Button: React.FC<ButtonProps> = ({
     switch (variant) {
       case 'primary':
         return {
-          background: '#ffffff',
-          color: '#000000',
-          border: '1px solid #ffffff',
+          background: 'var(--btn-primary-bg, #ffffff)',
+          color: 'var(--btn-primary-text, #000000)',
+          border: '1px solid var(--btn-primary-bg, #ffffff)',
         };
       case 'secondary':
         return {
@@ -63,7 +63,8 @@ export const Button: React.FC<ButtonProps> = ({
         if (disabled) return;
         e.currentTarget.style.transform = 'scale(0.98)';
         if (variant === 'primary') {
-          e.currentTarget.style.boxShadow = '0 0 16px rgba(255, 255, 255, 0.25)';
+          e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+          e.currentTarget.style.opacity = '0.9';
         } else if (variant === 'secondary') {
           e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
           e.currentTarget.style.borderColor = 'var(--border-color-hover)';
@@ -76,7 +77,8 @@ export const Button: React.FC<ButtonProps> = ({
         e.currentTarget.style.transform = 'scale(1)';
         e.currentTarget.style.boxShadow = 'none';
         if (variant === 'primary') {
-          e.currentTarget.style.background = '#ffffff';
+          e.currentTarget.style.background = 'var(--btn-primary-bg, #ffffff)';
+          e.currentTarget.style.opacity = '1';
         } else if (variant === 'secondary') {
           e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
           e.currentTarget.style.borderColor = 'var(--border-color)';

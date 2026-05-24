@@ -22,6 +22,10 @@
   --text-secondary: #a1a1aa; /* 优雅中灰 */
   --text-muted: #52525b;     /* 沉稳暗灰 */
   
+  /* 按钮自适应变量（暗色下） */
+  --btn-primary-bg: #ffffff;
+  --btn-primary-text: #000000;
+  
   /* 阴影与圆角 */
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -33,6 +37,46 @@
   
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* 网格线颜色与背景发光（暗色下） */
+  --grid-color: rgba(255, 255, 255, 0.008);
+  --glow-color: rgba(37, 99, 235, 0.06);
+}
+
+/* 大厂高端极简 Zinc-Light 中性银灰色调亮色主题 */
+[data-theme='light'] {
+  --bg-app: #f4f4f5;
+  --bg-sidebar: #ebebec;
+  --bg-card: rgba(255, 255, 255, 0.75);
+  --bg-card-hover: rgba(255, 255, 255, 0.95);
+  --border-color: rgba(9, 9, 11, 0.08);
+  --border-color-hover: rgba(9, 9, 11, 0.16);
+  
+  /* 品牌色微调以适应亮色背景 */
+  --accent-color: #2563eb;
+  --accent-glow: rgba(37, 99, 235, 0.06);
+  --success-color: #059669;
+  --success-glow: rgba(5, 150, 105, 0.06);
+  --warning-color: #d97706;
+  --error-color: #dc2626;
+  
+  /* 亮色文字分层 */
+  --text-primary: #09090b;
+  --text-secondary: #71717a;
+  --text-muted: #a1a1aa;
+  
+  /* 按钮自适应变量（亮色下） */
+  --btn-primary-bg: #09090b;
+  --btn-primary-text: #ffffff;
+  
+  /* 亮色阴影与微光效 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 20px rgba(9, 9, 11, 0.08);
+  --shadow-glow: 0 0 32px rgba(37, 99, 235, 0.08);
+  
+  /* 网格线与流光颜色在亮色下的重定义 */
+  --grid-color: rgba(9, 9, 11, 0.015);
+  --glow-color: rgba(37, 99, 235, 0.035);
 }
 
 * {
@@ -41,6 +85,8 @@
   padding: 0;
   scrollbar-width: thin;
   scrollbar-color: var(--text-muted) transparent;
+  /* 开启丝滑的主题转换动画过渡 */
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* 优雅的自定义滚动条 */
@@ -52,11 +98,11 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(128, 128, 128, 0.15);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(128, 128, 128, 0.25);
 }
 
 body {
@@ -69,8 +115,8 @@ body {
   
   /* 极简精致大厂网格背景 */
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.008) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.008) 1px, transparent 1px);
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
@@ -82,7 +128,7 @@ body::before {
   left: 25%;
   width: 50%;
   height: 350px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
   z-index: -1;
   pointer-events: none;
 }
