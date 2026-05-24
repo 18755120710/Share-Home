@@ -211,101 +211,128 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
   };
 
   return (
-    <Card style={{ flex: 1.3, display: 'flex', flexDirection: 'column', gap: '20px', minHeight: '400px' }}>
+    <Card 
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      style={{ 
+        flex: 1.3, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '20px', 
+        minHeight: '400px',
+        border: isDragOver ? '2px dashed var(--accent-color)' : '1px solid var(--border-color)',
+        background: isDragOver ? 'var(--accent-glow)' : 'var(--bg-card)',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        position: 'relative'
+      }}
+    >
       
       {/* 标题栏 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.025em' }}>公共文件共享空间</h2>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.025em', color: 'var(--text-primary)' }}>公共共享空间</h2>
           <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            上传至局域网公共盘，即使没有其他设备连接，文件也能长效持久保存
+            局域网公共落盘文件长效存储，所有设备即插即用、流式极速下发（松开文件于页面即可极速上传）
           </p>
         </div>
-        <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-          共享文件数: {files.length} 个
-        </span>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+            共享文件数: {files.length} 个
+          </span>
+          
+          {/* 隐藏的物理文件选择器 */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+            disabled={status === 'uploading'}
+          />
+          
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={status === 'uploading'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              background: 'var(--accent-color)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: status === 'uploading' ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 4px rgba(59, 130, 246, 0.15)'
+            }}
+            onMouseEnter={(e) => {
+              if (status !== 'uploading') e.currentTarget.style.filter = 'brightness(1.1)';
+            }}
+            onMouseLeave={(e) => {
+              if (status !== 'uploading') e.currentTarget.style.filter = 'none';
+            }}
+          >
+            <UploadCloud size={14} />
+            <span>{status === 'uploading' ? '正在上传...' : '上传文件'}</span>
+          </button>
+        </div>
       </div>
 
-      {/* 拖拽/点击上传热区 */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        className={`upload-zone ${isDragOver ? 'drag-over' : ''}`}
-        style={{
-          border: isDragOver ? '2px dashed var(--accent-color)' : '1px dashed var(--border-color)',
-          background: isDragOver ? 'var(--accent-glow)' : 'var(--bg-item)',
+      {/* 极窄、微光大厂科技感状态指示栏 */}
+      {status !== 'idle' && (
+        <div style={{
+          background: 'var(--bg-item)',
+          border: `1px solid ${
+            status === 'uploading' ? 'rgba(59, 130, 246, 0.2)' :
+            status === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'
+          }`,
           borderRadius: 'var(--radius-md)',
-          padding: '24px 20px',
-          textAlign: 'center',
-          cursor: status === 'uploading' ? 'not-allowed' : 'pointer',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          padding: '12px 16px',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px'
-        }}
-      >
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-          disabled={status === 'uploading'}
-        />
-
-        {status === 'idle' && (
-          <>
-            <UploadCloud size={28} style={{ color: 'var(--text-secondary)' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>点击选择或将文件拖拽到此处</span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>支持任意格式的超大文件局域网极速合并上传</span>
+          gap: '8px',
+          animation: 'fade-in 0.25s ease'
+        }}>
+          {status === 'uploading' && uploadingFile && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '80%' }}>
+                  正在极速分片上传: {uploadingFile.name} ({formatBytes(uploadingFile.size)})
+                </span>
+                <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>{uploadProgress}%</span>
+              </div>
+              <div style={{ width: '100%', height: '3px', background: 'rgba(128, 128, 128, 0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${uploadProgress}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, var(--accent-color), #60a5fa)',
+                  borderRadius: '2.5px',
+                  transition: 'width 0.15s linear',
+                  boxShadow: '0 0 6px var(--accent-color)'
+                }} />
+              </div>
+            </>
+          )}
+          
+          {status === 'success' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success-color)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <CheckCircle2 size={14} />
+              <span>共享上传成功！文件已在服务器物理落盘并向局域网广播同步。</span>
             </div>
-          </>
-        )}
-
-        {status === 'uploading' && uploadingFile && (
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', padding: '0 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
-              <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
-                正在极速分片上传: {uploadingFile.name}
-              </span>
-              <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{uploadProgress}%</span>
+          )}
+          
+          {status === 'error' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--error-color)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <AlertCircle size={14} />
+              <span>上传失败: {errorMsg || '发生了未知错误'}</span>
             </div>
-            <div style={{ width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '2px', overflow: 'hidden' }}>
-              <div style={{
-                width: `${uploadProgress}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, var(--accent-color), #60a5fa)',
-                borderRadius: '2px',
-                transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 0 8px var(--accent-color)'
-              }} />
-            </div>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-              文件大小: {formatBytes(uploadingFile.size)} · 本地极速通道暂存中...
-            </span>
-          </div>
-        )}
-
-        {status === 'success' && uploadingFile && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: 'var(--success-color)' }}>
-            <CheckCircle2 size={26} className="animate-pulse" />
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>共享上传成功！文件已在服务器物理落盘</span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>已自动同步广播给所有局域网设备</span>
-          </div>
-        )}
-
-        {status === 'error' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: 'var(--error-color)' }}>
-            <AlertCircle size={26} />
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>上传失败</span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{errorMsg || '发生了未知错误'}</span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* 共享文件列表 */}
       <div style={{ 
