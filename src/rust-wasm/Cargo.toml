@@ -1,0 +1,14 @@
+[package]
+name = "share-home-wasm"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.92"
+# 高速度的局域网哈希算法，xxHash 是目前世界上速度最快的非加密哈希算法
+xxhash-rust = { version = "0.8.10", features = ["xxh3", "const_xxh3"] }
+sha2 = "0.10.8"
+js-sys = "0.3.69"
