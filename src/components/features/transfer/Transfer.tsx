@@ -23,7 +23,9 @@ export const Transfer: React.FC<TransferProps> = ({
   isOpen,
   onClose
 }) => {
-  const taskList = Object.values(tasks).sort((a, b) => b.startedAt - a.startedAt);
+  const taskList = Object.values(tasks)
+    .filter(t => t.status === 'transferring' || t.status === 'pending' || t.status === 'paused')
+    .sort((a, b) => b.startedAt - a.startedAt);
 
   // 辅助函数：渲染任务状态图标
   const renderStatusBadge = (task: TransferTask) => {

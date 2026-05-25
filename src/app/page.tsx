@@ -12,10 +12,11 @@ import Card from '@/components/ui/Card';
 import { 
   Radio, RefreshCw, Laptop, Edit3, Check, 
   Files, FileText, Settings, ShieldAlert, FolderOpen,
-  Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X
+  Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X,
+  History, ArrowRight, CheckCircle2, XCircle, Ban
 } from 'lucide-react';
 
-type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings';
+type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history';
 
 export default function Home() {
   // 1. 初始化局域网在线节点发现逻辑
@@ -23,8 +24,7 @@ export default function Home() {
 
   // 2. 初始化局域网极速传输引擎逻辑
   const { tasks, incomingRequest, sendFile, acceptRequest, rejectRequest, uploadPublicFile } = useFileTransfer(
-    self?.id,
-    self?.nickname
+    self
   );
 
   // 页面当前激活的大 Tab
@@ -274,6 +274,35 @@ export default function Home() {
             >
               <FileText size={15} style={{ color: activeTab === 'knowledge' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
               飞书云文档
+            </button>
+
+            <button
+              onClick={() => setActiveTab('history')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                width: '100%',
+                padding: '10px 14px',
+                background: activeTab === 'history' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
+                border: activeTab === 'history' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
+                color: activeTab === 'history' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.85rem',
+                fontWeight: activeTab === 'history' ? 600 : 500,
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.15s'
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== 'history') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== 'history') e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <History size={15} style={{ color: activeTab === 'history' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
+              传输记录
             </button>
 
             <button
@@ -578,7 +607,7 @@ export default function Home() {
                 peers={peers} 
                 self={self}
                 onSendFile={(peer, file) => {
-                  sendFile(peer.ip, peer.port, peer.id, peer.nickname, file);
+                  sendFile(peer, file);
                 }} 
               />
             </div>
@@ -601,6 +630,312 @@ export default function Home() {
               <KnowledgeBase peers={peers} self={self} />
             </div>
           )}
+
+          {/* TAB 4: 局域网物理传输历史记录 */}
+          {activeTab === 'history' && (() => {
+            const formatDateTime = (timestamp: number) => {
+              const d = new Date(timestamp);
+              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+            };
+            
+            const formatBytesLocal = (bytes: number) => {
+              if (bytes === 0) return '0 Bytes';
+              const k = 1024;
+              const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+              const i = Math.floor(Math.log(bytes) / Math.log(k));
+              return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            };
+
+            const historyTasks = Object.values(tasks).filter(
+              t => t.status === 'completed' || t.status === 'failed' || t.status === 'rejected'
+            );
+            const successCount = historyTasks.filter(t => t.status === 'completed').length;
+            const failCount = historyTasks.filter(t => t.status === 'failed' || t.status === 'rejected').length;
+            const sendCount = historyTasks.filter(t => t.type === 'send' && t.status === 'completed').length;
+            const receiveCount = historyTasks.filter(t => t.type === 'receive' && t.status === 'completed').length;
+            const successRate = historyTasks.length > 0 ? Math.round((successCount / historyTasks.length) * 100) : 100;
+            const sortedHistory = [...historyTasks].sort((a, b) => b.startedAt - a.startedAt);
+
+            // 辅助：获取 OS 的徽标样式和文字
+            const getOsBadge = (os: string) => {
+              const lower = os.toLowerCase();
+              if (lower.includes('win')) return { label: 'WIN', bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' };
+              if (lower.includes('mac') || lower.includes('ios')) return { label: 'MAC', bg: 'rgba(168, 85, 247, 0.15)', color: '#a855f7' };
+              if (lower.includes('linux')) return { label: 'LINUX', bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' };
+              return { label: 'PEER', bg: 'rgba(128, 128, 128, 0.15)', color: 'var(--text-secondary)' };
+            };
+
+            // 辅助：渲染头像 Icon（拼装极简文字圆徽章）
+            const renderAvatarBadge = (name: string, avatar: string) => {
+              const initial = name.trim().charAt(0).toUpperCase() || 'P';
+              const colorHash = name.charCodeAt(0) % 5;
+              const gradients = [
+                'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                'linear-gradient(135deg, #10b981, #047857)',
+                'linear-gradient(135deg, #a855f7, #7e22ce)',
+                'linear-gradient(135deg, #f59e0b, #b45309)',
+                'linear-gradient(135deg, #ec4899, #be185d)'
+              ];
+              return (
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: gradients[colorHash],
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  border: '2px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: 'var(--shadow-sm)',
+                  flexShrink: 0
+                }}>
+                  {initial}
+                </div>
+              );
+            };
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }} className="fade-in">
+                {/* 1. 统计卡片面板 */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  gap: '16px'
+                }}>
+                  {/* 卡片 1 */}
+                  <Card style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>累计物理互传</span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                      <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>{historyTasks.length}</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>次</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', fontSize: '0.72rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '6px', marginTop: '4px' }}>
+                      <span>成功: <strong style={{ color: 'var(--success-color)' }}>{successCount}</strong></span>
+                      <span>异常/拒绝: <strong style={{ color: 'var(--error-color)' }}>{failCount}</strong></span>
+                    </div>
+                  </Card>
+                  {/* 卡片 2 */}
+                  <Card style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>物理收发结构</span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                      <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--accent-color)' }}>{sendCount}</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>发 / </span>
+                      <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#a855f7' }}>{receiveCount}</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>收</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '6px', marginTop: '4px' }}>
+                      <span>活跃局域网交互带宽已最大化</span>
+                    </div>
+                  </Card>
+                  {/* 卡片 3 */}
+                  <Card style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>物理信道质量</span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                      <span style={{ fontSize: '1.8rem', fontWeight: 800, color: successRate >= 90 ? 'var(--success-color)' : 'var(--warning-color)' }}>{successRate}%</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>成功率</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '6px', marginTop: '4px' }}>
+                      <span>信道状态: <strong style={{ color: 'var(--success-color)' }}>极佳</strong></span>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* 2. 物理互传记录陈列大列表 */}
+                <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, borderBottom: '1px solid var(--border-color)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
+                    局域网对等体互传历史归档
+                  </h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {sortedHistory.length === 0 ? (
+                      <div style={{ padding: '80px 0', textAlign: 'center', opacity: 0.5 }}>
+                        <History size={36} style={{ color: 'var(--text-muted)', margin: '0 auto 12px auto' }} />
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>当前尚无任何物理传输历史记录</p>
+                      </div>
+                    ) : (
+                      sortedHistory.map(task => {
+                        const isCompleted = task.status === 'completed';
+                        const isRejected = task.status === 'rejected';
+                        
+                        const senderName = task.senderName || '未知发送端';
+                        const senderIp = task.senderIp || '127.0.0.1';
+                        const senderOS = task.senderOS || 'Windows';
+                        const senderAvatar = task.senderAvatar || 'avatar-1';
+
+                        const receiverName = task.receiverName || '未知接收端';
+                        const receiverIp = task.receiverIp || '127.0.0.1';
+                        const receiverOS = task.receiverOS || 'Windows';
+                        const receiverAvatar = task.receiverAvatar || 'avatar-1';
+
+                        const sOs = getOsBadge(senderOS);
+                        const rOs = getOsBadge(receiverOS);
+
+                        return (
+                          <div
+                            key={task.id}
+                            style={{
+                              padding: '16px 20px',
+                              background: 'rgba(128, 128, 128, 0.02)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '14px',
+                              transition: 'border-color 0.2s',
+                              position: 'relative',
+                              overflow: 'hidden'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-color-hover)'}
+                            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                          >
+                            {/* 顶部: 双翼流向图 */}
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'space-between',
+                              gap: '16px',
+                              flexWrap: 'wrap'
+                            }}>
+                              {/* 左翼: 发送端 */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '160px', flex: 1 }}>
+                                {renderAvatarBadge(senderName, senderAvatar)}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{senderName}</span>
+                                    <span style={{
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      padding: '2px 5px',
+                                      borderRadius: '4px',
+                                      background: sOs.bg,
+                                      color: sOs.color
+                                    }}>{sOs.label}</span>
+                                  </div>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>IP: {senderIp}</span>
+                                </div>
+                              </div>
+
+                              {/* 中间: 物理传输信道流动线 */}
+                              <div style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                alignItems: 'center', 
+                                gap: '6px',
+                                flex: 2,
+                                minWidth: '140px',
+                                position: 'relative'
+                              }}>
+                                {/* 信道发光线 */}
+                                <div style={{
+                                  width: '100%',
+                                  height: '2px',
+                                  background: 'repeating-linear-gradient(90deg, var(--border-color), var(--border-color) 4px, transparent 4px, transparent 8px)',
+                                  position: 'relative'
+                                }}>
+                                  <div style={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    top: 0,
+                                    height: '100%',
+                                    width: '100%',
+                                    background: isCompleted ? 'linear-gradient(90deg, transparent, var(--success-color), transparent)' : 'linear-gradient(90deg, transparent, var(--error-color), transparent)',
+                                    animation: 'pulse-line 2s infinite linear'
+                                  }} />
+                                </div>
+
+                                {/* 状态徽章 */}
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '4px 10px',
+                                  borderRadius: '20px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  background: isCompleted ? 'var(--success-glow)' : isRejected ? 'rgba(245, 158, 11, 0.08)' : 'var(--error-glow)',
+                                  border: `1px solid ${isCompleted ? 'rgba(16, 185, 129, 0.2)' : isRejected ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                                  color: isCompleted ? 'var(--success-color)' : isRejected ? 'var(--warning-color)' : 'var(--error-color)'
+                                }}>
+                                  {isCompleted ? (
+                                    <>
+                                      <CheckCircle2 size={11} />
+                                      <span>已下载落地</span>
+                                    </>
+                                  ) : isRejected ? (
+                                    <>
+                                      <Ban size={11} />
+                                      <span>接收端拒绝</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle size={11} />
+                                      <span>网络异常</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* 右翼: 接收端 */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '160px', flex: 1, justifyContent: 'flex-end', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      padding: '2px 5px',
+                                      borderRadius: '4px',
+                                      background: rOs.bg,
+                                      color: rOs.color
+                                    }}>{rOs.label}</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{receiverName}</span>
+                                  </div>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>IP: {receiverIp}</span>
+                                </div>
+                                {renderAvatarBadge(receiverName, receiverAvatar)}
+                              </div>
+                            </div>
+
+                            {/* 底部分隔线 */}
+                            <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
+
+                            {/* 底部: 文件元数据与时间戳 */}
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              fontSize: '0.75rem',
+                              color: 'var(--text-secondary)',
+                              flexWrap: 'wrap',
+                              gap: '8px'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{task.fileName}</span>
+                                <span style={{ color: 'var(--text-muted)' }}>({formatBytesLocal(task.fileSize)})</span>
+                              </div>
+                              <div style={{ color: 'var(--text-muted)' }}>
+                                {formatDateTime(task.startedAt)}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </Card>
+
+                {/* 滚动动画 CSS 定义 */}
+                <style jsx>{`
+                  @keyframes pulse-line {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                  }
+                `}</style>
+              </div>
+            );
+          })()}
 
           {/* TAB 3: 系统配置控制台 */}
           {activeTab === 'settings' && (

@@ -1,4 +1,4 @@
-export type TransferStatus = 'pending' | 'transferring' | 'paused' | 'completed' | 'failed';
+export type TransferStatus = 'pending' | 'transferring' | 'paused' | 'completed' | 'failed' | 'rejected';
 
 export interface TransferTask {
   /** 任务唯一 UUID */
@@ -25,6 +25,19 @@ export interface TransferTask {
   error?: string;
   /** 任务启动时间戳 */
   startedAt: number;
+
+  // 🌟 局域网物理历史记录扩展 (对等双翼属性)
+  senderId?: string;
+  senderName?: string;
+  senderIp?: string;
+  senderOS?: string;
+  senderAvatar?: string;
+  
+  receiverId?: string;
+  receiverName?: string;
+  receiverIp?: string;
+  receiverOS?: string;
+  receiverAvatar?: string;
 }
 
 /** 局域网传输控制 WebSocket 信令结构 */

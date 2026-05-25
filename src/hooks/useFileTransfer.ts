@@ -12,7 +12,12 @@ export interface IncomingRequest {
   downloadUrl: string;
 }
 
-export function useFileTransfer(selfId: string | undefined, selfNickname: string | undefined) {
+export function useFileTransfer(self: any) {
+  const selfId = self?.id;
+  const selfNickname = self?.nickname;
+  const selfOS = self?.os || 'Windows';
+  const selfAvatar = self?.avatar || 'avatar-1';
+
   // 维护所有正在进行与已完成的传输任务
   const [tasks, setTasks] = useState<Record<string, TransferTask>>({});
   
@@ -100,7 +105,17 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
               peerId: t.senderId === selfId ? t.peerId : t.senderId,
               peerName: t.senderId === selfId ? t.peerName : t.senderName,
               startedAt: t.startedAt || Date.now(),
-              error: t.status === 'rejected' ? '对方已拒绝接收该文件' : undefined
+              error: t.status === 'rejected' ? '对方已拒绝接收该文件' : undefined,
+              senderId: t.senderId,
+              senderName: t.senderName,
+              senderIp: t.senderIp,
+              senderOS: t.senderOS,
+              senderAvatar: t.senderAvatar,
+              receiverId: t.peerId || t.receiverId,
+              receiverName: t.peerName || t.receiverName,
+              receiverIp: t.receiverIp,
+              receiverOS: t.receiverOS,
+              receiverAvatar: t.receiverAvatar
             };
             
             // 如果对方是接收者，且该任务目前还是待接收状态，则自动弹出接收面板
@@ -133,16 +148,19 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
    * 发送大文件给远端 Peer (核心物理大闭环)
    */
   const sendFile = async (
-    targetPeerIp: string,
-    targetPeerPort: number,
-    targetPeerId: string,
-    targetPeerName: string,
+    targetPeer: any,
     file: File
   ) => {
     if (!selfId || !selfNickname) {
       alert('请等待系统初始化完毕！');
       return;
     }
+
+    const targetPeerId = targetPeer.id;
+    const targetPeerName = targetPeer.nickname;
+    const targetPeerIp = targetPeer.ip;
+    const targetPeerOS = targetPeer.os || 'Windows';
+    const targetPeerAvatar = targetPeer.avatar || 'avatar-1';
 
     const taskId = generateUUID();
     const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB 一个分片
@@ -160,7 +178,17 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
       status: 'pending',
       peerId: targetPeerId,
       peerName: targetPeerName,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      senderId: selfId,
+      senderName: selfNickname,
+      senderIp: window.location.hostname,
+      senderOS: selfOS,
+      senderAvatar: selfAvatar,
+      receiverId: targetPeerId,
+      receiverName: targetPeerName,
+      receiverIp: targetPeerIp,
+      receiverOS: targetPeerOS,
+      receiverAvatar: targetPeerAvatar
     };
 
     setTasks(prev => ({ ...prev, [taskId]: newTask }));
@@ -195,7 +223,11 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
         const selfIp = window.location.hostname;
         const downloadUrl = `http://${selfIp}:3000/api/transfer/download?taskId=${taskId}`;
         const res = await fetch(
-          `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}&targetClientId=${encodeURIComponent(targetPeerId)}&targetPeerName=${encodeURIComponent(targetPeerName)}&senderId=${encodeURIComponent(selfId)}&senderName=${encodeURIComponent(selfNickname)}&downloadUrl=${encodeURIComponent(downloadUrl)}`,
+          `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}` +
+          `&targetClientId=${encodeURIComponent(targetPeerId)}&targetPeerName=${encodeURIComponent(targetPeerName)}` +
+          `&senderId=${encodeURIComponent(selfId)}&senderName=${encodeURIComponent(selfNickname)}&downloadUrl=${encodeURIComponent(downloadUrl)}` +
+          `&senderIp=${encodeURIComponent(selfIp)}&senderOS=${encodeURIComponent(selfOS)}&senderAvatar=${encodeURIComponent(selfAvatar)}` +
+          `&receiverIp=${encodeURIComponent(targetPeerIp)}&receiverOS=${encodeURIComponent(targetPeerOS)}&receiverAvatar=${encodeURIComponent(targetPeerAvatar)}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/octet-stream' },

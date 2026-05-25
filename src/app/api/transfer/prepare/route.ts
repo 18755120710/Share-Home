@@ -135,6 +135,14 @@ export async function POST(request: NextRequest) {
         const senderName = searchParams.get('senderName') || '局域网伙伴';
         const downloadUrl = searchParams.get('downloadUrl') || '';
 
+        // 🌟 新增的高保真局域网多维信息
+        const senderIp = searchParams.get('senderIp') || '';
+        const senderOS = searchParams.get('senderOS') || 'Windows';
+        const senderAvatar = searchParams.get('senderAvatar') || 'avatar-1';
+        const receiverIp = searchParams.get('receiverIp') || '';
+        const receiverOS = searchParams.get('receiverOS') || 'Windows';
+        const receiverAvatar = searchParams.get('receiverAvatar') || 'avatar-1';
+
         fileService.registerTransferTask(taskId, {
           id: taskId,
           fileName: actualName,
@@ -147,7 +155,17 @@ export async function POST(request: NextRequest) {
           senderId,
           senderName,
           downloadUrl,
-          startedAt: Date.now()
+          startedAt: Date.now(),
+          
+          // 物理落盘记录
+          senderIp,
+          senderOS,
+          senderAvatar,
+          receiverId: targetClientId,
+          receiverName: targetPeerName,
+          receiverIp,
+          receiverOS,
+          receiverAvatar
         });
       }
 
