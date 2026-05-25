@@ -95,7 +95,7 @@ export const Transfer: React.FC<TransferProps> = ({
       <div style={drawerStyle}>
         
         {/* 顶部头部栏 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>文件传输中心</h2>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>

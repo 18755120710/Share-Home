@@ -10,7 +10,7 @@ export class SocketClient {
   private constructor() {
     // 仅在浏览器环境下启动连接
     if (typeof window !== 'undefined') {
-      this.connect();
+      void this.connect();
     }
   }
 
@@ -24,13 +24,27 @@ export class SocketClient {
   /**
    * 启动 WebSocket 连接并挂载自愈机制
    */
-  private connect() {
+  private async connect() {
     if (this.ws || this.isConnecting) return;
     this.isConnecting = true;
 
-    const host = typeof window !== 'undefined' ? window.location.hostname : '10.100.50.194';
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const clientId = typeof window !== 'undefined' ? localStorage.getItem('share_home_client_id') || '' : '';
+    let clientId = '';
+    if (typeof window !== 'undefined') {
+      clientId = localStorage.getItem('share_home_client_id') || '';
+      if (!clientId) {
+        clientId = `peer_web_${Math.random().toString(36).substring(2, 11)}`;
+        localStorage.setItem('share_home_client_id', clientId);
+      }
+    }
+
+    try {
+      await fetch(`/api/init?clientId=${encodeURIComponent(clientId)}`, { cache: 'no-store' });
+    } catch (err) {
+      console.warn('[SocketClient] 初始化宿主服务失败，仍将尝试连接 WebSocket:', err);
+    }
+
     console.log(`[SocketClient] 正在建立全局共享通信长连接: ${protocol}://${host}:3001?clientId=${clientId}`);
     const ws = new WebSocket(`${protocol}://${host}:3001?clientId=${clientId}`);
     this.ws = ws;
@@ -63,7 +77,7 @@ export class SocketClient {
       this.trigger('system:disconnected', null);
 
       if (!this.reconnectTimer) {
-        this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+        this.reconnectTimer = setTimeout(() => void this.connect(), 3000);
       }
     };
 

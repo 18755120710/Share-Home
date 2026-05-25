@@ -3,8 +3,8 @@ import os from 'os';
 import { Peer } from '../types/peer';
 
 export class MdnsService {
-  private bonjour: Bonjour | null = null;
-  private publishedService: Service | null = null;
+  private bonjour: InstanceType<typeof Bonjour> | null = null;
+  private publishedService: InstanceType<typeof Service> | null = null;
   private browser: any = null;
   
   // 维护局域网在线节点，Key 为 Peer ID
@@ -62,7 +62,7 @@ export class MdnsService {
     // 2. 扫描局域网内的其他 ShareHome 服务
     this.browser = this.bonjour.find({ type: 'sharehome' });
 
-    this.browser.on('up', (service: Service) => {
+    this.browser.on('up', (service: InstanceType<typeof Service>) => {
       const txt = service.txt || {};
       const peerId = txt.id;
       const peerIp = txt.ip || service.referer?.address;
@@ -86,7 +86,7 @@ export class MdnsService {
       this.notifyListeners();
     });
 
-    this.browser.on('down', (service: Service) => {
+    this.browser.on('down', (service: InstanceType<typeof Service>) => {
       // 寻找对应的节点移出
       const txt = service.txt || {};
       const peerId = txt.id;

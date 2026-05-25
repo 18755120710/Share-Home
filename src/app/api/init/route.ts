@@ -31,36 +31,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const clientId = searchParams.get('clientId');
 
-  // 获取客户端的真实局域网 IP
-  let clientIp = request.ip || request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
-  if (clientIp.includes(',')) {
-    clientIp = clientIp.split(',')[0].trim();
-  }
-  if (clientIp.startsWith('::ffff:')) {
-    clientIp = clientIp.substring(7);
-  }
-  if (clientIp === '::1') {
-    clientIp = '127.0.0.1';
-  }
-
-  // 如果是由非本地主机网页访问（传入了专有 clientId 且非主机 ID），注册为 Web 浏览器虚拟伙伴
-  if (clientId && clientId !== mdns.getSelfId()) {
-    mdns.registerWebPeer(clientId, clientIp, '局域网伙伴', 'avatar-2');
-    
-    return NextResponse.json({
-      status: 'ready',
-      self: {
-        id: clientId,
-        nickname: '局域网伙伴',
-        avatar: 'avatar-2',
-        ip: clientIp,
-        port: 3000,
-      }
-    });
-  }
-
   return NextResponse.json({
     status: 'ready',
+    clientId,
     self: {
       id: mdns.getSelfId(),
       nickname: '局域网伙伴',
@@ -73,21 +46,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: Request) {
   try {
-    const { nickname, avatar, clientId } = await request.json();
+    const { nickname, avatar } = await request.json();
     if (!nickname || !avatar) {
       return NextResponse.json({ success: false, error: '昵称和头像不能为空' }, { status: 400 });
     }
     
     const mdns = MdnsService.getInstance();
-    if (clientId && clientId !== mdns.getSelfId()) {
-      // 动态更新 Web 客户端伙伴的资料
-      const peers = mdns.getPeers();
-      const target = peers.find(p => p.id === clientId);
-      mdns.registerWebPeer(clientId, target ? target.ip : '127.0.0.1', nickname, avatar, target ? target.port : 3000);
-    } else {
-      // 更新主机自身广播资料
-      mdns.updateBroadcast(nickname, avatar);
-    }
+    // 远端浏览器访问的是这台主机的控制台，因此资料更新应作用于主机广播身份。
+    mdns.updateBroadcast(nickname, avatar);
     
     return NextResponse.json({ success: true, nickname, avatar });
   } catch (err: any) {

@@ -1,27 +1,27 @@
 import type { NextConfig } from "next";
+import os from "os";
+
+function getLocalIPv4Hosts(): string[] {
+  const hosts = new Set<string>();
+  const interfaces = os.networkInterfaces();
+
+  for (const addresses of Object.values(interfaces)) {
+    if (!addresses) continue;
+
+    for (const address of addresses) {
+      if (address.family === "IPv4" && !address.internal) {
+        hosts.add(address.address);
+      }
+    }
+  }
+
+  return Array.from(hosts);
+}
 
 const nextConfig: NextConfig = {
-  // 允许局域网所有设备在开发模式下正常访问（Next.js 16 安全机制要求）
+  // Next.js 16 校验的是 Origin/Referer 的 hostname，不包含协议和端口。
   allowedDevOrigins: [
-    'http://10.100.50.194:3000',
-    'http://192.168.*:3000',
-    'http://10.*:3000',
-    'http://172.16.*:3000',
-    'http://172.17.*:3000',
-    'http://172.18.*:3000',
-    'http://172.19.*:3000',
-    'http://172.20.*:3000',
-    'http://172.21.*:3000',
-    'http://172.22.*:3000',
-    'http://172.23.*:3000',
-    'http://172.24.*:3000',
-    'http://172.25.*:3000',
-    'http://172.26.*:3000',
-    'http://172.27.*:3000',
-    'http://172.28.*:3000',
-    'http://172.29.*:3000',
-    'http://172.30.*:3000',
-    'http://172.31.*:3000',
+    ...getLocalIPv4Hosts(),
   ],
   webpack: (config) => {
     config.experiments = {
@@ -34,4 +34,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

@@ -44,7 +44,8 @@ export async function calculateFileHash(data: Uint8Array): Promise<string> {
 
   // 2. 浏览器环境 Fallback：使用原生 Web Crypto API (底层为浏览器 C++ 硬件加速，性能极强且不阻塞主线程)
   if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    const hashInput = new Uint8Array(data).buffer;
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', hashInput);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
