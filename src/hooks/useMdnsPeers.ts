@@ -19,14 +19,18 @@ export function useMdnsPeers() {
   const initHostServices = async () => {
     try {
       let cid = '';
+      let nickname = '局域网伙伴';
+      let avatar = 'avatar-1';
       if (typeof window !== 'undefined') {
         cid = localStorage.getItem('share_home_client_id') || '';
         if (!cid) {
           cid = `peer_web_${Math.random().toString(36).substring(2, 11)}`;
           localStorage.setItem('share_home_client_id', cid);
         }
+        nickname = localStorage.getItem('share_home_nickname') || '局域网伙伴';
+        avatar = localStorage.getItem('share_home_avatar') || 'avatar-1';
       }
-      const res = await fetch(`/api/init?clientId=${cid}`);
+      const res = await fetch(`/api/init?clientId=${cid}&nickname=${encodeURIComponent(nickname)}&avatar=${avatar}`);
       const data = await res.json();
       if (data.status === 'ready') {
         const selfData = {
@@ -77,6 +81,10 @@ export function useMdnsPeers() {
       const data = await res.json();
       if (data.success) {
         setSelf(prev => prev ? { ...prev, nickname, avatar } : null);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('share_home_nickname', nickname);
+          localStorage.setItem('share_home_avatar', avatar);
+        }
         console.log('[useMdnsPeers] 个人资料更新广播成功！');
         // 主动刷新一次列表
         fetchPeersList();
