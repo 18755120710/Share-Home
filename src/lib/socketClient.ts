@@ -28,7 +28,7 @@ export class SocketClient {
     if (this.ws || this.isConnecting) return;
     this.isConnecting = true;
 
-    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const host = typeof window !== 'undefined' ? window.location.hostname : '10.100.50.194';
     const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss' : 'ws';
     const clientId = typeof window !== 'undefined' ? localStorage.getItem('share_home_client_id') || '' : '';
     console.log(`[SocketClient] 正在建立全局共享通信长连接: ${protocol}://${host}:3001?clientId=${clientId}`);
@@ -61,7 +61,7 @@ export class SocketClient {
       this.ws = null;
       this.isConnecting = false;
       this.trigger('system:disconnected', null);
-      
+
       if (!this.reconnectTimer) {
         this.reconnectTimer = setTimeout(() => this.connect(), 3000);
       }
