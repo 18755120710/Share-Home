@@ -94,18 +94,6 @@ export class SocketService {
             if (parsed.event === 'transfer:reject') {
               const { taskId } = parsed.data;
               console.log(`[WebSocket] 收到互传任务拒绝信令: ${taskId}`);
-              const fileService = FileService.getInstance();
-              
-              // 在持久化配置中更新为 rejected
-              const tasks = fileService.getTransferTasks();
-              if (tasks[taskId]) {
-                tasks[taskId].status = 'rejected';
-                fileService.registerTransferTask(taskId, tasks[taskId]);
-              }
-              
-              // 物理清空该任务暂存文件，自愈清理
-              fileService.cleanupTransferFile(taskId);
-              
               // 广播给所有人，同步前端任务列表状态
               this.broadcast('transfer:reject', { taskId });
             }

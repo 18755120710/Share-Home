@@ -428,9 +428,11 @@ export class FileService {
     
     // 更新持久化状态
     if (tasks[taskId]) {
-      tasks[taskId].status = 'completed';
-      tasks[taskId].progress = 100;
-      this.writeTransferTasks(tasks);
+      if (tasks[taskId].status !== 'rejected' && tasks[taskId].status !== 'failed') {
+        tasks[taskId].status = 'completed';
+        tasks[taskId].progress = 100;
+        this.writeTransferTasks(tasks);
+      }
     }
   }
 
