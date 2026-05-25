@@ -68,6 +68,10 @@ export class SocketService {
           clientIp = mdns.getLocalIp();
         }
 
+        if (clientId) {
+          (ws as any).clientId = clientId;
+        }
+
         if (clientId && clientId !== mdns.getSelfId()) {
           mdns.registerWebPeer(clientId, clientIp, nickname, avatar, 3000, os);
         }
@@ -77,7 +81,13 @@ export class SocketService {
           try {
             const parsed = JSON.parse(message);
             console.log('[WebSocket] 收到前端控制消息:', parsed);
-            // 这里可以处理前端发来的个性化事件
+            
+            // 收到前端中转互传握手请求：'transfer:request'
+            if (parsed.event === 'transfer:request') {
+              const { targetClientId, ...metadata } = parsed.data;
+              console.log(`[WebSocket] 转发文件传输申请，目标客户端: ${targetClientId}`);
+              this.sendToClient(targetClientId, 'transfer:request', metadata);
+            }
           } catch (e) {
             // 忽略非 JSON 数据
           }
@@ -154,5 +164,20 @@ export class SocketService {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ event, data }));
     }
+  }
+
+  /**
+   * 向指定 clientId 定向发送消息
+   */
+  public sendToClient(targetClientId: string, event: string, data: any): boolean {
+    const payload = JSON.stringify({ event, data });
+    let sent = false;
+    for (const client of this.clients) {
+      if ((client as any).clientId === targetClientId && client.readyState === WebSocket.OPEN) {
+        client.send(payload);
+        sent = true;
+      }
+    }
+    return sent;
   }
 }

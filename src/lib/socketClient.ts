@@ -143,4 +143,15 @@ export class SocketClient {
   public isConnected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
   }
+
+  /**
+   * 发送 WebSocket 信令给服务端
+   */
+  public emit(event: string, data: any): boolean {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ event, data }));
+      return true;
+    }
+    return false;
+  }
 }

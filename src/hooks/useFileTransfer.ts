@@ -162,21 +162,18 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
     console.log(`[useFileTransfer] 本地暂存合并完毕！正在向对方投递接收申请...`);
 
     try {
-      const res = await fetch(`http://${targetPeerIp}:${targetPeerPort}/api/transfer/request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskId,
-          senderId: selfId,
-          senderName: selfNickname,
-          fileName: file.name,
-          fileSize: file.size,
-          downloadUrl
-        })
+      const socket = SocketClient.getInstance();
+      const sendSuccess = socket.emit('transfer:request', {
+        targetClientId: targetPeerId, // 将目标 ClientId 带上，供服务端中转
+        taskId,
+        senderId: selfId,
+        senderName: selfNickname,
+        fileName: file.name,
+        fileSize: file.size,
+        downloadUrl
       });
 
-      const data = await res.json();
-      if (data.success) {
+      if (sendSuccess) {
         // 等待对方点击接收，状态置为 pending
         setTasks(prev => ({
           ...prev,
@@ -187,7 +184,7 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
           }
         }));
       } else {
-        throw new Error(data.error || '对方服务异常');
+        throw new Error('WebSocket 信道未就绪或连接断开，请刷新页面重试');
       }
     } catch (err: any) {
       console.error('[useFileTransfer] 跨机投递握手失败:', err);
