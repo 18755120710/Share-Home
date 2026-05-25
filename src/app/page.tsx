@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMdnsPeers } from '@/hooks/useMdnsPeers';
 import { useFileTransfer } from '@/hooks/useFileTransfer';
 import PeerList from '@/components/features/peers/PeerList';
@@ -37,6 +37,15 @@ export default function Home() {
   const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
   const [prevTasksLength, setPrevTasksLength] = useState(0);
 
+  // 标志是否为首次加载，在 1 秒后强制置为 false
+  const isInitialLoad = useRef(true);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isInitialLoad.current = false;
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // 个人资料编辑状态
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [newNickname, setNewNickname] = useState('');
@@ -60,6 +69,11 @@ export default function Home() {
   // 监听任务长度变化：当新文件传输任务加入时，自动滑出传输抽屉 3 秒
   useEffect(() => {
     const currentTasks = Object.values(tasks);
+    if (isInitialLoad.current) {
+      setPrevTasksLength(currentTasks.length);
+      return;
+    }
+
     if (currentTasks.length > prevTasksLength) {
       setIsTransferDrawerOpen(true);
       const timer = setTimeout(() => {
@@ -567,12 +581,12 @@ export default function Home() {
               <span>传输任务</span>
               
               {/* 任务徽标 (Badge) */}
-              {totalTasksCount > 0 && (
+              {activeTasksCount > 0 && (
                 <span style={{
                   minWidth: '18px',
                   height: '18px',
                   borderRadius: '9px',
-                  background: activeTasksCount > 0 ? 'var(--accent-color)' : 'var(--text-muted)',
+                  background: 'var(--accent-color)',
                   color: '#ffffff',
                   fontSize: '0.68rem',
                   fontWeight: 700,
@@ -581,7 +595,7 @@ export default function Home() {
                   justifyContent: 'center',
                   padding: '0 5px'
                 }}>
-                  {totalTasksCount}
+                  {activeTasksCount}
                 </span>
               )}
             </button>
