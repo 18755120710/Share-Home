@@ -273,32 +273,80 @@ export class FileService {
    */
   public getSharedFiles(): SharedFile[] {
     const filePath = this.getSharedFilesPath();
-    if (!fs.existsSync(filePath)) {
-      return [];
-    }
-    try {
-      const data = fs.readFileSync(filePath, 'utf-8');
-      const files: SharedFile[] = JSON.parse(data);
-      
-      // 物理文件校验，确保文件在磁盘上真实存在
-      const validFiles = files.filter(f => {
-        try {
-          return fs.existsSync(f.filePath);
-        } catch {
-          return false;
-        }
-      });
-      
-      // 自动修正同步
-      if (validFiles.length !== files.length) {
-        this.writeSharedFilesMetadata(validFiles);
+    const sharedDir = this.getSharedDir();
+    
+    // 1. 读取元数据索引文件中的共享文件
+    let indexedFiles: SharedFile[] = [];
+    if (fs.existsSync(filePath)) {
+      try {
+        const data = fs.readFileSync(filePath, 'utf-8');
+        indexedFiles = JSON.parse(data);
+      } catch (err) {
+        console.error('[FileService] 读取共享文件元数据失败，将重新构建:', err);
       }
-      
-      return validFiles.sort((a, b) => b.uploadedAt - a.uploadedAt);
-    } catch (err) {
-      console.error('[FileService] 读取共享文件元数据失败:', err);
-      return [];
     }
+
+    // 2. 读取物理共享目录中的实际文件列表
+    let physicalFiles: string[] = [];
+    if (fs.existsSync(sharedDir)) {
+      try {
+        physicalFiles = fs.readdirSync(sharedDir);
+      } catch (err) {
+        console.error('[FileService] 读取物理共享目录失败:', err);
+      }
+    }
+
+    // 3. 物理文件校验：保留索引中记录且在磁盘上真实存在的文件
+    const validIndexedFiles = indexedFiles.filter(f => {
+      try {
+        return fs.existsSync(f.filePath);
+      } catch {
+        return false;
+      }
+    });
+
+    // 4. 物理文件自愈重建索引：如果有物理文件没有在 validIndexedFiles 中记录，则自动登记
+    let hasChanges = validIndexedFiles.length !== indexedFiles.length;
+    const finalFiles = [...validIndexedFiles];
+
+    physicalFiles.forEach(fileName => {
+      const fullPath = path.join(sharedDir, fileName);
+      try {
+        const stat = fs.statSync(fullPath);
+        if (stat.isFile()) {
+          // 检查该物理文件是否已经在索引中注册 (通过绝对路径或文件名比对)
+          const isRegistered = finalFiles.some(f => {
+            return path.resolve(f.filePath) === path.resolve(fullPath) || f.fileName === fileName;
+          });
+
+          if (!isRegistered) {
+            // 自动补全登记元数据
+            const fileId = `shared_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const newFile: SharedFile = {
+              id: fileId,
+              fileName,
+              fileSize: stat.size,
+              uploadedAt: stat.mtimeMs || stat.birthtimeMs || Date.now(),
+              deviceInfo: '本地存储自愈导入',
+              filePath: fullPath
+            };
+            finalFiles.push(newFile);
+            hasChanges = true;
+            console.log(`[FileService] [自愈] 检测到未索引的物理文件，已自动重建索引: ${fileName}`);
+          }
+        }
+      } catch (err) {
+        console.error(`[FileService] 获取物理文件属性失败: ${fileName}`, err);
+      }
+    });
+
+    // 5. 如果有新增元数据或过期元数据被清洗，自动写回索引文件
+    if (hasChanges) {
+      this.writeSharedFilesMetadata(finalFiles);
+    }
+
+    // 6. 按上传时间降序排序返回
+    return finalFiles.sort((a, b) => b.uploadedAt - a.uploadedAt);
   }
 
   /**
