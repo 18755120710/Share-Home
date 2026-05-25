@@ -433,4 +433,43 @@ export class FileService {
       this.writeTransferTasks(tasks);
     }
   }
+
+  // 物理擦除任何互传暂存文件，并更新指定任务状态 (用于拒绝或取消)
+  public cancelAndCleanupTransfer(taskId: string, finalStatus: 'failed' | 'rejected'): void {
+    const tasks = this.getTransferTasks();
+    const upload = this.uploadTasks.get(taskId);
+    
+    // 1. 双重物理文件擦除
+    if (upload) {
+      try {
+        if (fs.existsSync(upload.filePath)) {
+          fs.unlinkSync(upload.filePath);
+          console.log(`[FileService] [取消/拒绝] 已物理清理发送端暂存文件: ${upload.filePath}`);
+        }
+      } catch (err) {
+        console.error(`[FileService] [取消/拒绝] 物理清理暂存文件失败: ${upload.filePath}`, err);
+      }
+      this.uploadTasks.delete(taskId);
+    } else {
+      // 兜底路径计算强行 unlink
+      const cacheDir = path.join(process.cwd(), 'upload_cache');
+      const possiblePath = path.join(cacheDir, taskId);
+      try {
+        if (fs.existsSync(possiblePath)) {
+          fs.unlinkSync(possiblePath);
+          console.log(`[FileService] [取消/拒绝/兜底] 已通过路径物理清理暂存文件: ${possiblePath}`);
+        }
+      } catch (err) {
+        console.error(`[FileService] [取消/拒绝/兜底] 物理清理暂存文件失败: ${possiblePath}`, err);
+      }
+    }
+    
+    // 2. 更新任务状态持久化落盘
+    if (tasks[taskId]) {
+      tasks[taskId].status = finalStatus;
+      tasks[taskId].progress = 0;
+      this.writeTransferTasks(tasks);
+      console.log(`[FileService] 任务 ${taskId} 状态已更新为 ${finalStatus} 并成功落盘`);
+    }
+  }
 }

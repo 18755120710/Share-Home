@@ -11,6 +11,7 @@ interface TransferProps {
   incomingRequest: IncomingRequest | null;
   onAccept: () => void;
   onReject: () => void;
+  onCancel: (taskId: string) => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -20,6 +21,7 @@ export const Transfer: React.FC<TransferProps> = ({
   incomingRequest, 
   onAccept, 
   onReject,
+  onCancel,
   isOpen,
   onClose
 }) => {
@@ -221,7 +223,7 @@ export const Transfer: React.FC<TransferProps> = ({
                     </div>
                     
                     {/* 速度与ETA */}
-                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
                       <span style={{ 
                         fontSize: '0.8rem', 
                         fontWeight: 600, 
@@ -234,6 +236,39 @@ export const Transfer: React.FC<TransferProps> = ({
                           <Clock size={10} />
                           剩余: {getETA(task)}
                         </span>
+                      )}
+                      
+                      {/* 🌟 物理取消按钮 */}
+                      {!isCompleted && !isFailed && (
+                        <button
+                          onClick={() => onCancel(task.id)}
+                          title="取消本次传输"
+                          style={{
+                            fontSize: '0.68rem',
+                            color: 'var(--error-color)',
+                            background: 'rgba(239, 68, 68, 0.04)',
+                            border: '1px solid rgba(239, 68, 68, 0.15)',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            marginTop: '2px',
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.04)';
+                            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.15)';
+                          }}
+                        >
+                          <X size={10} />
+                          <span>取消</span>
+                        </button>
                       )}
                     </div>
                   </div>

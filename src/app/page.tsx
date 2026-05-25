@@ -23,7 +23,7 @@ export default function Home() {
   const { peers, self, isConnected, updateProfile, refreshPeers } = useMdnsPeers();
 
   // 2. 初始化局域网极速传输引擎逻辑
-  const { tasks, incomingRequest, sendFile, acceptRequest, rejectRequest, uploadPublicFile } = useFileTransfer(
+  const { tasks, incomingRequest, sendFile, acceptRequest, rejectRequest, cancelTransfer, uploadPublicFile } = useFileTransfer(
     self
   );
 
@@ -1108,6 +1108,7 @@ export default function Home() {
         incomingRequest={incomingRequest} 
         onAccept={acceptRequest} 
         onReject={rejectRequest} 
+        onCancel={cancelTransfer}
         isOpen={isTransferDrawerOpen}
         onClose={() => setIsTransferDrawerOpen(false)}
       />

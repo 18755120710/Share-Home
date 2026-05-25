@@ -39,6 +39,15 @@ export function useFileTransfer(self: any) {
         ...prev,
         [data.id]: data
       }));
+      // 🌟 新增自愈逻辑：如果广播中的任务属于已完结状态 (failed, completed, rejected)，且它是当前正在弹窗提示本端接收的请求，则同步清空弹窗
+      if (data.status === 'failed' || data.status === 'completed' || data.status === 'rejected') {
+        setIncomingRequest(prev => {
+          if (prev && prev.taskId === data.id) {
+            return null;
+          }
+          return prev;
+        });
+      }
     });
 
     // 订阅传输被拒绝信号，置为失败并说明对方已拒绝
@@ -50,10 +59,17 @@ export function useFileTransfer(self: any) {
           ...prev,
           [data.taskId]: {
             ...target,
-            status: 'failed',
-            error: '对方已拒绝接收该文件'
+            status: 'rejected',
+            speed: 0
           }
         };
+      });
+      // 🌟 新增自愈逻辑：同步关闭接收该文件的提示弹窗，完成双端协作
+      setIncomingRequest(prev => {
+        if (prev && prev.taskId === data.taskId) {
+          return null;
+        }
+        return prev;
       });
     });
 
@@ -181,7 +197,7 @@ export function useFileTransfer(self: any) {
       startedAt: Date.now(),
       senderId: selfId,
       senderName: selfNickname,
-      senderIp: window.location.hostname,
+      senderIp: self?.ip || window.location.hostname || '127.0.0.1',
       senderOS: selfOS,
       senderAvatar: selfAvatar,
       receiverId: targetPeerId,
@@ -220,7 +236,7 @@ export function useFileTransfer(self: any) {
 
       try {
         const arrayBuffer = await chunk.arrayBuffer();
-        const selfIp = window.location.hostname;
+        const selfIp = self?.ip || window.location.hostname || '127.0.0.1';
         const downloadUrl = `http://${selfIp}:3000/api/transfer/download?taskId=${taskId}`;
         const res = await fetch(
           `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}` +
@@ -365,14 +381,55 @@ export function useFileTransfer(self: any) {
   };
 
   /**
-   * 拒绝接收远端文件
+   * 拒绝接收远端文件 (物理强擦缓存并状态落盘)
    */
-  const rejectRequest = () => {
+  const rejectRequest = async () => {
     if (incomingRequest) {
       const socket = SocketClient.getInstance();
       socket.emit('transfer:reject', { taskId: incomingRequest.taskId });
+      
+      // 物理清理：向后端发送 POST 请求强行 unlink 发送端已合并暂存在 upload_cache 中的物理大文件，并落盘为 'rejected'
+      try {
+        await fetch('/api/transfer/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId: incomingRequest.taskId, action: 'reject' })
+        });
+      } catch (e) {
+        console.error('[useFileTransfer] 发送物理拒绝状态落盘失败:', e);
+      }
     }
     setIncomingRequest(null);
+  };
+
+  /**
+   * 中途取消发送或接收任务 (物理擦除大缓存并广播)
+   */
+  const cancelTransfer = async (taskId: string) => {
+    // 1. 本地立即将状态标为失败 (已取消)
+    setTasks(prev => {
+      const target = prev[taskId];
+      if (!target) return prev;
+      return {
+        ...prev,
+        [taskId]: {
+          ...target,
+          status: 'failed',
+          speed: 0
+        }
+      };
+    });
+
+    try {
+      // 2. 向后端发送 POST 强行擦除磁盘暂存大文件，并更新数据库状态为 'failed'
+      await fetch('/api/transfer/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, action: 'cancel' })
+      });
+    } catch (e) {
+      console.error('[useFileTransfer] 取消物理任务传输失败:', e);
+    }
   };
 
   /**
@@ -432,6 +489,7 @@ export function useFileTransfer(self: any) {
     sendFile,
     acceptRequest,
     rejectRequest,
+    cancelTransfer,
     uploadPublicFile
   };
 }
