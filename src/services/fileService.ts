@@ -522,4 +522,39 @@ export class FileService {
       console.log(`[FileService] 任务 ${taskId} 状态已更新为 ${finalStatus} 并成功落盘`);
     }
   }
+
+  /**
+   * 物理删除指定的互传任务记录
+   */
+  public deleteTransferTask(taskId: string): void {
+    const tasks = this.getTransferTasks();
+    if (tasks[taskId]) {
+      delete tasks[taskId];
+      this.writeTransferTasks(tasks);
+      console.log(`[FileService] 已物理删除互传任务记录: ${taskId}`);
+    }
+  }
+
+  /**
+   * 一键清空该客户端所有已完结的互传任务记录
+   */
+  public clearHistoryTransferTasks(clientId: string): void {
+    const tasks = this.getTransferTasks();
+    let hasChanges = false;
+    Object.keys(tasks).forEach(taskId => {
+      const t = tasks[taskId];
+      if (
+        t &&
+        (t.senderId === clientId || t.peerId === clientId || t.receiverId === clientId) &&
+        (t.status === 'completed' || t.status === 'failed' || t.status === 'rejected')
+      ) {
+        delete tasks[taskId];
+        hasChanges = true;
+      }
+    });
+    if (hasChanges) {
+      this.writeTransferTasks(tasks);
+      console.log(`[FileService] 已清空客户端 ${clientId} 所有完结的物理互传任务记录`);
+    }
+  }
 }

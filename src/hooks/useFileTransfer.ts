@@ -483,6 +483,62 @@ export function useFileTransfer(self: any) {
     return isSuccess;
   };
 
+  /**
+   * 物理删除单条任务记录
+   */
+  const deleteTask = async (taskId: string) => {
+    try {
+      const res = await fetch('/api/transfer/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, action: 'delete' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTasks(prev => {
+          const next = { ...prev };
+          delete next[taskId];
+          return next;
+        });
+      } else {
+        console.error('[useFileTransfer] 删除物理记录失败:', data.error);
+      }
+    } catch (err) {
+      console.error('[useFileTransfer] 删除物理记录发生网络异常:', err);
+    }
+  };
+
+  /**
+   * 一键清空该客户端所有已完结的历史任务记录
+   */
+  const clearHistory = async () => {
+    if (!selfId) return;
+    try {
+      const res = await fetch('/api/transfer/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clear', clientId: selfId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTasks(prev => {
+          const next = { ...prev };
+          Object.keys(next).forEach(taskId => {
+            const t = next[taskId];
+            if (t && (t.status === 'completed' || t.status === 'failed' || t.status === 'rejected')) {
+              delete next[taskId];
+            }
+          });
+          return next;
+        });
+      } else {
+        console.error('[useFileTransfer] 清空物理记录失败:', data.error);
+      }
+    } catch (err) {
+      console.error('[useFileTransfer] 清空物理记录发生网络异常:', err);
+    }
+  };
+
   return {
     tasks,
     incomingRequest,
@@ -490,6 +546,8 @@ export function useFileTransfer(self: any) {
     acceptRequest,
     rejectRequest,
     cancelTransfer,
-    uploadPublicFile
+    uploadPublicFile,
+    deleteTask,
+    clearHistory
   };
 }

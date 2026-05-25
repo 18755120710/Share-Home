@@ -49,18 +49,53 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { taskId, action } = body;
+    const { taskId, action, clientId } = body;
 
-    if (!taskId || !action) {
-      return NextResponse.json({ success: false, error: '缺少 taskId 或 action' }, { 
+    if (!action) {
+      return NextResponse.json({ success: false, error: '缺少 action 参数' }, { 
         status: 400,
         headers: { 'Access-Control-Allow-Origin': '*' }
       });
     }
 
     const fileService = FileService.getInstance();
+
+    // 1. 物理删除单条任务记录
+    if (action === 'delete') {
+      if (!taskId) {
+        return NextResponse.json({ success: false, error: '缺少 taskId' }, { 
+          status: 400,
+          headers: { 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+      fileService.deleteTransferTask(taskId);
+      return NextResponse.json({ success: true }, {
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    // 2. 物理清空指定客户端的所有已完结任务记录
+    if (action === 'clear') {
+      if (!clientId) {
+        return NextResponse.json({ success: false, error: '缺少 clientId' }, { 
+          status: 400,
+          headers: { 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+      fileService.clearHistoryTransferTasks(clientId);
+      return NextResponse.json({ success: true }, {
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    if (!taskId) {
+      return NextResponse.json({ success: false, error: '缺少 taskId 或 action' }, { 
+        status: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
     
-    // 执行取消/拒绝的物理文件强行擦除与状态落盘
+    // 3. 执行取消/拒绝的物理文件强行擦除与状态落盘
     const finalStatus = action === 'reject' ? 'rejected' : 'failed';
     fileService.cancelAndCleanupTransfer(taskId, finalStatus);
 
