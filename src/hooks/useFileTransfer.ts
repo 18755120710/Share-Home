@@ -299,9 +299,21 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
     try {
       console.log(`[useFileTransfer] 正在为对等端拉起浏览器物理落地流式下载: ${fileName}`);
       
+      // 🌟 局域网自愈转换：如果发送端处于 localhost 环境，它上报的 downloadUrl 也会带有 localhost。
+      // 我们必须将 Host 部分动态替换为当前接收端自己成功访问的、100% 能够连通的局域网物理 Host（即 window.location.host）！
+      let finalDownloadUrl = downloadUrl;
+      try {
+        const parsedUrl = new URL(downloadUrl);
+        parsedUrl.host = window.location.host; // 动态替换为真实的物理局域网 Host 及其 3000 端口
+        finalDownloadUrl = parsedUrl.toString();
+        console.log(`[useFileTransfer] [局域网地址自愈] 将下载地址重定向至真实物理主机: ${finalDownloadUrl}`);
+      } catch (e) {
+        console.error('[useFileTransfer] 自愈转换 downloadUrl 失败:', e);
+      }
+
       // 🌟 核心突破：直接拉起浏览器自身自带的文件下载与保存管理器，完美落地到本地磁盘！
       const link = document.createElement('a');
-      link.href = downloadUrl;
+      link.href = finalDownloadUrl;
       link.download = fileName;
       document.body.appendChild(link);
       link.click();
