@@ -49,8 +49,6 @@ export class SocketService {
         let clientIp = req.socket.remoteAddress || '127.0.0.1';
         if (clientIp.startsWith('::ffff:')) {
           clientIp = clientIp.substring(7);
-        } else if (clientIp === '::1') {
-          clientIp = '127.0.0.1';
         }
         
         const forwardedFor = req.headers['x-forwarded-for'];
@@ -62,6 +60,12 @@ export class SocketService {
         }
 
         const mdns = MdnsService.getInstance();
+        
+        // 智能修正：若 WebSocket 客户端来自本机本地回环，将其映射为局域网物理 IP 以支持外部网络通信
+        if (clientIp === '::1' || clientIp === '127.0.0.1' || clientIp === 'localhost') {
+          clientIp = mdns.getLocalIp();
+        }
+
         if (clientId && clientId !== mdns.getSelfId()) {
           mdns.registerWebPeer(clientId, clientIp, nickname, avatar);
         }

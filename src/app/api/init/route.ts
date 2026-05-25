@@ -48,8 +48,10 @@ export async function GET(request: NextRequest) {
   }
   if (clientIp.startsWith('::ffff:')) {
     clientIp = clientIp.substring(7);
-  } else if (clientIp === '::1') {
-    clientIp = '127.0.0.1';
+  }
+  // 智能修正：若为本地回环 IP，自动映射为本端的局域网物理 IP，以使外部设备能够建立物理通信
+  if (clientIp === '::1' || clientIp === '127.0.0.1' || clientIp === 'localhost') {
+    clientIp = mdns.getLocalIp();
   }
 
   // 只要不是本机的 Host 进程 ID，就将其注册为 Web 浏览器虚拟在线终端
