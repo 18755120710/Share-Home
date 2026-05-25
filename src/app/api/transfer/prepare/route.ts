@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
         const targetPeerName = searchParams.get('targetPeerName') || '未知伙伴';
         const senderId = searchParams.get('senderId') || '';
         const senderName = searchParams.get('senderName') || '局域网伙伴';
+        const downloadUrl = searchParams.get('downloadUrl') || '';
 
         fileService.registerTransferTask(taskId, {
           id: taskId,
@@ -145,6 +146,7 @@ export async function POST(request: NextRequest) {
           peerName: targetPeerName,
           senderId,
           senderName,
+          downloadUrl,
           startedAt: Date.now()
         });
       }

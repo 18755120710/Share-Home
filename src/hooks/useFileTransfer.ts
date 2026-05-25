@@ -192,8 +192,10 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
 
       try {
         const arrayBuffer = await chunk.arrayBuffer();
+        const selfIp = window.location.hostname;
+        const downloadUrl = `http://${selfIp}:3000/api/transfer/download?taskId=${taskId}`;
         const res = await fetch(
-          `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}&targetClientId=${encodeURIComponent(targetPeerId)}&targetPeerName=${encodeURIComponent(targetPeerName)}&senderId=${encodeURIComponent(selfId)}&senderName=${encodeURIComponent(selfNickname)}`,
+          `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}&targetClientId=${encodeURIComponent(targetPeerId)}&targetPeerName=${encodeURIComponent(targetPeerName)}&senderId=${encodeURIComponent(selfId)}&senderName=${encodeURIComponent(selfNickname)}&downloadUrl=${encodeURIComponent(downloadUrl)}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/octet-stream' },
