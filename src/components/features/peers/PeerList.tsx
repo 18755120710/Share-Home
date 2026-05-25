@@ -5,7 +5,7 @@ import { Monitor, Smartphone, Laptop, Radio, Send, RefreshCw, Layers } from 'luc
 
 interface PeerListProps {
   peers: Peer[];
-  self: Peer | null; // 新增本端属性以支持显示当前设备
+  self: Peer | null; // 本端属性，支持显示当前设备
   onSendFile: (peer: Peer, file: File) => void;
 }
 
@@ -203,65 +203,80 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
         </div>
       </div>
 
-      {/* 双栏布局容器 */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'row', gap: '28px', flexWrap: 'wrap' }}>
+      {/* 科技感满分居中布局容器 */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         
-        {/* 左侧：3D/2D 动效雷达扫描视窗 */}
+        {/* 3D/2D 动效雷达扫描视窗 */}
         <div style={{ 
-          flex: '1.2', 
-          minWidth: '320px', 
+          width: '100%', 
           display: 'flex', 
+          flexDirection: 'column',
           alignItems: 'center', 
           justifyContent: 'center', 
-          background: 'rgba(0, 0, 0, 0.12)', 
+          background: 'radial-gradient(circle at 50% 50%, rgba(20, 20, 30, 0.2) 0%, rgba(10, 10, 15, 0.5) 100%)', 
           borderRadius: '16px',
           border: '1px solid var(--border-color)',
-          padding: '24px',
+          padding: '40px 24px',
           position: 'relative',
-          boxShadow: 'inset 0 4px 20px rgba(0,0,0,0.15)',
-          minHeight: '380px'
+          boxShadow: 'inset 0 4px 30px rgba(0,0,0,0.2)',
+          minHeight: '520px',
+          overflow: 'hidden'
         }}>
-          {/* 雷达大圆盘容器 */}
+          
+          {/* 雷达大圆盘容器 - 升级为 420px 更加大气 */}
           <div style={{ 
-            width: '320px', 
-            height: '320px', 
+            width: '420px', 
+            height: '420px', 
             borderRadius: '50%', 
             position: 'relative', 
-            background: 'radial-gradient(circle, rgba(20, 20, 30, 0.4) 0%, rgba(10, 10, 15, 0.8) 100%)',
-            border: '2px solid rgba(202, 138, 4, 0.25)',
-            boxShadow: '0 0 35px rgba(202, 138, 4, 0.08)',
-            overflow: 'hidden'
+            background: 'radial-gradient(circle, rgba(16, 16, 28, 0.6) 0%, rgba(8, 8, 12, 0.95) 100%)',
+            border: '2px solid rgba(202, 138, 4, 0.3)',
+            boxShadow: '0 0 50px rgba(202, 138, 4, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            {/* 雷达科技背景网格线及十字轴 */}
-            <svg style={{ position: 'absolute', width: '100%', height: '100%', top: 0, left: 0, pointerEvents: 'none' }}>
-              {/* 同心圆 */}
-              <circle cx="50%" cy="50%" r="20%" fill="none" stroke="rgba(202, 138, 4, 0.12)" strokeWidth="1" />
-              <circle cx="50%" cy="50%" r="40%" fill="none" stroke="rgba(202, 138, 4, 0.15)" strokeWidth="1" strokeDasharray="3 3" />
-              <circle cx="50%" cy="50%" r="60%" fill="none" stroke="rgba(202, 138, 4, 0.12)" strokeWidth="1" />
-              <circle cx="50%" cy="50%" r="80%" fill="none" stroke="rgba(202, 138, 4, 0.18)" strokeWidth="1.5" strokeDasharray="5 5" />
-              
-              {/* 十字网格轴线 */}
-              <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(202, 138, 4, 0.15)" strokeWidth="1" />
-              <line x1="50%" y1="0" x2="50%" y2="100%" stroke="rgba(202, 138, 4, 0.15)" strokeWidth="1" />
-              
-              {/* 斜向虚线网格轴线 */}
-              <line x1="15%" y1="15%" x2="85%" y2="85%" stroke="rgba(202, 138, 4, 0.08)" strokeWidth="1" strokeDasharray="2 4" />
-              <line x1="85%" y1="15%" x2="15%" y2="85%" stroke="rgba(202, 138, 4, 0.08)" strokeWidth="1" strokeDasharray="2 4" />
-            </svg>
-
-            {/* 360°旋转扫描扇形射线层 */}
+            {/* 内部裁剪容器：用于放置 SVG 网格与旋转扫射光芒，防止溢出圆盘 */}
             <div style={{
               position: 'absolute',
               width: '100%',
               height: '100%',
-              top: 0,
-              left: 0,
               borderRadius: '50%',
-              background: 'conic-gradient(from 0deg, rgba(202, 138, 4, 0.18) 0deg, rgba(202, 138, 4, 0.03) 90deg, transparent 180deg, transparent 360deg)',
-              animation: 'radar-sweep-animation 4s linear infinite',
-              transformOrigin: '50% 50%',
-              pointerEvents: 'none'
-            }} />
+              overflow: 'hidden',
+              pointerEvents: 'none',
+              top: 0,
+              left: 0
+            }}>
+              {/* 雷达科技背景网格线及十字轴 */}
+              <svg style={{ position: 'absolute', width: '100%', height: '100%', top: 0, left: 0 }}>
+                {/* 同心圆 */}
+                <circle cx="50%" cy="50%" r="20%" fill="none" stroke="rgba(202, 138, 4, 0.12)" strokeWidth="1" />
+                <circle cx="50%" cy="50%" r="40%" fill="none" stroke="rgba(202, 138, 4, 0.15)" strokeWidth="1" strokeDasharray="3 3" />
+                <circle cx="50%" cy="50%" r="60%" fill="none" stroke="rgba(202, 138, 4, 0.12)" strokeWidth="1" />
+                <circle cx="50%" cy="50%" r="80%" fill="none" stroke="rgba(202, 138, 4, 0.18)" strokeWidth="1.5" strokeDasharray="5 5" />
+                
+                {/* 十字网格轴线 */}
+                <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(202, 138, 4, 0.15)" strokeWidth="1" />
+                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="rgba(202, 138, 4, 0.15)" strokeWidth="1" />
+                
+                {/* 斜向虚线网格轴线 */}
+                <line x1="15%" y1="15%" x2="85%" y2="85%" stroke="rgba(202, 138, 4, 0.08)" strokeWidth="1" strokeDasharray="2 4" />
+                <line x1="85%" y1="15%" x2="15%" y2="85%" stroke="rgba(202, 138, 4, 0.08)" strokeWidth="1" strokeDasharray="2 4" />
+              </svg>
+
+              {/* 360°旋转扫描扇形射线层 */}
+              <div style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                top: 0,
+                left: 0,
+                borderRadius: '50%',
+                background: 'conic-gradient(from 0deg, rgba(202, 138, 4, 0.18) 0deg, rgba(202, 138, 4, 0.03) 90deg, transparent 180deg, transparent 360deg)',
+                animation: 'radar-sweep-animation 4s linear infinite',
+                transformOrigin: '50% 50%',
+              }} />
+            </div>
 
             {/* 雷达中心点：本端发射基站 (代表“我”本机) */}
             <div 
@@ -272,21 +287,21 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: '38px',
-                height: '38px',
+                width: '42px',
+                height: '42px',
                 borderRadius: '50%',
                 background: 'rgba(202, 138, 4, 0.25)',
                 border: '2.5px solid var(--accent-color)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 0 25px var(--accent-color)',
+                boxShadow: '0 0 30px var(--accent-color)',
                 zIndex: 15,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease-in-out'
               }}
             >
-              <Radio size={16} style={{ color: '#ffffff' }} className="animate-pulse" />
+              <Radio size={18} style={{ color: '#ffffff' }} className="animate-pulse" />
               {/* 核心向外扩散脉冲圈圈 */}
               <div style={{
                 position: 'absolute',
@@ -317,10 +332,11 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                 left: '50%',
                 transform: 'translateX(-50%) translateY(0)',
                 background: 'rgba(15, 15, 25, 0.95)',
+                backdropFilter: 'blur(12px)',
                 border: '1px solid var(--accent-color)',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                boxShadow: '0 8px 32px rgba(202, 138, 4, 0.25)',
                 pointerEvents: 'none',
                 whiteSpace: 'nowrap',
                 display: 'flex',
@@ -329,16 +345,16 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                 alignItems: 'center',
                 zIndex: 100
               }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent-color)' }}>
-                  本机当前终端 (发射源)
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.05em' }}>
+                  本机终端 (LOBBY HOST)
                 </span>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#ffffff' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#ffffff' }}>
                   {self.nickname}
                 </span>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)' }}>
                   {self.ip}
                 </span>
-                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <div style={{ marginTop: '4px', display: 'flex', gap: '4px', alignItems: 'center' }}>
                   {renderOSBadge(self.os)}
                 </div>
               </div>
@@ -358,11 +374,11 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
               }}>
                 <span style={{ 
                   color: 'rgba(202, 138, 4, 0.5)', 
-                  fontSize: '0.78rem', 
-                  letterSpacing: '0.1em',
+                  fontSize: '0.8rem', 
+                  letterSpacing: '0.15em',
                   fontFamily: 'var(--font-mono)',
                   animation: 'radar-blink 2s ease-in-out infinite',
-                  marginTop: '100px'
+                  marginTop: '120px'
                 }}>
                   SCANNING FOR HOSTS...
                 </span>
@@ -394,8 +410,8 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                   >
                     {/* 节点外发光呼吸及拖拽高亮圈 */}
                     <div style={{
-                      width: '42px',
-                      height: '42px',
+                      width: '46px',
+                      height: '46px',
                       borderRadius: '50%',
                       background: isDragOver 
                         ? 'rgba(202, 138, 4, 0.35)' 
@@ -411,8 +427,8 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                       alignItems: 'center',
                       justifyContent: 'center',
                       boxShadow: isHovered || isDragOver 
-                        ? '0 0 18px var(--accent-color)' 
-                        : '0 0 8px rgba(202, 138, 4, 0.2)',
+                        ? '0 0 20px var(--accent-color)' 
+                        : '0 0 10px rgba(202, 138, 4, 0.2)',
                       transform: isHovered || isDragOver ? 'scale(1.15)' : 'scale(1)',
                       transition: 'all 0.25s ease',
                       position: 'relative'
@@ -422,7 +438,7 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                         color: isHovered || isDragOver ? '#ffffff' : 'var(--accent-color)',
                         transition: 'color 0.2s' 
                       }}>
-                        {renderAvatarIcon(peer.avatar, 18)}
+                        {renderAvatarIcon(peer.avatar, 20)}
                       </span>
 
                       {/* 在线微标灯 */}
@@ -430,8 +446,8 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                         position: 'absolute',
                         top: 0,
                         right: 0,
-                        width: '7px',
-                        height: '7px',
+                        width: '8px',
+                        height: '8px',
                         borderRadius: '50%',
                         background: 'var(--success-color)',
                         boxShadow: '0 0 6px var(--success-color)'
@@ -441,7 +457,7 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                     {/* HUD 弹出面板：仅在 Hover 或 拖拽悬停时精致呈现 */}
                     <div style={{
                       position: 'absolute',
-                      top: '48px',
+                      top: '54px',
                       left: '50%',
                       transform: isHovered || isDragOver 
                         ? 'translateX(-50%) translateY(0)' 
@@ -449,11 +465,12 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                       opacity: isHovered || isDragOver ? 1 : 0,
                       visibility: isHovered || isDragOver ? 'visible' : 'hidden',
                       transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.1)',
-                      background: 'rgba(15, 15, 25, 0.92)',
-                      border: '1px solid rgba(202, 138, 4, 0.5)',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                      background: 'rgba(15, 15, 25, 0.95)',
+                      backdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(202, 138, 4, 0.6)',
+                      padding: '12px 18px',
+                      borderRadius: '10px',
+                      boxShadow: '0 12px 40px rgba(202, 138, 4, 0.25)',
                       pointerEvents: 'none',
                       whiteSpace: 'nowrap',
                       display: 'flex',
@@ -462,17 +479,17 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                       alignItems: 'center',
                       zIndex: 100
                     }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#ffffff' }}>
                         {peer.nickname}
                       </span>
-                      <span style={{ fontSize: '0.68rem', color: 'rgba(202, 138, 4, 0.8)', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'rgba(202, 138, 4, 0.9)', fontFamily: 'var(--font-mono)' }}>
                         {peer.ip}
                       </span>
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', margin: '2px 0' }}>
                         {renderOSBadge(peer.os)}
                       </div>
-                      <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-                        {isDragOver ? '松开即投递文件' : '点击选择文件/拖拽互传'}
+                      <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px', width: '100%', textAlign: 'center' }}>
+                        {isDragOver ? '松开即投递文件' : '点击选择文件 / 拖放互传'}
                       </span>
                     </div>
 
@@ -484,257 +501,23 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
           </div>
 
           {/* 雷达外环发光装饰角标 */}
-          <div style={{ position: 'absolute', top: '12px', left: '12px', width: '12px', height: '12px', borderTop: '2px solid rgba(202,138,4,0.4)', borderLeft: '2px solid rgba(202,138,4,0.4)' }} />
-          <div style={{ position: 'absolute', top: '12px', right: '12px', width: '12px', height: '12px', borderTop: '2px solid rgba(202,138,4,0.4)', borderRight: '2px solid rgba(202,138,4,0.4)' }} />
-          <div style={{ position: 'absolute', bottom: '12px', left: '12px', width: '12px', height: '12px', borderBottom: '2px solid rgba(202,138,4,0.4)', borderLeft: '2px solid rgba(202,138,4,0.4)' }} />
-          <div style={{ position: 'absolute', bottom: '12px', right: '12px', width: '12px', height: '12px', borderBottom: '2px solid rgba(202,138,4,0.4)', borderRight: '2px solid rgba(202,138,4,0.4)' }} />
+          <div style={{ position: 'absolute', top: '16px', left: '16px', width: '16px', height: '16px', borderTop: '2px solid rgba(202,138,4,0.4)', borderLeft: '2px solid rgba(202,138,4,0.4)' }} />
+          <div style={{ position: 'absolute', top: '16px', right: '16px', width: '16px', height: '16px', borderTop: '2px solid rgba(202,138,4,0.4)', borderRight: '2px solid rgba(202,138,4,0.4)' }} />
+          <div style={{ position: 'absolute', bottom: '16px', left: '16px', width: '16px', height: '16px', borderBottom: '2px solid rgba(202,138,4,0.4)', borderLeft: '2px solid rgba(202,138,4,0.4)' }} />
+          <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '16px', height: '16px', borderBottom: '2px solid rgba(202,138,4,0.4)', borderRight: '2px solid rgba(202,138,4,0.4)' }} />
 
         </div>
 
-        {/* 右侧：高度密集型数据卡片列表 */}
-        <div style={{ 
-          flex: '1', 
-          minWidth: '280px', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '12px',
-          maxHeight: '400px',
-          overflowY: 'auto',
-          paddingRight: '6px'
-        }} className="radar-dense-list">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '6px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>设备属性细节</span>
-            <span style={{ fontSize: '0.72rem', color: 'rgba(202, 138, 4, 0.7)', fontFamily: 'var(--font-mono)' }}>mDNS P2P NODE</span>
-          </div>
-
-          {/* 1. 顶置高亮显示本机设备卡片 */}
-          {self && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 14px',
-                borderRadius: '10px',
-                background: 'rgba(202, 138, 4, 0.05)',
-                border: '1px solid rgba(202, 138, 4, 0.25)',
-                boxShadow: '0 0 10px rgba(202, 138, 4, 0.03)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                <div style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  background: 'rgba(202, 138, 4, 0.12)',
-                  border: '1.5px solid var(--accent-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--accent-color)',
-                  flexShrink: 0
-                }}>
-                  {renderAvatarIcon(self.avatar, 15)}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ 
-                      fontSize: '0.85rem', 
-                      fontWeight: 700, 
-                      color: 'var(--text-primary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {self.nickname}
-                    </span>
-                    <span style={{
-                      fontSize: '0.58rem',
-                      background: 'var(--accent-color)',
-                      color: '#ffffff',
-                      padding: '1px 5px',
-                      borderRadius: '3px',
-                      fontWeight: 700,
-                      transform: 'scale(0.9)',
-                      transformOrigin: 'left center'
-                    }}>
-                      本机
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                    {self.ip}
-                  </span>
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                {renderOSBadge(self.os)}
-              </div>
-            </div>
-          )}
-
-          {/* 2. 其它局域网在线设备列表 */}
-          {peers.length === 0 ? (
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '16px',
-              border: '1px dashed var(--border-color)',
-              borderRadius: '12px',
-              padding: '40px 16px',
-              background: 'rgba(128,128,128,0.02)'
-            }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'rgba(202,138,4,0.05)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                animation: 'radar-blink 2s ease-in-out infinite'
-              }}>
-                <RefreshCw size={14} style={{ color: 'var(--accent-color)' }} />
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>正在寻道协作终端...</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '200px', lineHeight: 1.4 }}>
-                  打开手机或另一台电脑的浏览器，访问上方提示的局域网 IP 地址，即可在此雷达上直接捕捉到它！
-                </p>
-              </div>
-            </div>
-          ) : (
-            peers.map((peer) => {
-              const isDragOver = dragOverPeerId === peer.id;
-              
-              return (
-                <div
-                  key={peer.id}
-                  onDragOver={(e) => handleDragOver(e, peer.id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, peer)}
-                  onClick={() => handlePeerClick(peer)}
-                  className="dense-peer-card"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 14px',
-                    borderRadius: '10px',
-                    background: isDragOver ? 'rgba(202, 138, 4, 0.08)' : 'var(--bg-item)',
-                    border: isDragOver ? '1px dashed var(--accent-color)' : '1px solid var(--border-color)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: isDragOver ? 'var(--shadow-glow)' : 'none',
-                    transform: isDragOver ? 'translateY(-1px)' : 'translateY(0)'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                    <div style={{
-                      width: '34px',
-                      height: '34px',
-                      borderRadius: '50%',
-                      background: 'rgba(202, 138, 4, 0.08)',
-                      border: '1px solid rgba(202, 138, 4, 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--accent-color)',
-                      flexShrink: 0
-                    }}>
-                      {renderAvatarIcon(peer.avatar, 15)}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                      <span style={{ 
-                        fontSize: '0.85rem', 
-                        fontWeight: 600, 
-                        color: 'var(--text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {peer.nickname}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                          {peer.ip}
-                        </span>
-                        {renderOSBadge(peer.os)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    <span style={{ 
-                      fontSize: '0.68rem', 
-                      color: isDragOver ? 'var(--accent-color)' : 'var(--text-muted)',
-                      transition: 'color 0.2s',
-                      display: 'none' // 在窄屏下隐藏
-                    }} className="dense-tips">
-                      {isDragOver ? '释发送' : '拖放至此'}
-                    </span>
-                    <button style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: 'rgba(202, 138, 4, 0.1)',
-                      color: 'var(--accent-color)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }} onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'var(--accent-color)';
-                      e.currentTarget.style.color = '#ffffff';
-                    }} onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(202, 138, 4, 0.1)';
-                      e.currentTarget.style.color = 'var(--accent-color)';
-                    }}>
-                      <Send size={12} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
+        {/* 底部交互小提示 */}
+        <div style={{ marginTop: '16px', fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-color)' }} />
+          提示：鼠标悬浮设备可查看其 IP 与操作系统，点击节点或直接拖入文件即可开始高速互传。
         </div>
 
       </div>
 
       {/* 科技雷达动效定义及响应式增强 */}
       <style jsx global>{`
-        .dense-peer-card:hover {
-          background: var(--bg-item-hover) !important;
-          border-color: rgba(202, 138, 4, 0.4) !important;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-        }
-        
-        .dense-peer-card:hover .dense-tips {
-          display: inline !important;
-        }
-
-        /* 滚动条定制 */
-        .radar-dense-list::-webkit-scrollbar {
-          width: 5px;
-        }
-        .radar-dense-list::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .radar-dense-list::-webkit-scrollbar-thumb {
-          background: rgba(202, 138, 4, 0.2);
-          border-radius: 10px;
-        }
-        .radar-dense-list::-webkit-scrollbar-thumb:hover {
-          background: rgba(202, 138, 4, 0.4);
-        }
-
         @keyframes sonar-pulse-accent {
           0% {
             box-shadow: 0 0 0 0 rgba(202, 138, 4, 0.5);
