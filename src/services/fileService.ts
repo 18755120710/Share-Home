@@ -43,6 +43,12 @@ export class FileService {
 
   public static getInstance(): FileService {
     const globalSymbols = global as any;
+    // 热重载自愈：若全局单例残留了旧方法，强制清空以在下一句重新 new 挂载新定义！
+    if (globalSymbols.__file_service_instance__ && typeof globalSymbols.__file_service_instance__.registerTransferTask !== 'function') {
+      console.warn('[FileService] 检测到 Next.js 热重载全局残留旧版单例，正在强制清空并重新初始化新版单例...');
+      globalSymbols.__file_service_instance__ = null;
+    }
+
     if (!globalSymbols.__file_service_instance__) {
       globalSymbols.__file_service_instance__ = new FileService();
     }
