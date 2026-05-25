@@ -3,6 +3,17 @@ import fs from 'fs';
 import { FileService } from '@/services/fileService';
 import { Readable } from 'stream';
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Range, Authorization',
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const taskId = searchParams.get('taskId');
@@ -26,6 +37,7 @@ export async function GET(request: NextRequest) {
 
   // 大文件流式处理头部
   const headers = new Headers();
+  headers.set('Access-Control-Allow-Origin', '*');
   headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
   headers.set('Accept-Ranges', 'bytes');
 
