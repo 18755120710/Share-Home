@@ -143,7 +143,7 @@ export class MdnsService {
   /**
    * 注册由 Web 浏览器访问建立的虚拟 Peer
    */
-  public registerWebPeer(id: string, ip: string, nickname: string, avatar: string, port = 3000): void {
+  public registerWebPeer(id: string, ip: string, nickname: string, avatar: string, port = 3000, os = 'Windows'): void {
     if (id === this.selfId) return;
     
     // 智能修正：若 Web 客户端通过本地回环地址访问，将其 IP 修正为本机的物理局域网 IP
@@ -159,11 +159,12 @@ export class MdnsService {
       ip: clientIp,
       port,
       lastSeen: Date.now(),
-      isSelf: false
+      isSelf: false,
+      os
     };
     
     this.peers.set(id, newPeer);
-    console.log(`[mDNS] 收到 Web 浏览器虚拟终端注册: ${nickname} (${clientIp})`);
+    console.log(`[mDNS] 收到 Web 浏览器虚拟终端注册: ${nickname} (${clientIp}), OS: ${os}`);
     this.notifyListeners();
   }
 

@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
   // 优先获取客户端透传的本地个性化属性
   const nickname = searchParams.get('nickname') || '局域网伙伴';
   const avatar = searchParams.get('avatar') || 'avatar-1';
+  const os = searchParams.get('os') || 'Windows';
 
   // 解析客户端在局域网中的真实物理 IP
   let clientIp = '127.0.0.1';
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 
   // 只要不是本机的 Host 进程 ID，就将其注册为 Web 浏览器虚拟在线终端
   if (clientId !== mdns.getSelfId()) {
-    mdns.registerWebPeer(clientId, clientIp, nickname, avatar);
+    mdns.registerWebPeer(clientId, clientIp, nickname, avatar, 3000, os);
   }
 
   return NextResponse.json({
@@ -68,13 +69,14 @@ export async function GET(request: NextRequest) {
       avatar,
       ip: clientIp,
       port: 3000,
+      os, // 支持跨终端的真实操作系统显示
     }
   });
 }
 
 export async function POST(request: Request) {
   try {
-    const { nickname, avatar, clientId } = await request.json();
+    const { nickname, avatar, clientId, os } = await request.json();
     if (!nickname || !avatar) {
       return NextResponse.json({ success: false, error: '昵称和头像不能为空' }, { status: 400 });
     }
@@ -93,7 +95,7 @@ export async function POST(request: Request) {
       } else if (clientIp === '::1') {
         clientIp = '127.0.0.1';
       }
-      mdns.registerWebPeer(clientId, clientIp, nickname, avatar);
+      mdns.registerWebPeer(clientId, clientIp, nickname, avatar, 3000, os || 'Windows');
     } else {
       // 远端浏览器访问的是这台主机的控制台，因此资料更新应作用于主机广播身份。
       mdns.updateBroadcast(nickname, avatar);

@@ -5,10 +5,11 @@ import { Monitor, Smartphone, Laptop, Radio, Send, RefreshCw, Layers } from 'luc
 
 interface PeerListProps {
   peers: Peer[];
+  self: Peer | null; // 新增本端属性以支持显示当前设备
   onSendFile: (peer: Peer, file: File) => void;
 }
 
-export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
+export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) => {
   // 维护每台设备的拖拽状态
   const [dragOverPeerId, setDragOverPeerId] = useState<string | null>(null);
   // 当前鼠标 hover 悬浮在雷达上的 peer ID，用来显示 Tooltip 悬浮卡片
@@ -30,6 +31,62 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
       default:
         return <Laptop size={size} />;
     }
+  };
+
+  // 辅助函数：标准化并获取系统类型文本
+  const getOSName = (os?: string) => {
+    if (!os) return 'Unknown';
+    const lower = os.toLowerCase();
+    if (lower.includes('win')) return 'Windows';
+    if (lower.includes('mac') || lower.includes('ios') || lower.includes('apple') || lower.includes('os x') || lower.includes('darwin')) return 'macOS';
+    if (lower.includes('android')) return 'Android';
+    if (lower.includes('linux')) return 'Linux';
+    return os;
+  };
+
+  // 辅助函数：渲染极具质感的操作系统微型胶囊 Badge
+  const renderOSBadge = (os?: string) => {
+    const osType = getOSName(os);
+    let bg = 'rgba(128, 128, 128, 0.08)';
+    let color = 'var(--text-secondary)';
+    let border = '1px solid var(--border-color)';
+    
+    if (osType === 'Windows') {
+      bg = 'rgba(14, 165, 233, 0.08)';
+      color = '#0ea5e9';
+      border = '1px solid rgba(14, 165, 233, 0.2)';
+    } else if (osType === 'macOS') {
+      bg = 'rgba(236, 72, 153, 0.08)';
+      color = '#ec4899';
+      border = '1px solid rgba(236, 72, 153, 0.2)';
+    } else if (osType === 'Android') {
+      bg = 'rgba(34, 197, 94, 0.08)';
+      color = '#22c55e';
+      border = '1px solid rgba(34, 197, 94, 0.2)';
+    } else if (osType === 'Linux') {
+      bg = 'rgba(249, 115, 22, 0.08)';
+      color = '#f97316';
+      border = '1px solid rgba(249, 115, 22, 0.2)';
+    }
+    
+    return (
+      <span style={{
+        fontSize: '0.62rem',
+        padding: '2px 6px',
+        borderRadius: '4px',
+        background: bg,
+        color: color,
+        border: border,
+        fontWeight: 600,
+        letterSpacing: '0.02em',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '3px',
+        lineHeight: 1
+      }}>
+        {osType}
+      </span>
+    );
   };
 
   const handleDragOver = (e: React.DragEvent, peerId: string) => {
@@ -141,7 +198,7 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-            局域网在线: <strong style={{ color: 'var(--accent-color)', fontSize: '1rem' }}>{peers.length}</strong> 台
+            局域网在线: <strong style={{ color: 'var(--accent-color)', fontSize: '1rem' }}>{peers.length + (self ? 1 : 0)}</strong> 台
           </span>
         </div>
       </div>
@@ -206,24 +263,30 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
               pointerEvents: 'none'
             }} />
 
-            {/* 雷达中心点：本端发射基站 (代表“我”) */}
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              background: 'rgba(202, 138, 4, 0.2)',
-              border: '2px solid var(--accent-color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 20px var(--accent-color)',
-              zIndex: 5
-            }}>
-              <Radio size={16} className="text-white animate-pulse" style={{ color: '#ffffff' }} />
+            {/* 雷达中心点：本端发射基站 (代表“我”本机) */}
+            <div 
+              onMouseEnter={() => self && setHoveredPeerId('self_node')}
+              onMouseLeave={() => setHoveredPeerId(null)}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                background: 'rgba(202, 138, 4, 0.25)',
+                border: '2.5px solid var(--accent-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 25px var(--accent-color)',
+                zIndex: 15,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              <Radio size={16} style={{ color: '#ffffff' }} className="animate-pulse" />
               {/* 核心向外扩散脉冲圈圈 */}
               <div style={{
                 position: 'absolute',
@@ -245,6 +308,41 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
                 pointerEvents: 'none'
               }} />
             </div>
+
+            {/* 本机 HUD 悬浮提示面板 */}
+            {self && (hoveredPeerId === 'self_node') && (
+              <div style={{
+                position: 'absolute',
+                top: '58%',
+                left: '50%',
+                transform: 'translateX(-50%) translateY(0)',
+                background: 'rgba(15, 15, 25, 0.95)',
+                border: '1px solid var(--accent-color)',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                pointerEvents: 'none',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                alignItems: 'center',
+                zIndex: 100
+              }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent-color)' }}>
+                  本机当前终端 (发射源)
+                </span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#ffffff' }}>
+                  {self.nickname}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)' }}>
+                  {self.ip}
+                </span>
+                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  {renderOSBadge(self.os)}
+                </div>
+              </div>
+            )}
 
             {/* 设备节点渲染区 */}
             {peers.length === 0 ? (
@@ -360,7 +458,7 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
                       whiteSpace: 'nowrap',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '3px',
+                      gap: '4px',
                       alignItems: 'center',
                       zIndex: 100
                     }}>
@@ -370,6 +468,9 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
                       <span style={{ fontSize: '0.68rem', color: 'rgba(202, 138, 4, 0.8)', fontFamily: 'var(--font-mono)' }}>
                         {peer.ip}
                       </span>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        {renderOSBadge(peer.os)}
+                      </div>
                       <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
                         {isDragOver ? '松开即投递文件' : '点击选择文件/拖拽互传'}
                       </span>
@@ -406,6 +507,74 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
             <span style={{ fontSize: '0.72rem', color: 'rgba(202, 138, 4, 0.7)', fontFamily: 'var(--font-mono)' }}>mDNS P2P NODE</span>
           </div>
 
+          {/* 1. 顶置高亮显示本机设备卡片 */}
+          {self && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                background: 'rgba(202, 138, 4, 0.05)',
+                border: '1px solid rgba(202, 138, 4, 0.25)',
+                boxShadow: '0 0 10px rgba(202, 138, 4, 0.03)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: 'rgba(202, 138, 4, 0.12)',
+                  border: '1.5px solid var(--accent-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent-color)',
+                  flexShrink: 0
+                }}>
+                  {renderAvatarIcon(self.avatar, 15)}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ 
+                      fontSize: '0.85rem', 
+                      fontWeight: 700, 
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {self.nickname}
+                    </span>
+                    <span style={{
+                      fontSize: '0.58rem',
+                      background: 'var(--accent-color)',
+                      color: '#ffffff',
+                      padding: '1px 5px',
+                      borderRadius: '3px',
+                      fontWeight: 700,
+                      transform: 'scale(0.9)',
+                      transformOrigin: 'left center'
+                    }}>
+                      本机
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                    {self.ip}
+                  </span>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                {renderOSBadge(self.os)}
+              </div>
+            </div>
+          )}
+
+          {/* 2. 其它局域网在线设备列表 */}
           {peers.length === 0 ? (
             <div style={{
               flex: 1,
@@ -490,9 +659,12 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, onSendFile }) => {
                       }}>
                         {peer.nickname}
                       </span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                        {peer.ip}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                          {peer.ip}
+                        </span>
+                        {renderOSBadge(peer.os)}
+                      </div>
                     </div>
                   </div>
                   

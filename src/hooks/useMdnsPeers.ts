@@ -2,6 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { Peer } from '../types/peer';
 import { SocketClient } from '../lib/socketClient';
 
+const getOS = () => {
+  if (typeof window === 'undefined') return 'Windows';
+  const ua = window.navigator.userAgent;
+  if (ua.indexOf('Windows NT') !== -1) return 'Windows';
+  if (ua.indexOf('Macintosh') !== -1) return 'macOS';
+  if (ua.indexOf('Android') !== -1) return 'Android';
+  if (ua.indexOf('iPhone') !== -1 || ua.indexOf('iPad') !== -1) return 'iOS';
+  if (ua.indexOf('Linux') !== -1) return 'Linux';
+  return 'unknown';
+};
+
 export function useMdnsPeers() {
   const [peers, setPeers] = useState<Peer[]>([]);
   const [self, setSelf] = useState<Peer | null>(null);
@@ -21,6 +32,7 @@ export function useMdnsPeers() {
       let cid = '';
       let nickname = '局域网伙伴';
       let avatar = 'avatar-1';
+      const os = getOS();
       if (typeof window !== 'undefined') {
         cid = localStorage.getItem('share_home_client_id') || '';
         if (!cid) {
@@ -30,7 +42,7 @@ export function useMdnsPeers() {
         nickname = localStorage.getItem('share_home_nickname') || '局域网伙伴';
         avatar = localStorage.getItem('share_home_avatar') || 'avatar-1';
       }
-      const res = await fetch(`/api/init?clientId=${cid}&nickname=${encodeURIComponent(nickname)}&avatar=${avatar}`);
+      const res = await fetch(`/api/init?clientId=${cid}&nickname=${encodeURIComponent(nickname)}&avatar=${avatar}&os=${os}`);
       const data = await res.json();
       if (data.status === 'ready') {
         const selfData = {
@@ -73,10 +85,11 @@ export function useMdnsPeers() {
     if (!self) return false;
     try {
       const cid = typeof window !== 'undefined' ? localStorage.getItem('share_home_client_id') || '' : '';
+      const os = getOS();
       const res = await fetch('/api/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, avatar, clientId: cid }),
+        body: JSON.stringify({ nickname, avatar, clientId: cid, os }),
       });
       const data = await res.json();
       if (data.success) {

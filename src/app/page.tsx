@@ -576,6 +576,7 @@ export default function Home() {
             }} className="fade-in">
               <PeerList 
                 peers={peers} 
+                self={self}
                 onSendFile={(peer, file) => {
                   sendFile(peer.ip, peer.port, peer.id, peer.nickname, file);
                 }} 

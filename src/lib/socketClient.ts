@@ -33,6 +33,7 @@ export class SocketClient {
     let clientId = '';
     let nickname = '局域网伙伴';
     let avatar = 'avatar-1';
+    let os = 'Windows';
     if (typeof window !== 'undefined') {
       clientId = localStorage.getItem('share_home_client_id') || '';
       if (!clientId) {
@@ -41,16 +42,23 @@ export class SocketClient {
       }
       nickname = localStorage.getItem('share_home_nickname') || '局域网伙伴';
       avatar = localStorage.getItem('share_home_avatar') || 'avatar-1';
+      
+      const ua = window.navigator.userAgent;
+      if (ua.indexOf('Windows NT') !== -1) os = 'Windows';
+      else if (ua.indexOf('Macintosh') !== -1) os = 'macOS';
+      else if (ua.indexOf('Android') !== -1) os = 'Android';
+      else if (ua.indexOf('iPhone') !== -1 || ua.indexOf('iPad') !== -1) os = 'iOS';
+      else if (ua.indexOf('Linux') !== -1) os = 'Linux';
     }
 
     try {
-      await fetch(`/api/init?clientId=${encodeURIComponent(clientId)}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}`, { cache: 'no-store' });
+      await fetch(`/api/init?clientId=${encodeURIComponent(clientId)}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}&os=${os}`, { cache: 'no-store' });
     } catch (err) {
       console.warn('[SocketClient] 初始化宿主服务失败，仍将尝试连接 WebSocket:', err);
     }
 
     console.log(`[SocketClient] 正在建立全局共享通信长连接: ${protocol}://${host}:3001?clientId=${clientId}`);
-    const wsUrl = `${protocol}://${host}:3001?clientId=${clientId}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}`;
+    const wsUrl = `${protocol}://${host}:3001?clientId=${clientId}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}&os=${os}`;
     const ws = new WebSocket(wsUrl);
     this.ws = ws;
 

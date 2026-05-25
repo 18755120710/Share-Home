@@ -36,11 +36,13 @@ export class SocketService {
         let clientId: string | null = null;
         let nickname = '局域网伙伴';
         let avatar = 'avatar-1';
+        let os = 'Windows';
         try {
           const urlObj = new URL(req.url || '', 'http://localhost');
           clientId = urlObj.searchParams.get('clientId');
           nickname = urlObj.searchParams.get('nickname') || '局域网伙伴';
           avatar = urlObj.searchParams.get('avatar') || 'avatar-1';
+          os = urlObj.searchParams.get('os') || 'Windows';
         } catch (e) {}
 
         console.log(`[WebSocket] 客户端已建立连接. ClientId: ${clientId || 'unknown'}. 当前连接数: ${this.clients.size}`);
@@ -67,7 +69,7 @@ export class SocketService {
         }
 
         if (clientId && clientId !== mdns.getSelfId()) {
-          mdns.registerWebPeer(clientId, clientIp, nickname, avatar);
+          mdns.registerWebPeer(clientId, clientIp, nickname, avatar, 3000, os);
         }
 
         // 监听客户端发来的测试或控制指令

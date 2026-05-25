@@ -13,6 +13,8 @@ export interface Peer {
   lastSeen: number;
   /** 是否是本端设备本身 */
   isSelf: boolean;
+  /** 设备操作系统类型 (如 Windows, macOS, Android, iOS, Linux) */
+  os?: string;
 }
 
 export interface SelfConfig {
