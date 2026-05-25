@@ -36,10 +36,15 @@ export async function GET(request: NextRequest) {
   const avatar = searchParams.get('avatar') || 'avatar-1';
 
   // 解析客户端在局域网中的真实物理 IP
-  let clientIp = request.ip || '127.0.0.1';
+  let clientIp = '127.0.0.1';
   const forwardedFor = request.headers.get('x-forwarded-for');
+  const realIp = request.headers.get('x-real-ip');
   if (forwardedFor) {
     clientIp = forwardedFor.split(',')[0].trim();
+  } else if (realIp) {
+    clientIp = realIp.trim();
+  } else if ((request as any).ip) {
+    clientIp = (request as any).ip;
   }
   if (clientIp.startsWith('::ffff:')) {
     clientIp = clientIp.substring(7);
