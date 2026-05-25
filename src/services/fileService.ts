@@ -353,4 +353,78 @@ export class FileService {
     SocketService.getInstance().broadcast('shared-files:update', filtered.sort((a, b) => b.uploadedAt - a.uploadedAt));
     return true;
   }
+
+  // 缓存互传任务索引文件路径
+  private getTransferTasksPath(): string {
+    const storageDir = ConfigService.getInstance().getStoragePath();
+    return path.join(storageDir, 'transfer_tasks.json');
+  }
+
+  // 从物理磁盘读取互传任务列表
+  public getTransferTasks(): Record<string, any> {
+    const filePath = this.getTransferTasksPath();
+    if (!fs.existsSync(filePath)) {
+      return {};
+    }
+    try {
+      const data = fs.readFileSync(filePath, 'utf-8');
+      return JSON.parse(data);
+    } catch (err) {
+      console.error('[FileService] 读取互传任务列表失败:', err);
+      return {};
+    }
+  }
+
+  // 物理写入互传任务列表
+  private writeTransferTasks(tasks: Record<string, any>): void {
+    const filePath = this.getTransferTasksPath();
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(tasks, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('[FileService] 写入互传任务列表失败:', err);
+    }
+  }
+
+  // 注册或更新一个互传任务
+  public registerTransferTask(taskId: string, task: any): void {
+    const tasks = this.getTransferTasks();
+    tasks[taskId] = {
+      ...tasks[taskId],
+      ...task,
+      updatedAt: Date.now()
+    };
+    this.writeTransferTasks(tasks);
+    console.log(`[FileService] 已持久化注册/更新互传任务: ${task.fileName} (${taskId})`);
+  }
+
+  // 获取特定客户端的 pending 状态任务 (用于补发提醒/自愈)
+  public getPendingTasksForClient(clientId: string): any[] {
+    const tasks = this.getTransferTasks();
+    return Object.values(tasks).filter((t: any) => t.peerId === clientId && t.status === 'pending');
+  }
+
+  // 清理互传物理大文件，并在任务清单中更新状态为已删除
+  public cleanupTransferFile(taskId: string): void {
+    const upload = this.uploadTasks.get(taskId);
+    const tasks = this.getTransferTasks();
+    
+    if (upload) {
+      try {
+        if (fs.existsSync(upload.filePath)) {
+          fs.unlinkSync(upload.filePath);
+          console.log(`[FileService] [自愈] 接收端已下载完毕，已物理清理发送端暂存文件: ${upload.filePath}`);
+        }
+      } catch (err) {
+        console.error(`[FileService] 物理清理暂存文件失败: ${upload.filePath}`, err);
+      }
+      this.uploadTasks.delete(taskId);
+    }
+    
+    // 更新持久化状态
+    if (tasks[taskId]) {
+      tasks[taskId].status = 'completed';
+      tasks[taskId].progress = 100;
+      this.writeTransferTasks(tasks);
+    }
+  }
 }

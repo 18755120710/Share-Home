@@ -36,6 +36,22 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
       }));
     });
 
+    // 订阅传输被拒绝信号，置为失败并说明对方已拒绝
+    const unsubReject = socket.subscribe('transfer:reject', (data: { taskId: string }) => {
+      setTasks(prev => {
+        const target = prev[data.taskId];
+        if (!target) return prev;
+        return {
+          ...prev,
+          [data.taskId]: {
+            ...target,
+            status: 'failed',
+            error: '对方已拒绝接收该文件'
+          }
+        };
+      });
+    });
+
     // 订阅传输完成信号
     const unsubComplete = socket.subscribe('transfer:complete', (data: { taskId: string; filePath: string }) => {
       setTasks(prev => {
@@ -56,9 +72,62 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
     return () => {
       unsubRequest();
       unsubProgress();
+      unsubReject();
       unsubComplete();
     };
   }, []);
+
+  // 1.5. 在初始化时，从后端拉取该客户端的历史互传任务列表，实现网页刷新后任务自愈
+  useEffect(() => {
+    if (!selfId) return;
+    
+    const fetchHistoryTasks = async () => {
+      try {
+        const res = await fetch(`/api/transfer/tasks?clientId=${encodeURIComponent(selfId)}`);
+        const data = await res.json();
+        if (data.success && data.tasks) {
+          const tasksMap: Record<string, TransferTask> = {};
+          data.tasks.forEach((t: any) => {
+            tasksMap[t.id] = {
+              id: t.id,
+              fileName: t.fileName,
+              fileSize: t.fileSize,
+              transferredBytes: t.status === 'completed' ? t.fileSize : 0,
+              progress: t.status === 'completed' ? 100 : 0,
+              speed: 0,
+              type: t.senderId === selfId ? 'send' : 'receive',
+              status: t.status,
+              peerId: t.senderId === selfId ? t.peerId : t.senderId,
+              peerName: t.senderId === selfId ? t.peerName : t.senderName,
+              startedAt: t.startedAt || Date.now(),
+              error: t.status === 'rejected' ? '对方已拒绝接收该文件' : undefined
+            };
+            
+            // 如果对方是接收者，且该任务目前还是待接收状态，则自动弹出接收面板
+            if (t.peerId === selfId && t.status === 'pending') {
+              setIncomingRequest({
+                taskId: t.id,
+                senderId: t.senderId,
+                senderName: t.senderName,
+                fileName: t.fileName,
+                fileSize: t.fileSize,
+                downloadUrl: t.downloadUrl
+              });
+            }
+          });
+          
+          setTasks(prev => ({
+            ...tasksMap,
+            ...prev
+          }));
+        }
+      } catch (err) {
+        console.error('[useFileTransfer] 拉取互传历史任务失败:', err);
+      }
+    };
+    
+    fetchHistoryTasks();
+  }, [selfId]);
 
   /**
    * 发送大文件给远端 Peer (核心物理大闭环)
@@ -124,7 +193,7 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
       try {
         const arrayBuffer = await chunk.arrayBuffer();
         const res = await fetch(
-          `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}`,
+          `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}&targetClientId=${encodeURIComponent(targetPeerId)}&targetPeerName=${encodeURIComponent(targetPeerName)}&senderId=${encodeURIComponent(selfId)}&senderName=${encodeURIComponent(selfNickname)}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/octet-stream' },
@@ -260,6 +329,10 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
    * 拒绝接收远端文件
    */
   const rejectRequest = () => {
+    if (incomingRequest) {
+      const socket = SocketClient.getInstance();
+      socket.emit('transfer:reject', { taskId: incomingRequest.taskId });
+    }
     setIncomingRequest(null);
   };
 

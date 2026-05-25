@@ -127,6 +127,26 @@ export async function POST(request: NextRequest) {
       } else {
         // 向本地 FileService 注册为允许他人下载的实体
         fileService.registerUpload(taskId, finalPath, actualName, fileSize);
+
+        // 提取互传参与者的所有元数据，并进行 JSON 持久化落盘注册
+        const targetClientId = searchParams.get('targetClientId') || '';
+        const targetPeerName = searchParams.get('targetPeerName') || '未知伙伴';
+        const senderId = searchParams.get('senderId') || '';
+        const senderName = searchParams.get('senderName') || '局域网伙伴';
+
+        fileService.registerTransferTask(taskId, {
+          id: taskId,
+          fileName: actualName,
+          fileSize,
+          status: 'pending',
+          type: 'send',
+          progress: 100,
+          peerId: targetClientId,
+          peerName: targetPeerName,
+          senderId,
+          senderName,
+          startedAt: Date.now()
+        });
       }
 
       return NextResponse.json({

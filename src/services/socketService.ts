@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Peer } from '../types/peer';
 import { MdnsService } from './mdnsService';
+import { FileService } from './fileService';
 
 export class SocketService {
   private wss: WebSocketServer | null = null;
@@ -88,6 +89,26 @@ export class SocketService {
               console.log(`[WebSocket] 转发文件传输申请，目标客户端: ${targetClientId}`);
               this.sendToClient(targetClientId, 'transfer:request', metadata);
             }
+
+            // 收到接收端点击“拒绝文件接收”：'transfer:reject'
+            if (parsed.event === 'transfer:reject') {
+              const { taskId } = parsed.data;
+              console.log(`[WebSocket] 收到互传任务拒绝信令: ${taskId}`);
+              const fileService = FileService.getInstance();
+              
+              // 在持久化配置中更新为 rejected
+              const tasks = fileService.getTransferTasks();
+              if (tasks[taskId]) {
+                tasks[taskId].status = 'rejected';
+                fileService.registerTransferTask(taskId, tasks[taskId]);
+              }
+              
+              // 物理清空该任务暂存文件，自愈清理
+              fileService.cleanupTransferFile(taskId);
+              
+              // 广播给所有人，同步前端任务列表状态
+              this.broadcast('transfer:reject', { taskId });
+            }
           } catch (e) {
             // 忽略非 JSON 数据
           }
@@ -112,6 +133,22 @@ export class SocketService {
         
         // 建立连接后，给前端发送一个欢迎及就绪包
         this.sendTo(ws, 'system:ready', { timestamp: Date.now() });
+
+        // 智能自愈补发：当客户端重新连入或刷新页面时，若有针对它的 pending（待接收）传输任务，补发 WS 握手提示
+        if (clientId) {
+          const pendingTasks = FileService.getInstance().getPendingTasksForClient(clientId);
+          for (const task of pendingTasks) {
+            console.log(`[WebSocket] [自愈补发] 客户端 ${clientId} 上线，重新推送待接收任务: ${task.fileName}`);
+            this.sendTo(ws, 'transfer:request', {
+              taskId: task.id,
+              senderId: task.senderId,
+              senderName: task.senderName,
+              fileName: task.fileName,
+              fileSize: task.fileSize,
+              downloadUrl: task.downloadUrl
+            });
+          }
+        }
       });
 
       this.wss.on('error', (err: any) => {
@@ -154,6 +191,12 @@ export class SocketService {
       if (client.readyState === WebSocket.OPEN) {
         client.send(payload);
       }
+    }
+
+    // 智能自愈：当传输任务完成 (transfer:complete)，自动物理清理发送端暂存大文件
+    if (event === 'transfer:complete' && data && data.taskId) {
+      console.log(`[WebSocket] 检测到互传完成广播，自动启动发送端物理暂存文件自愈清理. TaskId: ${data.taskId}`);
+      FileService.getInstance().cleanupTransferFile(data.taskId);
     }
   }
 
