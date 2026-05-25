@@ -34,12 +34,37 @@ export class SocketService {
         this.clients.add(ws);
         
         let clientId: string | null = null;
+        let nickname = '局域网伙伴';
+        let avatar = 'avatar-1';
         try {
           const urlObj = new URL(req.url || '', 'http://localhost');
           clientId = urlObj.searchParams.get('clientId');
+          nickname = urlObj.searchParams.get('nickname') || '局域网伙伴';
+          avatar = urlObj.searchParams.get('avatar') || 'avatar-1';
         } catch (e) {}
 
         console.log(`[WebSocket] 客户端已建立连接. ClientId: ${clientId || 'unknown'}. 当前连接数: ${this.clients.size}`);
+
+        // 精准获取局域网内客户端物理 IPv4 地址 (处理本地 IPv6 回环前缀及反向代理转发字段)
+        let clientIp = req.socket.remoteAddress || '127.0.0.1';
+        if (clientIp.startsWith('::ffff:')) {
+          clientIp = clientIp.substring(7);
+        } else if (clientIp === '::1') {
+          clientIp = '127.0.0.1';
+        }
+        
+        const forwardedFor = req.headers['x-forwarded-for'];
+        if (forwardedFor) {
+          const ip = typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : forwardedFor[0].trim();
+          if (ip) {
+            clientIp = ip;
+          }
+        }
+
+        const mdns = MdnsService.getInstance();
+        if (clientId && clientId !== mdns.getSelfId()) {
+          mdns.registerWebPeer(clientId, clientIp, nickname, avatar);
+        }
 
         // 监听客户端发来的测试或控制指令
         ws.on('message', (message: string) => {
