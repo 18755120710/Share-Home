@@ -271,7 +271,7 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
   };
 
   /**
-   * 同意接收远端发来的文件 (触发本地宿主启动拉取)
+   * 同意接收远端发来的文件 (触发本地浏览器真实拉取并保存，同时在面板联动显示流式进度)
    */
   const acceptRequest = async () => {
     if (!incomingRequest) return;
@@ -297,25 +297,18 @@ export function useFileTransfer(selfId: string | undefined, selfNickname: string
     setIncomingRequest(null); // 关闭弹窗
 
     try {
-      const res = await fetch('/api/transfer/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskId,
-          fileName,
-          fileSize,
-          downloadUrl,
-          peerId: senderId,
-          peerName: senderName
-        })
-      });
+      console.log(`[useFileTransfer] 正在为对等端拉起浏览器物理落地流式下载: ${fileName}`);
       
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || '下载任务启动失败');
-      }
+      // 🌟 核心突破：直接拉起浏览器自身自带的文件下载与保存管理器，完美落地到本地磁盘！
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
     } catch (err: any) {
-      console.error('[useFileTransfer] 启动本地流式下载异常:', err);
+      console.error('[useFileTransfer] 启动浏览器附件流下载异常:', err);
       setTasks(prev => ({
         ...prev,
         [taskId]: {
