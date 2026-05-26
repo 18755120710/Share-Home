@@ -36,14 +36,18 @@
   
   --btn-primary-bg: #ffffff;
   --btn-primary-text: #000000;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.04);
+  --btn-secondary-hover-bg: rgba(255, 255, 255, 0.08);
   
   --bg-item: rgba(255, 255, 255, 0.015);
   --bg-item-hover: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(20, 20, 25, 0.7);
 }
 
 [data-theme='light'] {
   --bg-app: #f4f4f5;
   --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-card-hover: rgba(255, 255, 255, 1);
   --bg-sidebar: #ffffff;
   --border-color: #e4e4e7;
   --border-color-hover: #d4d4d8;
@@ -59,6 +63,11 @@
   
   --btn-primary-bg: #18181b;
   --btn-primary-text: #ffffff;
+  --btn-secondary-bg: rgba(9, 9, 11, 0.04);
+  --btn-secondary-hover-bg: rgba(9, 9, 11, 0.08);
+  
+  --bg-item: rgba(9, 9, 11, 0.02);
+  --bg-item-hover: rgba(9, 9, 11, 0.05);
   
   /* 亮色阴影与微光效 */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
