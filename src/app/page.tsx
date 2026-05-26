@@ -169,22 +169,13 @@ export default function Home() {
   const totalTasksCount = Object.values(tasks).length;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)' }}>
+    <div className="app-container">
       
       {/* 1. 左侧大厂极简侧边导航栏 (Sidebar) */}
-      <aside style={{
-        width: '260px',
-        background: 'var(--bg-sidebar)',
-        borderRight: '1px solid var(--border-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-        zIndex: 10
-      }}>
+      <aside className="sidebar-container">
         {/* 顶部 Logo & 品牌区 */}
         <div>
-          <div style={{ 
+          <div className="sidebar-logo-group" style={{ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '12px',
@@ -200,20 +191,22 @@ export default function Home() {
               alignItems: 'center',
               justifyContent: 'center',
               border: '1px solid rgba(37, 99, 235, 0.3)',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: 'var(--shadow-sm)',
+              flexShrink: 0
             }}>
               <Radio size={16} style={{ color: 'var(--accent-color)' }} />
             </div>
-            <div>
+            <div className="sidebar-title-group">
               <h1 style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Share Home</h1>
               <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>局域网协作平台</p>
             </div>
           </div>
 
           {/* 导航菜单列表 */}
-          <nav style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <nav className="sidebar-nav" style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <button
               onClick={() => setActiveTab('transfer')}
+              className="sidebar-nav-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -237,12 +230,13 @@ export default function Home() {
                 if (activeTab !== 'transfer') e.currentTarget.style.background = 'transparent';
               }}
             >
-              <Files size={15} style={{ color: activeTab === 'transfer' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
-              极速文件流
+              <Files size={15} style={{ color: activeTab === 'transfer' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              <span className="sidebar-nav-text">极速文件流</span>
             </button>
 
             <button
               onClick={() => setActiveTab('share')}
+              className="sidebar-nav-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -266,12 +260,13 @@ export default function Home() {
                 if (activeTab !== 'share') e.currentTarget.style.background = 'transparent';
               }}
             >
-              <FolderOpen size={15} style={{ color: activeTab === 'share' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
-              共享中心
+              <FolderOpen size={15} style={{ color: activeTab === 'share' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              <span className="sidebar-nav-text">共享中心</span>
             </button>
 
             <button
               onClick={() => setActiveTab('knowledge')}
+              className="sidebar-nav-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -295,12 +290,13 @@ export default function Home() {
                 if (activeTab !== 'knowledge') e.currentTarget.style.background = 'transparent';
               }}
             >
-              <FileText size={15} style={{ color: activeTab === 'knowledge' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
-              飞书云文档
+              <FileText size={15} style={{ color: activeTab === 'knowledge' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              <span className="sidebar-nav-text">飞书云文档</span>
             </button>
 
             <button
               onClick={() => setActiveTab('history')}
+              className="sidebar-nav-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -324,12 +320,13 @@ export default function Home() {
                 if (activeTab !== 'history') e.currentTarget.style.background = 'transparent';
               }}
             >
-              <History size={15} style={{ color: activeTab === 'history' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
-              传输记录
+              <History size={15} style={{ color: activeTab === 'history' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              <span className="sidebar-nav-text">传输记录</span>
             </button>
 
             <button
               onClick={() => setActiveTab('settings')}
+              className="sidebar-nav-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -353,8 +350,8 @@ export default function Home() {
                 if (activeTab !== 'settings') e.currentTarget.style.background = 'transparent';
               }}
             >
-              <Settings size={15} style={{ color: activeTab === 'settings' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
-              系统配置
+              <Settings size={15} style={{ color: activeTab === 'settings' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              <span className="sidebar-nav-text">系统配置</span>
             </button>
           </nav>
         </div>
@@ -430,6 +427,7 @@ export default function Home() {
                 ) : (
                   <div 
                     onClick={startEditProfile}
+                    className="sidebar-profile-card"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -447,11 +445,11 @@ export default function Home() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', minWidth: 0 }}>
                       <Laptop size={13} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span className="sidebar-profile-details" style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {self.nickname}
                       </span>
                     </div>
-                    <Edit3 size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <Edit3 size={11} className="sidebar-profile-edit" style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                   </div>
                 )}
               </div>
@@ -496,16 +494,7 @@ export default function Home() {
       </aside>
 
       {/* 2. 右侧主工作面板工作区 (Workspace) */}
-      <main style={{
-        flex: 1,
-        padding: '24px 32px',
-        height: '100vh',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '24px',
-        background: 'transparent'
-      }} className="fade-in">
+      <main className="workspace-container fade-in">
         
         {/* 顶部自发现网络拉取与刷新状态栏 */}
         <header style={{
