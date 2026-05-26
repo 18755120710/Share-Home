@@ -7,8 +7,24 @@ import { Clipboard, Code, Send, ClipboardCopy, Check } from 'lucide-react';
 import { generateUUID } from '@/lib/utils';
 import Prism from 'prismjs';
 import { SocketClient } from '@/lib/socketClient';
-// 导入常用的 Prism 语法高亮主题样式
+// 导入常用的 Prism 语法高亮主题样式与语言组件
 import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-markup';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-c';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-go';
+import 'prismjs/components/prism-rust';
+import 'prismjs/components/prism-cpp';
+import 'prismjs/components/prism-csharp';
+import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-yaml';
 
 interface BoardProps {
   peers: Peer[];
@@ -132,7 +148,7 @@ export const Board: React.FC<BoardProps> = ({ peers, self }) => {
         background: 'var(--bg-item)'
       }}>
         {/* Tab 栏切换与语言选择 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-app)', padding: '3px', borderRadius: 'var(--radius-sm)' }}>
             <button
               onClick={() => setActiveTab('text')}

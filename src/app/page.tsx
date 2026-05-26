@@ -14,7 +14,8 @@ import {
   Radio, RefreshCw, Laptop, Edit3, Check, 
   Files, FileText, Settings, ShieldAlert, FolderOpen,
   Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X,
-  History, ArrowRight, CheckCircle2, XCircle, Ban
+  History, ArrowRight, CheckCircle2, XCircle, Ban,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history';
@@ -22,6 +23,22 @@ type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history';
 export default function Home() {
   // 1. 初始化局域网在线节点发现逻辑
   const { peers, self, isConnected, updateProfile, refreshPeers } = useMdnsPeers();
+
+  // 侧边导航栏折叠显隐状态 (持久化缓存)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebar_collapsed') === 'true';
+      setIsSidebarCollapsed(saved);
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    const next = !isSidebarCollapsed;
+    setIsSidebarCollapsed(next);
+    localStorage.setItem('sidebar_collapsed', String(next));
+  };
 
   // 2. 初始化局域网极速传输引擎逻辑
   const { 
@@ -172,34 +189,77 @@ export default function Home() {
     <div className="app-container">
       
       {/* 1. 左侧大厂极简侧边导航栏 (Sidebar) */}
-      <aside className="sidebar-container">
+      <aside className={`sidebar-container ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         {/* 顶部 Logo & 品牌区 */}
         <div>
           <div className="sidebar-logo-group" style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '12px',
+            justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
             padding: '24px 20px',
-            borderBottom: '1px solid var(--border-color)'
+            borderBottom: '1px solid var(--border-color)',
+            position: 'relative'
           }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '6px',
-              background: 'var(--accent-glow)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid rgba(37, 99, 235, 0.3)',
-              boxShadow: 'var(--shadow-sm)',
-              flexShrink: 0
-            }}>
-              <Radio size={16} style={{ color: 'var(--accent-color)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                background: 'var(--accent-glow)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(37, 99, 235, 0.3)',
+                boxShadow: 'var(--shadow-sm)',
+                flexShrink: 0
+              }}>
+                <Radio size={16} style={{ color: 'var(--accent-color)' }} />
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="sidebar-title-group" style={{
+                  animation: 'fadeIn 0.15s ease-out forwards'
+                }}>
+                  <h1 style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Share Home</h1>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>局域网协作平台</p>
+                </div>
+              )}
             </div>
-            <div className="sidebar-title-group">
-              <h1 style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Share Home</h1>
-              <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>局域网协作平台</p>
-            </div>
+
+            {/* 折叠切换按钮 */}
+            <button
+              onClick={toggleSidebar}
+              title={isSidebarCollapsed ? '展开导航' : '收起导航'}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                marginLeft: isSidebarCollapsed ? '0' : '8px',
+                position: isSidebarCollapsed ? 'absolute' : 'relative',
+                right: isSidebarCollapsed ? 'auto' : '0',
+                left: isSidebarCollapsed ? '50%' : 'auto',
+                transform: isSidebarCollapsed ? 'translateX(-50%)' : 'none',
+                top: isSidebarCollapsed ? 'calc(50% + 24px)' : 'auto', /* 折叠态下Logo下移，让折叠按钮放在偏下方 */
+                marginTop: isSidebarCollapsed ? '16px' : '0',
+                zIndex: 11
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            </button>
           </div>
 
           {/* 导航菜单列表 */}

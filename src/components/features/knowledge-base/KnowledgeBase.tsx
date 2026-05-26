@@ -3,15 +3,37 @@ import { Peer } from '@/types/peer';
 import { KBDocument } from '@/types/document';
 import Card from '../../ui/Card';
 import Button from '../../ui/Button';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Markdown } from 'tiptap-markdown';
+import Placeholder from '@tiptap/extension-placeholder';
 import { 
   Plus, FileText, Trash2, Edit2, Check, X, Eye, Edit3, 
   Bold, Italic, Heading, Quote, List, Code, Copy, 
-  CheckSquare, Globe, Save, Columns
+  CheckSquare, Globe, Save, Columns, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { generateUUID } from '@/lib/utils';
 import { SocketClient } from '@/lib/socketClient';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
+
+// 导入常用的 Prism 语法高亮语言组件
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-markup';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-c';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-go';
+import 'prismjs/components/prism-rust';
+import 'prismjs/components/prism-cpp';
+import 'prismjs/components/prism-csharp';
+import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-yaml';
 
 interface KnowledgeBaseProps {
   peers: Peer[];
@@ -22,6 +44,22 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   const [documents, setDocuments] = useState<KBDocument[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'split' | 'write' | 'read'>('split');
+
+  // 知识库目录栏折叠状态 (持久化偏好缓存)
+  const [isKbSidebarCollapsed, setIsKbSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kb_sidebar_collapsed') === 'true';
+      setIsKbSidebarCollapsed(saved);
+    }
+  }, []);
+
+  const toggleKbSidebar = () => {
+    const next = !isKbSidebarCollapsed;
+    setIsKbSidebarCollapsed(next);
+    localStorage.setItem('kb_sidebar_collapsed', String(next));
+  };
   
   // 编辑中的临时状态
   const [titleInput, setTitleInput] = useState('');
@@ -40,6 +78,49 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const selectedDoc = documents.find(d => d.id === selectedId) || null;
+
+  // 用一个 ref 存放最新的 titleInput，使 Tiptap 在 onUpdate 里读取到的 titleInput 始终是最新值
+  const titleInputRef = useRef(titleInput);
+  useEffect(() => {
+    titleInputRef.current = titleInput;
+  }, [titleInput]);
+
+  // 初始化 Tiptap 富文本离线编辑器 (整合 tiptap-markdown 做到飞书般的实时输入预览)
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Markdown.configure({
+        html: false, // 禁用 HTML 输出，保障完全是纯 Markdown 互转
+        linkify: true,
+      }),
+      Placeholder.configure({
+        placeholder: '在这里开始书写飞书般的文档协作体验，输入 Markdown 标识符即时渲染...',
+        emptyEditorClass: 'is-editor-empty',
+      })
+    ],
+    content: selectedDoc ? selectedDoc.content : '',
+    editorProps: {
+      attributes: {
+        class: 'ProseMirror',
+      }
+    },
+    onUpdate: ({ editor }) => {
+      // 提取编辑器中的 Markdown 并更新状态，触发防抖自动落盘与 WebSocket 同步
+      const markdown = (editor.storage as any).markdown.getMarkdown();
+      setContentInput(markdown);
+      triggerAutoSave(titleInputRef.current, markdown);
+    }
+  });
+
+  // 当选择文档改变或物理落盘更新时，将内容双向填充到富文本编辑器
+  useEffect(() => {
+    if (editor && selectedDoc) {
+      const currentMarkdown = (editor.storage as any).markdown.getMarkdown();
+      if (currentMarkdown !== selectedDoc.content) {
+        editor.commands.setContent(selectedDoc.content);
+      }
+    }
+  }, [selectedDoc?.content, editor]);
 
   // 1. 初始化拉取本地文档列表
   const fetchDocuments = async () => {
@@ -316,7 +397,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTitleInput(val);
-    triggerAutoSave(val, contentInput);
+    const currentMarkdown = editor ? (editor.storage as any).markdown.getMarkdown() : contentInput;
+    triggerAutoSave(val, currentMarkdown);
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -508,23 +590,57 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       
       {/* 1. 云文档知识库左侧目录列表栏 */}
       <div style={{
-        width: '280px',
-        borderRight: '1px solid var(--border-color)',
+        width: isKbSidebarCollapsed ? '0px' : '280px',
+        borderRight: isKbSidebarCollapsed ? 'none' : '1px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--kb-sidebar-bg)',
-        height: '100%'
+        height: '100%',
+        transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out, border-color 0.3s',
+        opacity: isKbSidebarCollapsed ? 0 : 1,
+        pointerEvents: isKbSidebarCollapsed ? 'none' : 'auto',
+        overflow: 'hidden'
       }}>
         {/* 文档库列表顶部按钮 */}
         <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Globe size={14} style={{ color: 'var(--accent-color)' }} />
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Globe size={14} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
             共享知识库 ({documents.length})
           </span>
-          <Button variant="primary" onClick={handleCreateDocument} style={{ padding: '6px 10px', fontSize: '0.75rem', height: '28px' }}>
-            <Plus size={14} />
-            新建
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <Button variant="primary" onClick={handleCreateDocument} style={{ padding: '6px 10px', fontSize: '0.75rem', height: '28px' }}>
+              <Plus size={14} />
+              新建
+            </Button>
+            
+            {/* 收起侧边栏按钮 */}
+            <button
+              onClick={toggleKbSidebar}
+              title="收起知识库目录"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
+            >
+              <ChevronsLeft size={15} />
+            </button>
+          </div>
         </div>
 
         {/* 文档库目录项列表 */}
@@ -661,8 +777,42 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
               borderBottom: '1px solid var(--border-color)',
               background: 'rgba(0, 0, 0, 0.05)'
             }}>
-              {/* 保存状态提示 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* 保存状态提示与侧边栏唤出按钮 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {isKbSidebarCollapsed && (
+                  <button
+                    onClick={toggleKbSidebar}
+                    title="展开共享知识库目录"
+                    style={{
+                      background: 'rgba(128, 128, 128, 0.06)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      padding: '6px',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s',
+                      animation: 'fadeIn 0.2s ease-out forwards',
+                      marginRight: '4px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(128, 128, 128, 0.12)';
+                      e.currentTarget.style.borderColor = 'var(--border-color-hover)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(128, 128, 128, 0.06)';
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }}
+                  >
+                    <ChevronsRight size={15} />
+                  </button>
+                )}
+
+                {/* 保存状态提示 */}
                 {saveStatus === 'saved' && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--success-color)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <CheckSquare size={13} />
@@ -803,27 +953,87 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                     borderBottom: '1px solid var(--border-color)',
                     overflowX: 'auto'
                   }}>
-                    <button onClick={() => insertText('**', '**')} title="加粗" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    <button 
+                      onClick={() => editor?.chain().focus().toggleBold().run()} 
+                      title="加粗" 
+                      style={{ 
+                        background: editor?.isActive('bold') ? 'rgba(59, 130, 246, 0.1)' : 'transparent', 
+                        border: 'none', 
+                        padding: '6px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer', 
+                        color: editor?.isActive('bold') ? 'var(--accent-color)' : 'var(--text-secondary)',
+                        transition: 'all 0.15s'
+                      }}
+                    >
                       <Bold size={13} />
                     </button>
-                    <button onClick={() => insertText('*', '*')} title="斜体" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    <button 
+                      onClick={() => editor?.chain().focus().toggleItalic().run()} 
+                      title="斜体" 
+                      style={{ 
+                        background: editor?.isActive('italic') ? 'rgba(59, 130, 246, 0.1)' : 'transparent', 
+                        border: 'none', 
+                        padding: '6px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer', 
+                        color: editor?.isActive('italic') ? 'var(--accent-color)' : 'var(--text-secondary)',
+                        transition: 'all 0.15s'
+                      }}
+                    >
                       <Italic size={13} />
                     </button>
-                    <button onClick={() => insertText('# ', '')} title="一级标题" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    <button 
+                      onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} 
+                      title="二级标题" 
+                      style={{ 
+                        background: editor?.isActive('heading', { level: 2 }) ? 'rgba(59, 130, 246, 0.1)' : 'transparent', 
+                        border: 'none', 
+                        padding: '6px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer', 
+                        color: editor?.isActive('heading', { level: 2 }) ? 'var(--accent-color)' : 'var(--text-secondary)',
+                        transition: 'all 0.15s'
+                      }}
+                    >
                       <Heading size={13} />
                     </button>
-                    <button onClick={() => insertText('> ', '')} title="引用块" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    <button 
+                      onClick={() => editor?.chain().focus().toggleBlockquote().run()} 
+                      title="引用块" 
+                      style={{ 
+                        background: editor?.isActive('blockquote') ? 'rgba(59, 130, 246, 0.1)' : 'transparent', 
+                        border: 'none', 
+                        padding: '6px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer', 
+                        color: editor?.isActive('blockquote') ? 'var(--accent-color)' : 'var(--text-secondary)',
+                        transition: 'all 0.15s'
+                      }}
+                    >
                       <Quote size={13} />
                     </button>
-                    <button onClick={() => insertText('- ', '')} title="无序列表" style={{ background: 'transparent', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    <button 
+                      onClick={() => editor?.chain().focus().toggleBulletList().run()} 
+                      title="无序列表" 
+                      style={{ 
+                        background: editor?.isActive('bulletList') ? 'rgba(59, 130, 246, 0.1)' : 'transparent', 
+                        border: 'none', 
+                        padding: '6px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer', 
+                        color: editor?.isActive('bulletList') ? 'var(--accent-color)' : 'var(--text-secondary)',
+                        transition: 'all 0.15s'
+                      }}
+                    >
                       <List size={13} />
                     </button>
                     <span style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 4px' }} />
                     <button 
-                      onClick={() => insertText('```javascript\n', '\n```')} 
-                      title="插入 JS 代码块"
+                      onClick={() => editor?.chain().focus().toggleCodeBlock().run()} 
+                      title="插入/取消 代码块"
                       style={{ 
-                        background: 'rgba(59, 130, 246, 0.08)', 
+                        background: editor?.isActive('codeBlock') ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.08)', 
                         border: '1px solid rgba(59, 130, 246, 0.2)', 
                         padding: '4px 8px', 
                         borderRadius: '4px', 
@@ -832,7 +1042,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                         fontSize: '0.7rem',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '4px',
+                        transition: 'all 0.15s'
                       }}
                     >
                       <Code size={12} />
@@ -840,27 +1051,19 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                     </button>
                   </div>
 
-                  {/* 编辑 TextArea */}
-                  <textarea
-                    ref={textareaRef}
-                    value={contentInput}
-                    onChange={handleContentChange}
-                    placeholder="在这里支持使用丰富的 Markdown 语法进行书写，并在文字之间自由插入代码块..."
-                    style={{
-                      flex: 1,
-                      width: '100%',
-                      padding: '24px 32px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--text-primary)',
-                      fontFamily: 'var(--font-sans)',
-                      fontSize: '0.925rem',
-                      lineHeight: 1.7,
-                      resize: 'none',
-                      outline: 'none',
-                      overflowY: 'auto'
-                    }}
-                  />
+                  {/* 编辑 Tiptap 富文本 Content Area */}
+                  <div style={{
+                    flex: 1,
+                    width: '100%',
+                    padding: '12px 32px',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-sans)',
+                    outline: 'none',
+                    overflowY: 'auto'
+                  }}>
+                    <EditorContent editor={editor} />
+                  </div>
                 </div>
               )}
 

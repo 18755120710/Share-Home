@@ -383,3 +383,181 @@ code[class*="language-"] {
     padding: 16px 20px;
   }
 }
+
+/* ==========================================
+   侧边栏折叠态高级响应式样式 (Zinc 大厂极简风格)
+   ========================================== */
+.sidebar-container.collapsed {
+  width: 68px !important;
+}
+
+.sidebar-container.collapsed .sidebar-title-group,
+.sidebar-container.collapsed .sidebar-nav-text,
+.sidebar-container.collapsed .sidebar-profile-details,
+.sidebar-container.collapsed .sidebar-profile-edit {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  display: none !important;
+  pointer-events: none;
+}
+
+.sidebar-container.collapsed .sidebar-logo-group {
+  justify-content: center !important;
+  padding: 24px 0 !important;
+}
+
+.sidebar-container.collapsed .sidebar-nav {
+  align-items: center !important;
+  padding: 16px 8px !important;
+}
+
+.sidebar-container.collapsed .sidebar-nav-btn {
+  justify-content: center !important;
+  padding: 10px 0 !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.sidebar-container.collapsed .sidebar-profile-card {
+  padding: 10px 0 !important;
+  justify-content: center !important;
+  border-color: transparent !important;
+  background: transparent !important;
+}
+
+/* ==========================================
+   Tiptap ProseMirror 编辑器 Zinc 大厂专属美学样式
+   ========================================== */
+.ProseMirror {
+  outline: none;
+  min-height: calc(100vh - 350px);
+  padding: 12px 0 100px 0;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* Placeholder 专属样式 */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-muted);
+  pointer-events: none;
+  height: 0;
+}
+
+/* 标题规格定制 */
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4 {
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+  letter-spacing: -0.015em;
+  line-height: 1.4;
+}
+
+.ProseMirror h1 {
+  font-size: 1.65rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-top: 0.8em;
+}
+
+.ProseMirror h2 {
+  font-size: 1.35rem;
+  border-bottom: 1px dashed var(--border-color);
+  padding-bottom: 4px;
+}
+
+.ProseMirror h3 {
+  font-size: 1.18rem;
+}
+
+.ProseMirror h4 {
+  font-size: 1.05rem;
+}
+
+/* 列表规格定制 */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 24px;
+  margin: 12px 0;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  margin: 6px 0;
+  padding-left: 4px;
+}
+
+.ProseMirror li > p {
+  margin: 0 !important;
+}
+
+/* 引用块规格定制 */
+.ProseMirror blockquote {
+  border-left: 4px solid var(--accent-color);
+  background: rgba(59, 130, 246, 0.04);
+  padding: 12px 18px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: 16px 0;
+  color: var(--text-secondary);
+}
+
+.ProseMirror blockquote p {
+  margin: 0 !important;
+  font-style: italic;
+}
+
+/* 行内代码样式 */
+.ProseMirror code {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  color: var(--text-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+}
+
+[data-theme='light'] .ProseMirror code {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+/* 大代码块容器样式 */
+.ProseMirror pre {
+  background: var(--code-pre-bg) !important;
+  border: 1px solid var(--code-border, rgba(255, 255, 255, 0.04)) !important;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  margin: 18px 0;
+  overflow-x: auto;
+}
+
+.ProseMirror pre code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-size: 0.85rem !important;
+  color: inherit !important;
+  font-family: var(--font-mono) !important;
+}
+
