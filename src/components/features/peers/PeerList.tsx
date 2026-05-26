@@ -139,8 +139,8 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
     
     // 映射出 0 - 360 度的角度
     const angle = Math.abs(hash % 360);
-    // 映射出 40% - 80% 之间的同心圆半径，防止节点重叠，且完美留在雷达盘内
-    const radius = 40 + (Math.abs(hash >> 8) % 36);
+    // 映射出 16% - 40% 之间的同心圆半径，防止节点重叠，且完美留在 430px 的雷达圆盘盘内
+    const radius = 16 + (Math.abs(hash >> 8) % 24);
     
     // 转换为直角坐标系中的百分比位置 (以 50%, 50% 作为中心原点)
     const rad = (angle * Math.PI) / 180;
@@ -223,438 +223,522 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
         </div>
       </div>
 
-      {/* 科技感满分居中布局容器 */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+      {/* 科技感满分双栏协作台布局容器 */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', gap: '20px' }}>
         
-        {/* 3D/2D 动效雷达扫描视窗：大厂精致格栅背景 */}
-        <div style={{ 
-          width: '100%', 
-          display: 'flex', 
-          flexDirection: 'column',
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          background: 'var(--radar-bg-outer)',
-          backgroundSize: '100% 100%, 24px 24px, 24px 24px',
-          borderRadius: '16px',
-          border: '1px solid var(--border-color)',
-          padding: '48px 24px',
-          position: 'relative',
-          boxShadow: 'var(--radar-inner-shadow, inset 0 4px 40px rgba(0,0,0,0.15))',
-          minHeight: '540px',
-          overflow: 'hidden'
+        <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: '24px',
+          width: '100%',
+          alignItems: 'stretch'
         }}>
           
-          {/* 四个角落的军工级HUD科技线条装饰 */}
-          <div style={{ position: 'absolute', top: '16px', left: '16px', width: '16px', height: '16px', borderTop: '2px solid var(--radar-corner-border)', borderLeft: '2px solid var(--radar-corner-border)' }} />
-          <div style={{ position: 'absolute', top: '16px', right: '16px', width: '16px', height: '16px', borderTop: '2px solid var(--radar-corner-border)', borderRight: '2px solid var(--radar-corner-border)' }} />
-          <div style={{ position: 'absolute', bottom: '16px', left: '16px', width: '16px', height: '16px', borderBottom: '2px solid var(--radar-corner-border)', borderLeft: '2px solid var(--radar-corner-border)' }} />
-          <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '16px', height: '16px', borderBottom: '2px solid var(--radar-corner-border)', borderRight: '2px solid var(--radar-corner-border)' }} />
-
-          {/* 四角高精度的数字/字符刻度 */}
-          <div style={{ position: 'absolute', top: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>SYS_STATUS: NOMINAL</div>
-          <div style={{ position: 'absolute', top: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>GRID_REF: 48-T9_L</div>
-          <div style={{ position: 'absolute', bottom: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>BANDWIDTH: UNLIMITED</div>
-          <div style={{ position: 'absolute', bottom: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>DISC: mDNS_NODE</div>
-
-          {/* 雷达大圆盘容器 - 升级为 430px 更加大气 */}
+          {/* 左栏：3D/2D 动效雷达扫描视窗：大厂精致格栅背景 */}
           <div style={{ 
-            width: '430px', 
-            height: '430px', 
-            borderRadius: '50%', 
-            position: 'relative', 
-            background: 'var(--radar-bg-inner)',
-            border: '2px solid var(--radar-border)',
-            boxShadow: '0 0 60px var(--radar-peer-shadow), inset 0 0 30px var(--radar-peer-shadow)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            flex: '1 1 500px', 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            background: 'var(--radar-bg-outer)',
+            borderRadius: '16px',
+            border: '1px solid var(--border-color)',
+            padding: '40px 24px',
+            position: 'relative',
+            boxShadow: 'var(--radar-inner-shadow, inset 0 4px 40px rgba(0,0,0,0.15))',
+            minHeight: '520px',
+            overflow: 'hidden'
           }}>
-            {/* 内部裁剪容器：用于放置 SVG 网格与旋转扫射光芒，防止溢出圆盘 */}
-            <div style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              pointerEvents: 'none',
-              top: 0,
-              left: 0
-            }}>
-              {/* 雷达科技背景网格线及十字轴 */}
-              <svg style={{ position: 'absolute', width: '100%', height: '100%', top: 0, left: 0 }}>
-                {/* 各种刻度线与同心圆 */}
-                <circle cx="50%" cy="50%" r="20%" fill="none" stroke="var(--radar-grid-subtle)" strokeWidth="1" />
-                <circle cx="50%" cy="50%" r="40%" fill="none" stroke="var(--radar-grid)" strokeWidth="1" strokeDasharray="3 3" />
-                <circle cx="50%" cy="50%" r="60%" fill="none" stroke="var(--radar-grid-subtle)" strokeWidth="1" />
-                <circle cx="50%" cy="50%" r="80%" fill="none" stroke="var(--radar-grid)" strokeWidth="1.2" strokeDasharray="5 5" />
-                
-                {/* 精密细刻度外圆环 (大厂细节！) */}
-                <circle cx="50%" cy="50%" r="83%" fill="none" stroke="var(--radar-border)" strokeWidth="3" strokeDasharray="1 14" />
-                <circle cx="50%" cy="50%" r="83%" fill="none" stroke="var(--radar-grid)" strokeWidth="1" />
+            
+            {/* 四个角落的军工级HUD科技线条装饰 */}
+            <div style={{ position: 'absolute', top: '16px', left: '16px', width: '16px', height: '16px', borderTop: '2px solid var(--radar-corner-border)', borderLeft: '2px solid var(--radar-corner-border)' }} />
+            <div style={{ position: 'absolute', top: '16px', right: '16px', width: '16px', height: '16px', borderTop: '2px solid var(--radar-corner-border)', borderRight: '2px solid var(--radar-corner-border)' }} />
+            <div style={{ position: 'absolute', bottom: '16px', left: '16px', width: '16px', height: '16px', borderBottom: '2px solid var(--radar-corner-border)', borderLeft: '2px solid var(--radar-corner-border)' }} />
+            <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '16px', height: '16px', borderBottom: '2px solid var(--radar-corner-border)', borderRight: '2px solid var(--radar-corner-border)' }} />
 
-                {/* 十字网格轴线 */}
-                <line x1="0" y1="50%" x2="100%" y2="50%" stroke="var(--radar-grid)" strokeWidth="1" />
-                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="var(--radar-grid)" strokeWidth="1" />
-                
-                {/* 斜向虚线网格轴线 */}
-                <line x1="15%" y1="15%" x2="85%" y2="85%" stroke="var(--radar-grid-subtle)" strokeWidth="1" strokeDasharray="2 5" />
-                <line x1="85%" y1="15%" x2="15%" y2="85%" stroke="var(--radar-grid-subtle)" strokeWidth="1" strokeDasharray="2 5" />
-              </svg>
+            {/* 四角高精度的数字/字符刻度 */}
+            <div style={{ position: 'absolute', top: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>SYS_STATUS: NOMINAL</div>
+            <div style={{ position: 'absolute', top: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>GRID_REF: 48-T9_L</div>
+            <div style={{ position: 'absolute', bottom: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>BANDWIDTH: UNLIMITED</div>
+            <div style={{ position: 'absolute', bottom: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>DISC: mDNS_NODE</div>
 
-              {/* 360°旋转扫描扇形射线层 */}
-              <div style={{
-                position: 'absolute',
-                width: '100%',
-                height: '100%',
-                top: 0,
-                left: 0,
-                borderRadius: '50%',
-                background: 'var(--radar-sweep)',
-                animation: 'radar-sweep-animation 5s linear infinite',
-                transformOrigin: '50% 50%',
-              }} />
-            </div>
-
-            {/* 外部常驻显示的航向角标识文字 (大厂细节！) */}
-            <div style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'var(--radar-accent-text)', pointerEvents: 'none' }}>000°/N</div>
-            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'var(--radar-accent-text)', pointerEvents: 'none' }}>090°/E</div>
-            <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'var(--radar-accent-text)', pointerEvents: 'none' }}>180°/S</div>
-            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'var(--radar-accent-text)', pointerEvents: 'none' }}>270°/W</div>
-
-            {/* 雷达中心点：本端发射基站 (代表“我”本机) */}
-            <div style={{
-              position: 'relative',
-              width: '44px',
-              height: '44px',
-              zIndex: 15,
+            {/* 雷达大圆盘容器 - 升级为 430px 更加大气 */}
+            <div style={{ 
+              width: '430px', 
+              height: '430px', 
+              borderRadius: '50%', 
+              position: 'relative', 
+              background: 'var(--radar-bg-inner)',
+              border: '2px solid var(--radar-border)',
+              boxShadow: '0 0 60px var(--radar-peer-shadow), inset 0 0 30px var(--radar-peer-shadow)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              {/* 外部极具科技感的旋转细点虚线框 */}
-              <div style={{
-                position: 'absolute',
-                width: '74px',
-                height: '74px',
-                borderRadius: '50%',
-                border: '1.2px dashed var(--radar-border)',
-                animation: 'spin-clockwise 18s linear infinite',
-                pointerEvents: 'none'
-              }} />
-
-              {/* 第二层同轴逆向慢速旋转花环装饰 */}
-              <div style={{
-                position: 'absolute',
-                width: '60px',
-                height: '60px',
-                borderRadius: '50%',
-                border: '1px solid var(--radar-grid-subtle)',
-                borderTop: '1px solid var(--radar-border)',
-                borderBottom: '1px solid var(--radar-border)',
-                animation: 'spin-counter-clockwise 10s linear infinite',
-                pointerEvents: 'none'
-              }} />
-
-              {/* 核心发射源实体 */}
-              <div 
-                onMouseEnter={() => self && setHoveredPeerId('self_node')}
-                onMouseLeave={() => setHoveredPeerId(null)}
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '50%',
-                  background: 'var(--radar-center-bg)',
-                  border: '2.5px solid var(--accent-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 0 35px var(--radar-center-shadow)',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                  zIndex: 2
-                }}
-              >
-                <Radio size={18} style={{ color: '#ffffff' }} className="animate-pulse" />
-                {/* 核心向外发射脉冲圈圈 */}
-                <div style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: '50%',
-                  border: '1px solid var(--accent-color)',
-                  animation: 'radar-pulse-out 3s cubic-bezier(0.16, 1, 0.3, 1) infinite',
-                  pointerEvents: 'none'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: '50%',
-                  border: '1px solid var(--accent-color)',
-                  animation: 'radar-pulse-out 3s cubic-bezier(0.16, 1, 0.3, 1) infinite',
-                  animationDelay: '1.5s',
-                  pointerEvents: 'none'
-                }} />
-              </div>
-            </div>
-
-            {/* 本机 HUD 悬浮提示面板 */}
-            {self && (hoveredPeerId === 'self_node') && (
-              <div style={{
-                position: 'absolute',
-                top: '59%',
-                left: '50%',
-                transform: 'translateX(-50%) translateY(0)',
-                background: 'var(--radar-hud-bg)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid var(--radar-hud-border)',
-                padding: '14px 20px',
-                borderRadius: '12px',
-                boxShadow: 'var(--shadow-lg)',
-                pointerEvents: 'none',
-                whiteSpace: 'nowrap',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-                alignItems: 'center',
-                zIndex: 100,
-                animation: 'fade-in-quick 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
-              }}>
-                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--accent-color)', letterSpacing: '0.12em', fontFamily: 'var(--font-mono), monospace' }}>
-                  LOBBY HOST / 本地核心
-                </span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--radar-hud-text-primary)', letterSpacing: '-0.01em' }}>
-                  {self.nickname}
-                </span>
-                <span style={{ fontSize: '0.78rem', color: 'var(--radar-hud-text-secondary)', fontFamily: 'var(--font-mono), monospace', fontWeight: 500 }}>
-                  {self.ip}
-                </span>
-                <div style={{ marginTop: '6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                  {renderOSBadge(self.os)}
-                  <span style={{ fontSize: '0.62rem', background: 'rgba(16, 185, 129, 0.08)', color: 'var(--success-color)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>DISCOVERY_OK</span>
-                </div>
-              </div>
-            )}
-
-            {/* 设备节点渲染区 */}
-            {peers.length === 0 ? (
-              // 空状态：雷达中显示寻找波纹提示
+              
+              {/* 旋转 Conic 扫描光束效果（自适应换肤，完美契合设计） */}
               <div style={{
                 position: 'absolute',
                 width: '100%',
                 height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                pointerEvents: 'none'
-              }}>
-                <span style={{ 
-                  color: 'var(--radar-accent-text)', 
-                  fontSize: '0.78rem', 
-                  letterSpacing: '0.2em',
-                  fontFamily: 'var(--font-mono), monospace',
-                  fontWeight: 600,
-                  animation: 'radar-blink 2.2s ease-in-out infinite',
-                  marginTop: '130px'
-                }}>
-                  SCANNING FOR ACTIVE TERMINALS...
-                </span>
-              </div>
-            ) : (
-              peers.map((peer) => {
-                const { left, top } = getPeerCoordinates(peer);
-                const isDragOver = dragOverPeerId === peer.id;
-                const isHovered = hoveredPeerId === peer.id;
-                const mockPing = getMockPing(peer.id);
+                borderRadius: '50%',
+                background: 'var(--radar-sweep)',
+                animation: 'radar-sweep-animation 6s linear infinite',
+                pointerEvents: 'none',
+                zIndex: 1
+              }} />
+
+              {/* 极速同心圆扫描轴线 (100% 完美 SVG 极简矢量覆盖) */}
+              <svg style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}>
+                {/* 刻度圆环 */}
+                <circle cx="50%" cy="50%" r="20%" fill="none" stroke="var(--radar-grid-subtle)" strokeWidth="1" strokeDasharray="3, 3" />
+                <circle cx="50%" cy="50%" r="40%" fill="none" stroke="var(--radar-grid)" strokeWidth="1" />
+                <circle cx="50%" cy="50%" r="60%" fill="none" stroke="var(--radar-grid-subtle)" strokeWidth="1" strokeDasharray="4, 4" />
+                <circle cx="50%" cy="50%" r="80%" fill="none" stroke="var(--radar-grid)" strokeWidth="1" />
                 
-                return (
-                  <div
-                    key={peer.id}
-                    onDragOver={(e) => handleDragOver(e, peer.id)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, peer)}
-                    onMouseEnter={() => setHoveredPeerId(peer.id)}
-                    onMouseLeave={() => setHoveredPeerId(null)}
-                    onClick={() => handlePeerClick(peer)}
-                    style={{
-                      position: 'absolute',
-                      left,
-                      top,
-                      transform: 'translate(-50%, -50%)',
-                      zIndex: isHovered || isDragOver ? 10 : 3,
-                      cursor: 'pointer',
-                      transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                    }}
-                  >
-                    {/* 科技感设备发光 Pod (大厂细节重组！) */}
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      background: isDragOver 
-                        ? 'var(--radar-pulse-glow)' 
-                        : isHovered 
-                          ? 'var(--radar-center-bg)' 
-                          : 'var(--radar-peer-bg)',
-                      border: isDragOver 
-                        ? '2.2px dashed var(--accent-color)' 
-                        : isHovered 
-                          ? '2px solid var(--accent-color)' 
-                          : '1.2px solid var(--radar-peer-border)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: isHovered || isDragOver 
-                        ? '0 0 25px var(--radar-pulse-glow), inset 0 0 10px var(--radar-peer-shadow)' 
-                        : '0 0 12px var(--radar-peer-shadow)',
-                      transform: isHovered || isDragOver ? 'scale(1.15)' : 'scale(1)',
-                      transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                      position: 'relative'
-                    }}>
-                      {/* Hover时显示的小型雷达锁定装饰十字刻度线 */}
+                {/* 十字坐标轴轴线 */}
+                <line x1="0" y1="50%" x2="100%" y2="50%" stroke="var(--radar-grid)" strokeWidth="1" />
+                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="var(--radar-grid)" strokeWidth="1" />
+                
+                {/* 科技对角十字虚线 */}
+                <line x1="15%" y1="15%" x2="85%" y2="85%" stroke="var(--radar-grid-subtle)" strokeWidth="0.8" strokeDasharray="4, 4" />
+                <line x1="15%" y1="85%" x2="85%" y2="15%" stroke="var(--radar-grid-subtle)" strokeWidth="0.8" strokeDasharray="4, 4" />
+              </svg>
+
+              {/* 实时雷达波动外扩微动效 */}
+              <div style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                border: '1.5px solid var(--radar-grid-subtle)',
+                pointerEvents: 'none',
+                transform: 'translate(-50%, -50%)',
+                animation: 'radar-pulse-out 4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite',
+                zIndex: 1
+              }} />
+
+              {/* 发射源中心原点：代表本机当前设备 */}
+              <div 
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: 'var(--radar-center-bg)',
+                  border: '2px solid var(--accent-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 20px var(--radar-center-glow)',
+                  zIndex: 5,
+                  cursor: 'default'
+                }}
+                onMouseEnter={() => setHoveredPeerId('self')}
+                onMouseLeave={() => setHoveredPeerId(null)}
+              >
+                <div style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: 'var(--accent-color)',
+                  boxShadow: '0 0 10px var(--accent-color)',
+                  animation: 'sonar-pulse-accent 2s infinite'
+                }} />
+              </div>
+
+              {/* 本机 HUD 悬浮提示面板 */}
+              {hoveredPeerId === 'self' && self && (
+                <div style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '40%',
+                  transform: 'translateX(-50%) translateY(-100%)',
+                  background: 'var(--radar-hud-bg)',
+                  border: '1px solid var(--radar-hud-border)',
+                  boxShadow: 'var(--radar-hud-shadow)',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  zIndex: 20,
+                  width: '200px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '5px',
+                  animation: 'fade-in-quick 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                  pointerEvents: 'none'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.58rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--accent-color)', fontWeight: 700, letterSpacing: '0.08em', width: '100%', borderBottom: '1px solid var(--radar-hud-divider)', paddingBottom: '5px', marginBottom: '3px' }}>
+                    <Wifi size={10} />
+                    LOCAL CONSOLE
+                  </div>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--radar-hud-text-primary)' }}>
+                    {self.nickname}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--radar-hud-text-secondary)', fontFamily: 'var(--font-mono), monospace' }}>
+                    IP: {self.ip}:{self.port}
+                  </span>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                    {renderOSBadge(self.os)}
+                    <span style={{ fontSize: '0.62rem', background: 'rgba(16,185,129,0.08)', color: 'var(--success-color)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      本机信道监听中
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 设备节点渲染区 */}
+              {peers.length === 0 ? (
+                // 未扫描到任何局域网终端时
+                <div style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  pointerEvents: 'none'
+                }}>
+                  <span style={{ 
+                    color: 'var(--radar-accent-text)', 
+                    fontSize: '0.78rem', 
+                    letterSpacing: '0.2em',
+                    fontFamily: 'var(--font-mono), monospace',
+                    fontWeight: 600,
+                    animation: 'radar-blink 2.2s ease-in-out infinite',
+                    marginTop: '130px'
+                  }}>
+                    SCANNING FOR ACTIVE TERMINALS...
+                  </span>
+                </div>
+              ) : (
+                peers.map((peer) => {
+                  const { left, top } = getPeerCoordinates(peer);
+                  const isDragOver = dragOverPeerId === peer.id;
+                  const isHovered = hoveredPeerId === peer.id;
+                  const mockPing = getMockPing(peer.id);
+                  
+                  return (
+                    <div
+                      key={peer.id}
+                      onDragOver={(e) => handleDragOver(e, peer.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, peer)}
+                      onClick={() => handlePeerClick(peer)}
+                      onMouseEnter={() => setHoveredPeerId(peer.id)}
+                      onMouseLeave={() => setHoveredPeerId(null)}
+                      style={{
+                        position: 'absolute',
+                        left,
+                        top,
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: isHovered || isDragOver ? 10 : 3,
+                        cursor: 'pointer',
+                        transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                      }}
+                    >
+                      
+                      {/* 设备科技锁定外环 (锁定时微动效) */}
+                      <div style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '50%',
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '50%',
+                        border: `1.5px ${isDragOver ? 'dashed' : 'solid'} ${isDragOver || isHovered ? 'var(--accent-color)' : 'var(--radar-corner-border)'}`,
+                        transform: 'translate(-50%, -50%)',
+                        transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+                        boxShadow: isDragOver || isHovered ? '0 0 15px var(--accent-glow)' : 'none',
+                        animation: isDragOver || isHovered ? 'spin-clockwise 10s linear infinite' : 'none'
+                      }}>
+                        {/* 科技十字对准刻度 */}
+                        {(isDragOver || isHovered) && (
+                          <>
+                            <div style={{ position: 'absolute', top: '-4px', left: '50%', transform: 'translateX(-50%)', width: '2px', height: '6px', background: 'var(--accent-color)' }} />
+                            <div style={{ position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%)', width: '2px', height: '6px', background: 'var(--accent-color)' }} />
+                            <div style={{ position: 'absolute', left: '-4px', top: '50%', transform: 'translateY(-50%)', width: '6px', height: '2px', background: 'var(--accent-color)' }} />
+                            <div style={{ position: 'absolute', right: '-4px', top: '50%', transform: 'translateY(-50%)', width: '6px', height: '2px', background: 'var(--accent-color)' }} />
+                          </>
+                        )}
+                      </div>
+
+                      {/* 核心设备微小图标胶囊圆圈 */}
+                      <div style={{
+                        position: 'relative',
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        background: 'var(--radar-center-bg)',
+                        border: `2px solid ${isDragOver ? 'var(--accent-color)' : 'var(--border-color)'}`,
+                        color: isHovered || isDragOver ? 'var(--accent-color)' : 'var(--text-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: isHovered || isDragOver ? '0 4px 14px var(--accent-glow)' : 'var(--shadow-sm)',
+                        transition: 'all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)',
+                        transform: isHovered || isDragOver ? 'scale(1.1)' : 'scale(1)'
+                      }}>
+                        {renderAvatarIcon(peer.avatar, 20)}
+                      </div>
+
+                      {/* 设备名称微型气泡 */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '56px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        background: isHovered || isDragOver ? 'var(--accent-color)' : 'var(--bg-card)',
+                        color: isHovered || isDragOver ? '#ffffff' : 'var(--text-secondary)',
+                        border: `1px solid ${isHovered || isDragOver ? 'var(--accent-color)' : 'var(--border-color)'}`,
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        whiteSpace: 'nowrap',
+                        boxShadow: 'var(--shadow-sm)',
+                        transition: 'all 0.2s'
+                      }}>
+                        {peer.nickname}
+                      </div>
+
+                      {/* 节点锁定后触发的 HUD 气泡悬浮框 */}
                       {isHovered && (
                         <div style={{
                           position: 'absolute',
-                          width: '60px',
-                          height: '60px',
-                          borderRadius: '50%',
-                          border: '1px solid var(--radar-pulse-glow)',
-                          borderLeftColor: 'transparent',
-                          borderRightColor: 'transparent',
-                          animation: 'spin-clockwise 3s linear infinite'
-                        }} />
+                          left: '50%',
+                          top: '-16px',
+                          transform: 'translateX(-50%) translateY(-100%)',
+                          background: 'var(--radar-hud-bg)',
+                          border: '1px solid var(--radar-hud-border)',
+                          boxShadow: 'var(--radar-hud-shadow)',
+                          borderRadius: '10px',
+                          padding: '12px 16px',
+                          zIndex: 20,
+                          width: '200px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '5px',
+                          animation: 'fade-in-quick 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                          pointerEvents: 'none'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.58rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--accent-color)', fontWeight: 700, letterSpacing: '0.08em', width: '100%', borderBottom: '1px solid var(--radar-hud-divider)', paddingBottom: '5px', marginBottom: '3px' }}>
+                            <Wifi size={10} />
+                            DISCOVERED PEER NODE
+                          </div>
+
+                          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--radar-hud-text-primary)', letterSpacing: '-0.01em' }}>
+                            {peer.nickname}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--radar-hud-text-secondary)', fontFamily: 'var(--font-mono), monospace', fontWeight: 500 }}>
+                            {peer.ip}
+                          </span>
+
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center', margin: '2px 0' }}>
+                            {renderOSBadge(peer.os)}
+                            <span style={{ 
+                              fontSize: '0.62rem', 
+                              background: 'rgba(202,138,4,0.06)', 
+                              color: 'var(--accent-color)', 
+                              border: '1px solid rgba(202,138,4,0.15)', 
+                              padding: '2px 6px', 
+                              borderRadius: '4px', 
+                              fontWeight: 600,
+                              fontFamily: 'var(--font-mono), monospace'
+                            }}>
+                              RTT: ~{mockPing}ms
+                            </span>
+                          </div>
+
+                          <div style={{ 
+                            fontSize: '0.65rem', 
+                            color: 'var(--radar-hud-text-muted)', 
+                            borderTop: '1px solid var(--radar-hud-divider)', 
+                            paddingTop: '6px', 
+                            width: '100%', 
+                            textAlign: 'center',
+                            marginTop: '3px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
+                          }}>
+                            <ShieldCheck size={11} style={{ color: 'var(--success-color)' }} />
+                            {isDragOver ? '松开即投递文件' : '点击选择文件 / 拖放互传'}
+                          </div>
+                        </div>
                       )}
 
-                      {/* 设备分类实体图标 */}
-                      <span style={{ 
-                        color: isHovered || isDragOver ? '#ffffff' : 'var(--accent-color)',
-                        transition: 'color 0.25s' 
+                    </div>
+                  );
+                })
+              )}
+
+            </div>
+
+          </div>
+
+          {/* 右栏：协作终端控制中心面板 */}
+          <div style={{
+            flex: '1 1 360px',
+            background: 'var(--bg-app)',
+            borderRadius: '16px',
+            border: '1px solid var(--border-color)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', margin: 0 }}>
+              <Radio size={16} style={{ color: 'var(--accent-color)', animation: 'radar-blink 2s infinite' }} />
+              协作终端控制中心
+            </h3>
+
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: '430px', paddingRight: '4px' }}>
+              {/* 本机设备列表项 */}
+              {self && (
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--accent-color)',
+                  boxShadow: 'var(--radar-center-glow)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '50%',
+                    background: 'var(--accent-glow)',
+                    color: 'var(--accent-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    {renderAvatarIcon(self.avatar, 20)}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {self.nickname}
+                      </span>
+                      <span style={{ fontSize: '0.6rem', padding: '1px 5px', borderRadius: '4px', background: 'var(--accent-glow)', color: 'var(--accent-color)', fontWeight: 600 }}>
+                        本机
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono), monospace' }}>
+                      IP: {self.ip}:{self.port}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                    {renderOSBadge(self.os)}
+                    <span style={{ fontSize: '0.62rem', color: 'var(--success-color)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--success-color)' }} />
+                      正在监听
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 局域网活跃设备列表项 */}
+              {peers.length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '160px', border: '1px dashed var(--border-color)', borderRadius: '12px', background: 'rgba(128,128,128,0.01)', gap: '8px', color: 'var(--text-muted)' }}>
+                  <Radio size={24} style={{ opacity: 0.4 }} />
+                  <span style={{ fontSize: '0.78rem' }}>正在搜寻局域网活跃终端...</span>
+                </div>
+              ) : (
+                peers.map((peer) => {
+                  const isDragOver = dragOverPeerId === peer.id;
+                  const mockPing = getMockPing(peer.id);
+                  
+                  return (
+                    <div
+                      key={peer.id}
+                      onClick={() => handlePeerClick(peer)}
+                      onDragOver={(e) => handleDragOver(e, peer.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, peer)}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '12px',
+                        background: isDragOver ? 'var(--accent-glow)' : 'var(--bg-card)',
+                        border: isDragOver ? '2px dashed var(--accent-color)' : '1px solid var(--border-color)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        transition: 'all 0.2s',
+                        position: 'relative'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--accent-color)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = isDragOver ? 'var(--accent-color)' : 'var(--border-color)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <div style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '50%',
+                        background: 'rgba(128,128,128,0.04)',
+                        color: 'var(--text-secondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
                       }}>
                         {renderAvatarIcon(peer.avatar, 20)}
-                      </span>
-
-                      {/* 极小的科技发光在线微标灯 */}
-                      <span style={{
-                        position: 'absolute',
-                        top: '1px',
-                        right: '1px',
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: 'var(--success-color)',
-                        border: '1.5px solid rgba(16, 17, 30, 0.98)',
-                        boxShadow: '0 0 8px var(--success-color)'
-                      }} />
-                    </div>
-
-                    {/* 节点底部的微型科技感设备昵称胶囊标签（常驻精细化展示） */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '54px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      fontSize: '0.62rem',
-                      fontFamily: 'var(--font-mono), monospace',
-                      fontWeight: 600,
-                      color: isHovered ? 'var(--accent-color)' : 'var(--text-secondary)',
-                      background: isHovered ? 'var(--radar-hud-bg)' : 'var(--radar-peer-bg)',
-                      border: isHovered ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      boxShadow: 'var(--shadow-sm)',
-                      letterSpacing: '0.04em',
-                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                      opacity: isHovered ? 0 : 1 // Hover时隐藏常驻标签以露出高精 HUD 面板
-                    }}>
-                      {peer.nickname}
-                    </div>
-
-                    {/* HUD 大厂精细化弹出卡片：Hover / DragOver 时展示 */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '58px',
-                      left: '50%',
-                      transform: isHovered || isDragOver 
-                        ? 'translateX(-50%) translateY(0)' 
-                        : 'translateX(-50%) translateY(8px)',
-                      opacity: isHovered || isDragOver ? 1 : 0,
-                      visibility: isHovered || isDragOver ? 'visible' : 'hidden',
-                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                      background: 'var(--radar-hud-bg)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid var(--radar-hud-border)',
-                      padding: '14px 18px',
-                      borderRadius: '12px',
-                      boxShadow: 'var(--shadow-lg)',
-                      pointerEvents: 'none',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '5px',
-                      alignItems: 'center',
-                      zIndex: 100
-                    }}>
-                      {/* 卡片头部修饰条 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.58rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--accent-color)', fontWeight: 700, letterSpacing: '0.08em', width: '100%', borderBottom: '1px solid var(--radar-hud-divider)', paddingBottom: '5px', marginBottom: '3px' }}>
-                        <Wifi size={10} />
-                        DISCOVERED PEER NODE
                       </div>
-
-                      <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--radar-hud-text-primary)', letterSpacing: '-0.01em' }}>
-                        {peer.nickname}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--radar-hud-text-secondary)', fontFamily: 'var(--font-mono), monospace', fontWeight: 500 }}>
-                        {peer.ip}
-                      </span>
-
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', margin: '2px 0' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {peer.nickname}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono), monospace' }}>
+                          IP: {peer.ip}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
                         {renderOSBadge(peer.os)}
                         <span style={{ 
                           fontSize: '0.62rem', 
                           background: 'rgba(202,138,4,0.06)', 
                           color: 'var(--accent-color)', 
                           border: '1px solid rgba(202,138,4,0.15)', 
-                          padding: '2px 6px', 
+                          padding: '1px 5px', 
                           borderRadius: '4px', 
                           fontWeight: 600,
                           fontFamily: 'var(--font-mono), monospace'
                         }}>
-                          RTT: ~{mockPing}ms
+                          ~{mockPing}ms
                         </span>
                       </div>
-
-                      <div style={{ 
-                        fontSize: '0.65rem', 
-                        color: 'var(--radar-hud-text-muted)', 
-                        borderTop: '1px solid var(--radar-hud-divider)', 
-                        paddingTop: '6px', 
-                        width: '100%', 
-                        textAlign: 'center',
-                        marginTop: '3px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}>
-                        <ShieldCheck size={11} style={{ color: 'var(--success-color)' }} />
-                        {isDragOver ? '松开即投递文件' : '点击选择文件 / 拖放互传'}
-                      </div>
                     </div>
-
-                  </div>
-                );
-              })
-            )}
-
+                  );
+                })
+              )}
+            </div>
           </div>
 
         </div>
 
         {/* 底部交互科技信息提示：大厂极简风格 */}
         <div style={{ 
-          marginTop: '20px', 
+          marginTop: '10px', 
           fontSize: '0.78rem', 
           color: 'var(--text-secondary)', 
           display: 'flex', 
@@ -663,7 +747,9 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
           background: 'rgba(128,128,128,0.03)',
           border: '1px solid var(--border-color)',
           padding: '8px 18px',
-          borderRadius: '30px'
+          borderRadius: '30px',
+          width: '100%',
+          justifyContent: 'center'
         }}>
           <span style={{ 
             width: '6px', 
