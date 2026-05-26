@@ -14,7 +14,7 @@ export const Card: React.FC<CardProps> = ({ children, hoverable = false, classNa
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
     boxShadow: 'var(--shadow-sm)',
-    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
     ...style
   };
 
