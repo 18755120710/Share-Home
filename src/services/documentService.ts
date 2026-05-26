@@ -40,6 +40,8 @@ export class DocumentService {
       `senderAvatar: ${doc.senderAvatar}`,
       `updatedAt: ${doc.updatedAt}`,
       `createdAt: ${doc.createdAt}`,
+      `type: ${doc.type || 'file'}`,
+      `parentId: ${doc.parentId || ''}`,
       '---',
       doc.content
     ].join('\n');
@@ -84,6 +86,8 @@ export class DocumentService {
         senderAvatar: meta.senderAvatar || 'avatar-1',
         updatedAt: parseInt(meta.updatedAt || '0', 10) || Date.now(),
         createdAt: parseInt(meta.createdAt || '0', 10) || Date.now(),
+        type: (meta.type as 'file' | 'folder') || 'file',
+        parentId: meta.parentId || null,
         content: content
       };
     } catch (err) {

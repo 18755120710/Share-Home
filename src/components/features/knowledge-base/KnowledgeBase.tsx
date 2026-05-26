@@ -10,7 +10,8 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { 
   Plus, FileText, Trash2, Edit2, Check, X, Eye, Edit3, 
   Bold, Italic, Heading, Quote, List, Code, Copy, 
-  CheckSquare, Globe, Save, Columns, ChevronsLeft, ChevronsRight
+  CheckSquare, Globe, Save, Columns, ChevronsLeft, ChevronsRight,
+  Folder, FolderOpen, FolderPlus, ChevronDown, ChevronRight, CornerDownRight, Move
 } from 'lucide-react';
 import { generateUUID } from '@/lib/utils';
 import { SocketClient } from '@/lib/socketClient';
@@ -81,11 +82,118 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
     const next = !isOutlineOpen;
     setIsOutlineOpen(next);
     localStorage.setItem('kb_outline_open', String(next));
+    
+    // 联动逻辑：一旦开启右侧大纲，左侧文档树侧边栏立刻自动收缩折叠，腾出核心创作视野！
+    if (next) {
+      setIsKbSidebarCollapsed(true);
+      localStorage.setItem('kb_sidebar_collapsed', 'true');
+    }
   };
   
   // 重命名文档状态
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameTitle, setRenameTitle] = useState('');
+
+  // 云文件夹折叠与展开状态 Set (保存已展开的 folder.id)
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
+  // 正在进行归属移动 (移动到...) 的 KBDocument.id
+  const [movingDocId, setMovingDocId] = useState<string | null>(null);
+
+  // 文件夹展开/折叠开关
+  const toggleFolderExpand = (folderId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedFolderIds(prev => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
+  };
+
+  /**
+   * 移动文档归属文件夹 (快捷切换 parentId 属性)
+   */
+  const handleMoveDocument = async (docId: string, targetParentId: string | null) => {
+    const doc = documents.find(d => d.id === docId);
+    if (!doc || !self) return;
+
+    const updatedDoc: KBDocument = {
+      ...doc,
+      parentId: targetParentId,
+      senderId: self.id,
+      senderName: self.nickname,
+      senderAvatar: self.avatar,
+      updatedAt: Date.now()
+    };
+
+    try {
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedDoc)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDocuments(prev => prev.map(d => d.id === docId ? updatedDoc : d));
+        // 如果当前正处于选中状态，更新本地 preview 状态以保证最新
+        if (selectedId === docId) {
+          setContentPreview(updatedDoc.content);
+        }
+        setMovingDocId(null);
+        broadcastSync(updatedDoc);
+      }
+    } catch (err) {
+      console.error('[KB] 移动文档位置落盘失败:', err);
+    }
+  };
+
+  /**
+   * 根目录或指定文件夹下新建云文件夹 (type: 'folder')
+   */
+  const handleCreateFolder = async (targetParentId: string | null = null, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!self) return;
+
+    const folderId = generateUUID();
+    const newFolder: KBDocument = {
+      id: folderId,
+      title: '未命名云文件夹',
+      content: '', // 文件夹正文为空即可
+      type: 'folder',
+      parentId: targetParentId,
+      senderId: self.id,
+      senderName: self.nickname,
+      senderAvatar: self.avatar,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    try {
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newFolder)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDocuments(prev => [newFolder, ...prev]);
+        // 自动将父级文件夹设为展开状态，方便用户瞬间看到新建项
+        if (targetParentId) {
+          setExpandedFolderIds(prev => {
+            const next = new Set(prev);
+            next.add(targetParentId);
+            return next;
+          });
+        }
+        broadcastSync(newFolder);
+      }
+    } catch (err) {
+      console.error('[KB] 创建文件夹物理写入失败:', err);
+    }
+  };
 
   // 状态指示
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'dirty'>('saved');
@@ -295,7 +403,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   };
 
   /**
-   * 使用 useMemo 细粒度拦截渲染，彻底解除打字时左侧列表频繁重绘引起的 CPU 卡顿！
+   * 使用 useMemo 细粒度拦截渲染，彻底解除打字时左侧树重绘卡顿，实现飞书级多级文件夹嵌套渲染！
    */
   const memoizedDocList = useMemo(() => {
     if (documents.length === 0) {
@@ -306,109 +414,387 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       );
     }
 
-    return documents.map(doc => {
+    interface TreeNode {
+      doc: KBDocument;
+      children: TreeNode[];
+    }
+
+    // 1. 构建树状多级目录结构
+    const buildTree = (): TreeNode[] => {
+      const nodesMap: { [id: string]: TreeNode } = {};
+      documents.forEach(doc => {
+        nodesMap[doc.id] = { doc, children: [] };
+      });
+
+      const roots: TreeNode[] = [];
+      documents.forEach(doc => {
+        const node = nodesMap[doc.id];
+        if (doc.parentId && nodesMap[doc.parentId]) {
+          nodesMap[doc.parentId].children.push(node);
+        } else {
+          roots.push(node);
+        }
+      });
+
+      // 排序规则：文件夹排在最顶层，品类内部按照最近修改时间倒序排列
+      const sortNodes = (nodes: TreeNode[]) => {
+        nodes.sort((a, b) => {
+          const aType = a.doc.type || 'file';
+          const bType = b.doc.type || 'file';
+          if (aType === 'folder' && bType !== 'folder') return -1;
+          if (aType !== 'folder' && bType === 'folder') return 1;
+          return b.doc.updatedAt - a.doc.updatedAt;
+        });
+        nodes.forEach(n => {
+          if (n.children.length > 0) {
+            sortNodes(n.children);
+          }
+        });
+      };
+
+      sortNodes(roots);
+      return roots;
+    };
+
+    const treeData = buildTree();
+
+    // 2. 备选移动目标列表：排除当前文档以及其子文件夹（防止循环归属）
+    const getAvailableFolders = (currentDocId: string): KBDocument[] => {
+      const currentDoc = documents.find(d => d.id === currentDocId);
+      if (!currentDoc) return [];
+
+      const getFolderDescendantIds = (folderId: string): string[] => {
+        const children = documents.filter(d => d.parentId === folderId);
+        let ids = children.map(c => c.id);
+        children.forEach(c => {
+          if (c.type === 'folder') {
+            ids = [...ids, ...getFolderDescendantIds(c.id)];
+          }
+        });
+        return ids;
+      };
+
+      const invalidIds = [currentDocId, ...getFolderDescendantIds(currentDocId)];
+      return documents.filter(d => d.type === 'folder' && !invalidIds.includes(d.id));
+    };
+
+    // 3. 递归树节点渲染函数
+    const renderNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
+      const { doc, children } = node;
       const isSelected = doc.id === selectedId;
       const isRenaming = doc.id === renamingId;
-      
+      const isFolder = doc.type === 'folder';
+      const isExpanded = expandedFolderIds.has(doc.id);
+      const isMoving = movingDocId === doc.id;
+
+      const indentPadding = depth * 12; // 每一层缩进 12px
+
       return (
-        <div
-          key={doc.id}
-          onClick={() => !isRenaming && selectDocument(doc)}
-          style={{
-            padding: '10px 12px',
-            borderRadius: 'var(--radius-sm)',
-            background: isSelected ? 'var(--kb-item-selected-bg)' : 'transparent',
-            cursor: isRenaming ? 'default' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            transition: 'all 0.15s',
-            position: 'relative',
-            border: isSelected ? '1px solid var(--kb-item-selected-border)' : '1px solid transparent'
-          }}
-          onMouseEnter={(e) => {
-            if (!isSelected) e.currentTarget.style.background = 'var(--kb-item-hover-bg)';
-            const actions = e.currentTarget.querySelector('.doc-actions');
-            if (actions) (actions as HTMLElement).style.opacity = '1';
-          }}
-          onMouseLeave={(e) => {
-            if (!isSelected) e.currentTarget.style.background = 'transparent';
-            const actions = e.currentTarget.querySelector('.doc-actions');
-            if (actions) (actions as HTMLElement).style.opacity = '0';
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
-            <FileText size={15} style={{ color: isSelected ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
-            
-            {isRenaming ? (
-              <input
-                type="text"
-                value={renameTitle}
-                onChange={(e) => setRenameTitle(e.target.value)}
-                onBlur={() => saveRename(doc)}
-                onKeyDown={(e) => e.key === 'Enter' && saveRename(doc)}
-                autoFocus
-                style={{
-                  background: 'var(--bg-app)',
-                  border: '1px solid var(--accent-color)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.8rem',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  width: '100%',
-                  outline: 'none'
-                }}
-              />
-            ) : (
-              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        <div key={doc.id} style={{ display: 'flex', flexDirection: 'column' }}>
+          {/* 单个节点条目 */}
+          <div
+            onClick={() => {
+              if (isRenaming) return;
+              if (isFolder) {
+                toggleFolderExpand(doc.id);
+              } else {
+                selectDocument(doc);
+              }
+            }}
+            style={{
+              padding: '6px 8px 6px 12px',
+              marginLeft: `${indentPadding}px`,
+              borderRadius: 'var(--radius-sm)',
+              background: isSelected ? 'var(--kb-item-selected-bg)' : 'transparent',
+              cursor: isRenaming ? 'default' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              transition: 'all 0.15s',
+              position: 'relative',
+              border: isSelected ? '1px solid var(--kb-item-selected-border)' : '1px solid transparent',
+              marginTop: '2px',
+              minHeight: '34px'
+            }}
+            onMouseEnter={(e) => {
+              if (!isSelected) e.currentTarget.style.background = 'var(--kb-item-hover-bg)';
+              const actions = e.currentTarget.querySelector('.doc-actions');
+              if (actions) (actions as HTMLElement).style.opacity = '1';
+            }}
+            onMouseLeave={(e) => {
+              if (!isSelected) e.currentTarget.style.background = 'transparent';
+              const actions = e.currentTarget.querySelector('.doc-actions');
+              if (actions) (actions as HTMLElement).style.opacity = '0';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, overflow: 'hidden' }}>
+              {/* 展开/折叠三角小图标 */}
+              {isFolder ? (
                 <span style={{ 
-                  fontSize: '0.825rem', 
-                  fontWeight: isSelected ? 600 : 400,
-                  color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)'
-                }}>
-                  {doc.title}
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  width: '14px',
+                  height: '14px',
+                  borderRadius: '2px',
+                  transition: 'background 0.1s'
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFolderExpand(doc.id);
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+                >
+                  {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 </span>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  {doc.senderName} · {new Date(doc.updatedAt).toLocaleTimeString()}
+              ) : (
+                // 普通文档没有三角，用一个 14px 空位占位对齐
+                <span style={{ width: '14px', display: 'inline-block' }} />
+              )}
+
+              {/* 核心类别图标 */}
+              {isFolder ? (
+                isExpanded ? (
+                  <FolderOpen size={14} style={{ color: '#EAB308', flexShrink: 0 }} />
+                ) : (
+                  <Folder size={14} style={{ color: '#CA8A04', flexShrink: 0 }} />
+                )
+              ) : (
+                <FileText size={14} style={{ color: isSelected ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              )}
+              
+              {isRenaming ? (
+                <input
+                  type="text"
+                  value={renameTitle}
+                  onChange={(e) => setRenameTitle(e.target.value)}
+                  onBlur={() => saveRename(doc)}
+                  onKeyDown={(e) => e.key === 'Enter' && saveRename(doc)}
+                  autoFocus
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    background: 'var(--bg-app)',
+                    border: '1px solid var(--accent-color)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    width: '100%',
+                    outline: 'none'
+                  }}
+                />
+              ) : (
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                  <span style={{ 
+                    fontSize: '0.825rem', 
+                    fontWeight: isSelected || (isFolder && isExpanded) ? 600 : 400,
+                    color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)'
+                  }}>
+                    {doc.title}
+                  </span>
                 </div>
+              )}
+            </div>
+
+            {/* 操作小按钮（新建子文档/新建子文件夹/移动归属/重命名/删除） */}
+            {!isRenaming && (
+              <div className="doc-actions" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px',
+                opacity: 0,
+                transition: 'opacity 0.15s',
+                marginLeft: '6px',
+                flexShrink: 0
+              }}>
+                {/* 文件夹下特有的快捷新建子项功能 */}
+                {isFolder && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCreateDocument(doc.id);
+                      }}
+                      title="新建子文档"
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', borderRadius: '2px' }}
+                    >
+                      <Plus size={11} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCreateFolder(doc.id, e);
+                      }}
+                      title="新建子文件夹"
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', borderRadius: '2px' }}
+                    >
+                      <FolderPlus size={11} />
+                    </button>
+                  </>
+                )}
+
+                {/* 统一的“移动归属”小图标 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMovingDocId(isMoving ? null : doc.id);
+                  }}
+                  title="移动归属..."
+                  style={{ background: 'transparent', border: 'none', color: isMoving ? 'var(--accent-color)' : 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}
+                >
+                  <Move size={11} />
+                </button>
+
+                <button
+                  onClick={(e) => startRename(doc, e)}
+                  title="重命名"
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}
+                >
+                  <Edit2 size={11} />
+                </button>
+                <button
+                  onClick={(e) => handleDeleteDocument(doc.id, e)}
+                  title="删除"
+                  style={{ background: 'transparent', border: 'none', color: 'var(--error-color)', cursor: 'pointer', padding: '2px' }}
+                >
+                  <Trash2 size={11} />
+                </button>
               </div>
             )}
           </div>
 
-          {/* 操作小按钮（重命名/删除） */}
-          {!isRenaming && (
-            <div className="doc-actions" style={{
+          {/* 移动归属下拉浮动选择面板 */}
+          {isMoving && (
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              padding: '6px',
+              margin: '4px 8px 6px',
+              marginLeft: `${indentPadding + 12}px`,
+              boxShadow: 'var(--shadow-md)',
+              zIndex: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, padding: '2px 4px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>移动至文件夹:</span>
+                <button onClick={() => setMovingDocId(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.65rem' }}>取消</button>
+              </div>
+              <div style={{ maxHeight: '160px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
+                {/* 移到根目录选项 */}
+                {doc.parentId !== null && (
+                  <button
+                    onClick={() => handleMoveDocument(doc.id, null)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--accent-color)',
+                      textAlign: 'left',
+                      padding: '4px 6px',
+                      fontSize: '0.72rem',
+                      cursor: 'pointer',
+                      borderRadius: '4px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Globe size={11} />
+                    [ 根目录 ]
+                  </button>
+                )}
+
+                {getAvailableFolders(doc.id).map(f => {
+                  const isCurrentParent = doc.parentId === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      disabled={isCurrentParent}
+                      onClick={() => handleMoveDocument(doc.id, f.id)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: isCurrentParent ? 'var(--text-muted)' : 'var(--text-primary)',
+                        textAlign: 'left',
+                        padding: '4px 6px',
+                        fontSize: '0.72rem',
+                        cursor: isCurrentParent ? 'not-allowed' : 'pointer',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        opacity: isCurrentParent ? 0.5 : 1
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isCurrentParent) e.currentTarget.style.background = 'var(--kb-item-hover-bg)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isCurrentParent) e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <Folder size={11} style={{ color: '#CA8A04' }} />
+                      {f.title}
+                    </button>
+                  );
+                })}
+
+                {getAvailableFolders(doc.id).length === 0 && doc.parentId === null && (
+                  <div style={{ padding: '8px', textAlign: 'center', fontSize: '0.65rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                    暂无其他备选文件夹
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 递归渲染子项 (仅当文件夹处于展开状态展开时才渲染) */}
+          {isFolder && isExpanded && children.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {children.map(childNode => renderNode(childNode, depth + 1))}
+            </div>
+          )}
+
+          {/* 展开文件夹但没有子文档时的空状态微型提示 */}
+          {isFolder && isExpanded && children.length === 0 && (
+            <div style={{ 
+              padding: '6px 8px 6px 12px',
+              marginLeft: `${indentPadding + 28}px`,
+              fontSize: '0.65rem',
+              color: 'var(--text-muted)',
+              fontStyle: 'italic',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              opacity: 0,
-              transition: 'opacity 0.15s',
-              marginLeft: '6px',
-              flexShrink: 0
+              gap: '4px'
             }}>
-              <button
-                onClick={(e) => startRename(doc, e)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}
-              >
-                <Edit2 size={12} />
-              </button>
-              <button
-                onClick={(e) => handleDeleteDocument(doc.id, e)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--error-color)', cursor: 'pointer', padding: '2px' }}
-              >
-                <Trash2 size={12} />
-              </button>
+              <CornerDownRight size={10} style={{ opacity: 0.5 }} />
+              此文件夹为空
             </div>
           )}
         </div>
       );
-    });
-  }, [documents, selectedId, renamingId, renameTitle]);
+    };
+
+    return treeData.map(node => renderNode(node, 0));
+  }, [documents, selectedId, renamingId, renameTitle, expandedFolderIds, movingDocId]);
 
   /**
    * 创建一篇新文档
    */
-  const handleCreateDocument = async () => {
+  const handleCreateDocument = async (targetParentId: string | null = null) => {
     if (!self) return;
 
     const docId = generateUUID();
@@ -416,6 +802,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       id: docId,
       title: '未命名云文档',
       content: '# 未命名云文档\n\n在这里开始书写飞书般的文档协作体验...\n\n你可以通过上方工具栏插入代码块。',
+      type: 'file',
+      parentId: targetParentId,
       senderId: self.id,
       senderName: self.nickname,
       senderAvatar: self.avatar,
@@ -433,6 +821,14 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       const data = await res.json();
       if (data.success) {
         setDocuments(prev => [newDoc, ...prev]);
+        // 自动展开父级文件夹
+        if (targetParentId) {
+          setExpandedFolderIds(prev => {
+            const next = new Set(prev);
+            next.add(targetParentId);
+            return next;
+          });
+        }
         selectDocument(newDoc);
         setViewMode('split'); // 新建后直接进入分栏态
 
@@ -445,34 +841,69 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   };
 
   /**
-   * 文档删除
+   * 文档删除 (物理递归删除，完美支持文件夹与子项)
    */
   const handleDeleteDocument = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // 阻止触发选中
-    if (!confirm('确定要删除这篇云文档吗？物理文件也将被一并清理！')) return;
+    
+    const targetDoc = documents.find(d => d.id === id);
+    if (!targetDoc) return;
+
+    let idsToDelete = [id];
+    let confirmMsg = '确定要删除这篇云文档吗？物理文件也将被一并清理！';
+
+    if (targetDoc.type === 'folder') {
+      const getChildIds = (pId: string): string[] => {
+        const children = documents.filter(d => d.parentId === pId);
+        let cIds = children.map(c => c.id);
+        children.forEach(c => {
+          if (c.type === 'folder') {
+            cIds = [...cIds, ...getChildIds(c.id)];
+          }
+        });
+        return cIds;
+      };
+
+      const childIds = getChildIds(id);
+      idsToDelete = [id, ...childIds];
+      confirmMsg = `确定要删除此文件夹《${targetDoc.title}》吗？其内部包含的 ${childIds.length} 个子文档/文件夹都将被一并物理删除！`;
+    }
+
+    if (!confirm(confirmMsg)) return;
 
     try {
-      const res = await fetch(`/api/documents?id=${id}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDocuments(prev => prev.filter(d => d.id !== id));
-        if (selectedId === id) {
+      // 循环删除所有物理文件
+      let allSuccess = true;
+      for (const delId of idsToDelete) {
+        const res = await fetch(`/api/documents?id=${delId}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (!data.success) {
+          allSuccess = false;
+        }
+      }
+
+      if (allSuccess) {
+        setDocuments(prev => prev.filter(d => !idsToDelete.includes(d.id)));
+        if (idsToDelete.includes(selectedId || '')) {
           setSelectedId(null);
           setTitleInput('');
           setContentInput('');
+          setContentPreview('');
         }
         
-        // 局域网广播删除通知
-        peers.forEach(async (peer) => {
-          try {
-            await fetch(`http://${peer.ip}:${peer.port}/api/documents?id=${id}`, {
-              method: 'DELETE'
-            });
-          } catch (err) {
-            console.error(`[KB] 向节点 ${peer.nickname} 发起同步删除失败:`, err);
-          }
+        // 局域网广播批量删除通知
+        idsToDelete.forEach(delId => {
+          peers.forEach(async (peer) => {
+            try {
+              await fetch(`http://${peer.ip}:${peer.port}/api/documents?id=${delId}`, {
+                method: 'DELETE'
+              });
+            } catch (err) {
+              console.error(`[KB] 向节点 ${peer.nickname} 发起同步删除失败:`, err);
+            }
+          });
         });
       }
     } catch (err) {
@@ -813,11 +1244,41 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
             <Globe size={14} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
             共享知识库 ({documents.length})
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-            <Button variant="primary" onClick={handleCreateDocument} style={{ padding: '6px 10px', fontSize: '0.75rem', height: '28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            <Button variant="primary" onClick={() => handleCreateDocument(null)} style={{ padding: '6px 10px', fontSize: '0.75rem', height: '28px' }}>
               <Plus size={14} />
               新建
             </Button>
+            
+            {/* 新建根文件夹按钮 */}
+            <button
+              onClick={(e) => handleCreateFolder(null, e)}
+              title="新建根目录云文件夹"
+              style={{
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                color: 'var(--accent-color)',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                height: '28px',
+                width: '28px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.2)';
+              }}
+            >
+              <FolderPlus size={14} />
+            </button>
             
             {/* 收起侧边栏按钮 */}
             <button

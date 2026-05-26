@@ -15,6 +15,10 @@ export interface KBDocument {
   updatedAt: number;
   /** 创建时间戳 */
   createdAt: number;
+  /** 文档类型：'file' 代表普通 Markdown 文件，'folder' 代表文件夹 */
+  type?: 'file' | 'folder';
+  /** 父级文件夹 ID，若为 null 或者是空，代表存在于根目录中 */
+  parentId?: string | null;
 }
 export interface KBDocumentMeta {
   id: string;
@@ -24,4 +28,6 @@ export interface KBDocumentMeta {
   senderAvatar: string;
   updatedAt: number;
   createdAt: number;
+  type?: 'file' | 'folder';
+  parentId?: string | null;
 }
