@@ -7,6 +7,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import Placeholder from '@tiptap/extension-placeholder';
+import { DOMParser as PMDOMParser } from '@tiptap/pm/model';
 import { 
   Plus, FileText, Trash2, Edit2, Check, X, Eye, Edit3, 
   Bold, Italic, Heading, Quote, List, Code, Copy, 
@@ -220,6 +221,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       Markdown.configure({
         html: false, // 禁用 HTML 输出，保障完全是纯 Markdown 互转
         linkify: true,
+        transformPastedText: true,
+        transformCopiedText: true,
       }),
       Placeholder.configure({
         placeholder: '在这里开始书写飞书般的文档协作体验，输入 Markdown 标识符即时渲染...',
@@ -230,6 +233,36 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
     editorProps: {
       attributes: {
         class: 'ProseMirror',
+      },
+      handlePaste: (view, event) => {
+        const text = event.clipboardData?.getData('text/plain');
+        if (!text) return false;
+
+        // 启发式判断：如果行首包含标题(# )、无序列表(- /* )、引用(> )或加粗(**)或代码块(```)，就当作 Markdown 粘贴
+        const isMarkdown = /^\s*(?:#+\s|-+\s|\*+\s|>+\s|```)/m.test(text) || text.includes('**') || text.includes('`');
+        const parser = (view as any).editor?.storage?.markdown?.parser;
+
+        if (isMarkdown && parser) {
+          try {
+            // 调用 tiptap-markdown 的 parser 将其转换为 HTML
+            const html = parser.parse(text);
+
+            // 转化为 ProseMirror slice 并安全插入
+            const element = document.createElement('div');
+            element.innerHTML = html;
+
+            const slice = PMDOMParser.fromSchema(view.state.schema).parseSlice(element, {
+              preserveWhitespace: true,
+            });
+
+            const transaction = view.state.tr.replaceSelection(slice);
+            view.dispatch(transaction);
+            return true; // 拦截默认粘贴
+          } catch (e) {
+            console.error('[KB] 自定义 Markdown 粘贴拦截解析失败:', e);
+          }
+        }
+        return false;
       }
     },
     onUpdate: ({ editor }) => {
@@ -1150,17 +1183,25 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       if (inCode) {
         currentBlock += (currentBlock ? '\n' : '') + line;
       } else {
-        // 普通 Markdown 解析渲染
-        const trimmed = line.trim();
-        if (trimmed.startsWith('# ')) {
-          parts.push(<h2 key={i} id={`toc-${i}`} style={{ fontSize: '1.6rem', fontWeight: 700, margin: '24px 0 12px', letterSpacing: '-0.02em', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>{trimmed.substring(2)}</h2>);
-        } else if (trimmed.startsWith('## ')) {
-          parts.push(<h3 key={i} id={`toc-${i}`} style={{ fontSize: '1.3rem', fontWeight: 600, margin: '20px 0 10px', letterSpacing: '-0.015em' }}>{trimmed.substring(3)}</h3>);
-        } else if (trimmed.startsWith('### ')) {
-          parts.push(<h4 key={i} id={`toc-${i}`} style={{ fontSize: '1.1rem', fontWeight: 600, margin: '16px 0 8px' }}>{trimmed.substring(4)}</h4>);
-        } else if (trimmed.startsWith('#### ')) {
-          parts.push(<h5 key={i} id={`toc-${i}`} style={{ fontSize: '0.95rem', fontWeight: 600, margin: '14px 0 6px' }}>{trimmed.substring(5)}</h5>);
-        } else if (trimmed.startsWith('> ')) {
+        // 智能处理行尾的转义反斜杠 \ （通常表示硬换行，在此处剔除以保证预览区不出现裸露的斜杠，且保留其语义）
+        let cleanLine = line;
+        let hasHardBreak = false;
+        if (cleanLine.endsWith('\\')) {
+          cleanLine = cleanLine.slice(0, -1);
+          hasHardBreak = true;
+        }
+
+        const cleanTrimmed = cleanLine.trim();
+
+        if (cleanTrimmed.startsWith('# ')) {
+          parts.push(<h2 key={i} id={`toc-${i}`} style={{ fontSize: '1.6rem', fontWeight: 700, margin: '24px 0 12px', letterSpacing: '-0.02em', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>{cleanTrimmed.substring(2)}</h2>);
+        } else if (cleanTrimmed.startsWith('## ')) {
+          parts.push(<h3 key={i} id={`toc-${i}`} style={{ fontSize: '1.3rem', fontWeight: 600, margin: '20px 0 10px', letterSpacing: '-0.015em' }}>{cleanTrimmed.substring(3)}</h3>);
+        } else if (cleanTrimmed.startsWith('### ')) {
+          parts.push(<h4 key={i} id={`toc-${i}`} style={{ fontSize: '1.1rem', fontWeight: 600, margin: '16px 0 8px' }}>{cleanTrimmed.substring(4)}</h4>);
+        } else if (cleanTrimmed.startsWith('#### ')) {
+          parts.push(<h5 key={i} id={`toc-${i}`} style={{ fontSize: '0.95rem', fontWeight: 600, margin: '14px 0 6px' }}>{cleanTrimmed.substring(5)}</h5>);
+        } else if (cleanTrimmed.startsWith('> ')) {
           parts.push(
             <blockquote key={i} style={{
               borderLeft: '4px style var(--accent-color)',
@@ -1172,39 +1213,49 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
               margin: '16px 0',
               fontStyle: 'italic'
             }}>
-              {trimmed.substring(2)}
+              {cleanTrimmed.substring(2)}
             </blockquote>
           );
-        } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-          parts.push(<li key={i} style={{ marginLeft: '24px', listStyleType: 'disc', marginTop: '4px', marginBottom: '4px', fontSize: '0.95rem' }}>{trimmed.substring(2)}</li>);
-        } else if (line === '') {
+        } else if (cleanTrimmed.startsWith('- ') || cleanTrimmed.startsWith('* ')) {
+          parts.push(
+            <li key={i} style={{ marginLeft: '24px', listStyleType: 'disc', marginTop: '4px', marginBottom: '4px', fontSize: '0.95rem' }}>
+              {cleanTrimmed.substring(2)}
+              {hasHardBreak && <br />}
+            </li>
+          );
+        } else if (cleanLine === '') {
           parts.push(<div key={i} style={{ height: '8px' }} />);
         } else {
           // 渲染加粗/斜体基本替换
-          let formattedText: React.ReactNode = line;
+          let formattedText: React.ReactNode = cleanLine;
           
           // 对 ** 进行简单粗暴且优雅的加粗渲染
-          if (line.includes('**')) {
+          if (cleanLine.includes('**')) {
             const regex = /\*\*(.*?)\*\*/g;
             const segments = [];
             let lastIndex = 0;
             let match;
             let keyIdx = 0;
             
-            while ((match = regex.exec(line)) !== null) {
+            while ((match = regex.exec(cleanLine)) !== null) {
               if (match.index > lastIndex) {
-                segments.push(line.substring(lastIndex, match.index));
+                segments.push(cleanLine.substring(lastIndex, match.index));
               }
               segments.push(<strong key={keyIdx++} style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{match[1]}</strong>);
               lastIndex = regex.lastIndex;
             }
-            if (lastIndex < line.length) {
-              segments.push(line.substring(lastIndex));
+            if (lastIndex < cleanLine.length) {
+              segments.push(cleanLine.substring(lastIndex));
             }
             formattedText = segments.length > 0 ? segments : formattedText;
           }
 
-          parts.push(<p key={i} style={{ lineHeight: 1.7, fontSize: '0.95rem', margin: '8px 0', color: 'var(--text-primary)', wordBreak: 'break-word' }}>{formattedText}</p>);
+          parts.push(
+            <p key={i} style={{ lineHeight: 1.7, fontSize: '0.95rem', margin: '8px 0', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+              {formattedText}
+              {hasHardBreak && <br />}
+            </p>
+          );
         }
       }
     }
