@@ -194,11 +194,11 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
           </h2>
           <span style={{ 
             fontSize: '0.68rem', 
-            background: 'rgba(202, 138, 4, 0.06)', 
+            background: 'var(--radar-center-bg)', 
             color: 'var(--accent-color)', 
             padding: '4px 12px', 
             borderRadius: '20px',
-            border: '1px solid rgba(202, 138, 4, 0.15)',
+            border: '1px solid var(--radar-corner-border)',
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
@@ -233,28 +233,28 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
           flexDirection: 'column',
           alignItems: 'center', 
           justifyContent: 'center', 
-          background: 'radial-gradient(circle at center, rgba(16, 16, 28, 0.2) 0%, rgba(3, 3, 5, 0.85) 100%), linear-gradient(rgba(255, 255, 255, 0.007) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.007) 1px, transparent 1px)',
+          background: 'var(--radar-bg-outer)',
           backgroundSize: '100% 100%, 24px 24px, 24px 24px',
           borderRadius: '16px',
           border: '1px solid var(--border-color)',
           padding: '48px 24px',
           position: 'relative',
-          boxShadow: 'inset 0 4px 40px rgba(0,0,0,0.4)',
+          boxShadow: 'var(--radar-inner-shadow, inset 0 4px 40px rgba(0,0,0,0.15))',
           minHeight: '540px',
           overflow: 'hidden'
         }}>
           
           {/* 四个角落的军工级HUD科技线条装饰 */}
-          <div style={{ position: 'absolute', top: '16px', left: '16px', width: '16px', height: '16px', borderTop: '2px solid rgba(202,138,4,0.3)', borderLeft: '2px solid rgba(202,138,4,0.3)' }} />
-          <div style={{ position: 'absolute', top: '16px', right: '16px', width: '16px', height: '16px', borderTop: '2px solid rgba(202,138,4,0.3)', borderRight: '2px solid rgba(202,138,4,0.3)' }} />
-          <div style={{ position: 'absolute', bottom: '16px', left: '16px', width: '16px', height: '16px', borderBottom: '2px solid rgba(202,138,4,0.3)', borderLeft: '2px solid rgba(202,138,4,0.3)' }} />
-          <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '16px', height: '16px', borderBottom: '2px solid rgba(202,138,4,0.3)', borderRight: '2px solid rgba(202,138,4,0.3)' }} />
+          <div style={{ position: 'absolute', top: '16px', left: '16px', width: '16px', height: '16px', borderTop: '2px solid var(--radar-corner-border)', borderLeft: '2px solid var(--radar-corner-border)' }} />
+          <div style={{ position: 'absolute', top: '16px', right: '16px', width: '16px', height: '16px', borderTop: '2px solid var(--radar-corner-border)', borderRight: '2px solid var(--radar-corner-border)' }} />
+          <div style={{ position: 'absolute', bottom: '16px', left: '16px', width: '16px', height: '16px', borderBottom: '2px solid var(--radar-corner-border)', borderLeft: '2px solid var(--radar-corner-border)' }} />
+          <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '16px', height: '16px', borderBottom: '2px solid var(--radar-corner-border)', borderRight: '2px solid var(--radar-corner-border)' }} />
 
           {/* 四角高精度的数字/字符刻度 */}
-          <div style={{ position: 'absolute', top: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em' }}>SYS_STATUS: NOMINAL</div>
-          <div style={{ position: 'absolute', top: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em' }}>GRID_REF: 48-T9_L</div>
-          <div style={{ position: 'absolute', bottom: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em' }}>BANDWIDTH: UNLIMITED</div>
-          <div style={{ position: 'absolute', bottom: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em' }}>DISC: mDNS_NODE</div>
+          <div style={{ position: 'absolute', top: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>SYS_STATUS: NOMINAL</div>
+          <div style={{ position: 'absolute', top: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>GRID_REF: 48-T9_L</div>
+          <div style={{ position: 'absolute', bottom: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>BANDWIDTH: UNLIMITED</div>
+          <div style={{ position: 'absolute', bottom: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>DISC: mDNS_NODE</div>
 
           {/* 雷达大圆盘容器 - 升级为 430px 更加大气 */}
           <div style={{ 
@@ -262,9 +262,9 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
             height: '430px', 
             borderRadius: '50%', 
             position: 'relative', 
-            background: 'radial-gradient(circle, rgba(16, 17, 30, 0.7) 0%, rgba(6, 6, 10, 0.98) 100%)',
-            border: '2px solid rgba(202, 138, 4, 0.28)',
-            boxShadow: '0 0 60px rgba(202, 138, 4, 0.08), inset 0 0 30px rgba(202, 138, 4, 0.05)',
+            background: 'var(--radar-bg-inner)',
+            border: '2px solid var(--radar-border)',
+            boxShadow: '0 0 60px var(--radar-peer-shadow), inset 0 0 30px var(--radar-peer-shadow)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -283,22 +283,22 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
               {/* 雷达科技背景网格线及十字轴 */}
               <svg style={{ position: 'absolute', width: '100%', height: '100%', top: 0, left: 0 }}>
                 {/* 各种刻度线与同心圆 */}
-                <circle cx="50%" cy="50%" r="20%" fill="none" stroke="rgba(202, 138, 4, 0.09)" strokeWidth="1" />
-                <circle cx="50%" cy="50%" r="40%" fill="none" stroke="rgba(202, 138, 4, 0.12)" strokeWidth="1" strokeDasharray="3 3" />
-                <circle cx="50%" cy="50%" r="60%" fill="none" stroke="rgba(202, 138, 4, 0.09)" strokeWidth="1" />
-                <circle cx="50%" cy="50%" r="80%" fill="none" stroke="rgba(202, 138, 4, 0.15)" strokeWidth="1.2" strokeDasharray="5 5" />
+                <circle cx="50%" cy="50%" r="20%" fill="none" stroke="var(--radar-grid-subtle)" strokeWidth="1" />
+                <circle cx="50%" cy="50%" r="40%" fill="none" stroke="var(--radar-grid)" strokeWidth="1" strokeDasharray="3 3" />
+                <circle cx="50%" cy="50%" r="60%" fill="none" stroke="var(--radar-grid-subtle)" strokeWidth="1" />
+                <circle cx="50%" cy="50%" r="80%" fill="none" stroke="var(--radar-grid)" strokeWidth="1.2" strokeDasharray="5 5" />
                 
                 {/* 精密细刻度外圆环 (大厂细节！) */}
-                <circle cx="50%" cy="50%" r="83%" fill="none" stroke="rgba(202, 138, 4, 0.25)" strokeWidth="3" strokeDasharray="1 14" />
-                <circle cx="50%" cy="50%" r="83%" fill="none" stroke="rgba(202, 138, 4, 0.12)" strokeWidth="1" />
+                <circle cx="50%" cy="50%" r="83%" fill="none" stroke="var(--radar-border)" strokeWidth="3" strokeDasharray="1 14" />
+                <circle cx="50%" cy="50%" r="83%" fill="none" stroke="var(--radar-grid)" strokeWidth="1" />
 
                 {/* 十字网格轴线 */}
-                <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(202, 138, 4, 0.12)" strokeWidth="1" />
-                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="rgba(202, 138, 4, 0.12)" strokeWidth="1" />
+                <line x1="0" y1="50%" x2="100%" y2="50%" stroke="var(--radar-grid)" strokeWidth="1" />
+                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="var(--radar-grid)" strokeWidth="1" />
                 
                 {/* 斜向虚线网格轴线 */}
-                <line x1="15%" y1="15%" x2="85%" y2="85%" stroke="rgba(202, 138, 4, 0.06)" strokeWidth="1" strokeDasharray="2 5" />
-                <line x1="85%" y1="15%" x2="15%" y2="85%" stroke="rgba(202, 138, 4, 0.06)" strokeWidth="1" strokeDasharray="2 5" />
+                <line x1="15%" y1="15%" x2="85%" y2="85%" stroke="var(--radar-grid-subtle)" strokeWidth="1" strokeDasharray="2 5" />
+                <line x1="85%" y1="15%" x2="15%" y2="85%" stroke="var(--radar-grid-subtle)" strokeWidth="1" strokeDasharray="2 5" />
               </svg>
 
               {/* 360°旋转扫描扇形射线层 */}
@@ -309,17 +309,17 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                 top: 0,
                 left: 0,
                 borderRadius: '50%',
-                background: 'conic-gradient(from 0deg, rgba(202, 138, 4, 0.15) 0deg, rgba(202, 138, 4, 0.02) 80deg, transparent 150deg, transparent 360deg)',
+                background: 'var(--radar-sweep)',
                 animation: 'radar-sweep-animation 5s linear infinite',
                 transformOrigin: '50% 50%',
               }} />
             </div>
 
             {/* 外部常驻显示的航向角标识文字 (大厂细节！) */}
-            <div style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'rgba(202, 138, 4, 0.5)', pointerEvents: 'none' }}>000°/N</div>
-            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'rgba(202, 138, 4, 0.5)', pointerEvents: 'none' }}>090°/E</div>
-            <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'rgba(202, 138, 4, 0.5)', pointerEvents: 'none' }}>180°/S</div>
-            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'rgba(202, 138, 4, 0.5)', pointerEvents: 'none' }}>270°/W</div>
+            <div style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'var(--radar-accent-text)', pointerEvents: 'none' }}>000°/N</div>
+            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'var(--radar-accent-text)', pointerEvents: 'none' }}>090°/E</div>
+            <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'var(--radar-accent-text)', pointerEvents: 'none' }}>180°/S</div>
+            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', fontWeight: 600, color: 'var(--radar-accent-text)', pointerEvents: 'none' }}>270°/W</div>
 
             {/* 雷达中心点：本端发射基站 (代表“我”本机) */}
             <div style={{
@@ -337,7 +337,7 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                 width: '74px',
                 height: '74px',
                 borderRadius: '50%',
-                border: '1.2px dashed rgba(202, 138, 4, 0.28)',
+                border: '1.2px dashed var(--radar-border)',
                 animation: 'spin-clockwise 18s linear infinite',
                 pointerEvents: 'none'
               }} />
@@ -348,9 +348,9 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                 width: '60px',
                 height: '60px',
                 borderRadius: '50%',
-                border: '1px solid rgba(202, 138, 4, 0.08)',
-                borderTop: '1px solid rgba(202, 138, 4, 0.35)',
-                borderBottom: '1px solid rgba(202, 138, 4, 0.35)',
+                border: '1px solid var(--radar-grid-subtle)',
+                borderTop: '1px solid var(--radar-border)',
+                borderBottom: '1px solid var(--radar-border)',
                 animation: 'spin-counter-clockwise 10s linear infinite',
                 pointerEvents: 'none'
               }} />
@@ -363,12 +363,12 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                   width: '44px',
                   height: '44px',
                   borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(202, 138, 4, 0.35) 0%, rgba(202, 138, 4, 0.15) 100%)',
+                  background: 'var(--radar-center-bg)',
                   border: '2.5px solid var(--accent-color)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 0 35px rgba(202, 138, 4, 0.65)',
+                  boxShadow: '0 0 35px var(--radar-center-shadow)',
                   cursor: 'pointer',
                   transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                   zIndex: 2
@@ -405,12 +405,12 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                 top: '59%',
                 left: '50%',
                 transform: 'translateX(-50%) translateY(0)',
-                background: 'rgba(7, 8, 14, 0.93)',
+                background: 'var(--radar-hud-bg)',
                 backdropFilter: 'blur(20px)',
-                border: '1px solid var(--accent-color)',
+                border: '1px solid var(--radar-hud-border)',
                 padding: '14px 20px',
                 borderRadius: '12px',
-                boxShadow: '0 12px 48px rgba(0, 0, 0, 0.6), 0 0 20px rgba(202, 138, 4, 0.15)',
+                boxShadow: 'var(--shadow-lg)',
                 pointerEvents: 'none',
                 whiteSpace: 'nowrap',
                 display: 'flex',
@@ -423,10 +423,10 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                 <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--accent-color)', letterSpacing: '0.12em', fontFamily: 'var(--font-mono), monospace' }}>
                   LOBBY HOST / 本地核心
                 </span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.01em' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--radar-hud-text-primary)', letterSpacing: '-0.01em' }}>
                   {self.nickname}
                 </span>
-                <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono), monospace', fontWeight: 500 }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--radar-hud-text-secondary)', fontFamily: 'var(--font-mono), monospace', fontWeight: 500 }}>
                   {self.ip}
                 </span>
                 <div style={{ marginTop: '6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
@@ -449,7 +449,7 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                 pointerEvents: 'none'
               }}>
                 <span style={{ 
-                  color: 'rgba(202, 138, 4, 0.45)', 
+                  color: 'var(--radar-accent-text)', 
                   fontSize: '0.78rem', 
                   letterSpacing: '0.2em',
                   fontFamily: 'var(--font-mono), monospace',
@@ -492,21 +492,21 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                       height: '48px',
                       borderRadius: '50%',
                       background: isDragOver 
-                        ? 'rgba(202, 138, 4, 0.35)' 
+                        ? 'var(--radar-pulse-glow)' 
                         : isHovered 
-                          ? 'radial-gradient(circle, rgba(202, 138, 4, 0.28) 0%, rgba(202, 138, 4, 0.15) 100%)' 
-                          : 'rgba(20, 21, 35, 0.82)',
+                          ? 'var(--radar-center-bg)' 
+                          : 'var(--radar-peer-bg)',
                       border: isDragOver 
                         ? '2.2px dashed var(--accent-color)' 
                         : isHovered 
                           ? '2px solid var(--accent-color)' 
-                          : '1.2px solid rgba(202, 138, 4, 0.35)',
+                          : '1.2px solid var(--radar-peer-border)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       boxShadow: isHovered || isDragOver 
-                        ? '0 0 25px rgba(202, 138, 4, 0.5), inset 0 0 10px rgba(202, 138, 4, 0.2)' 
-                        : '0 0 12px rgba(202, 138, 4, 0.15)',
+                        ? '0 0 25px var(--radar-pulse-glow), inset 0 0 10px var(--radar-peer-shadow)' 
+                        : '0 0 12px var(--radar-peer-shadow)',
                       transform: isHovered || isDragOver ? 'scale(1.15)' : 'scale(1)',
                       transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                       position: 'relative'
@@ -518,7 +518,7 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                           width: '60px',
                           height: '60px',
                           borderRadius: '50%',
-                          border: '1px solid rgba(202, 138, 4, 0.5)',
+                          border: '1px solid var(--radar-pulse-glow)',
                           borderLeftColor: 'transparent',
                           borderRightColor: 'transparent',
                           animation: 'spin-clockwise 3s linear infinite'
@@ -556,14 +556,14 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                       fontSize: '0.62rem',
                       fontFamily: 'var(--font-mono), monospace',
                       fontWeight: 600,
-                      color: isHovered ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.55)',
-                      background: isHovered ? 'rgba(7, 8, 14, 0.95)' : 'rgba(15, 15, 25, 0.8)',
-                      border: isHovered ? '1px solid var(--accent-color)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      color: isHovered ? 'var(--accent-color)' : 'var(--text-secondary)',
+                      background: isHovered ? 'var(--radar-hud-bg)' : 'var(--radar-peer-bg)',
+                      border: isHovered ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
                       padding: '2px 8px',
                       borderRadius: '12px',
                       whiteSpace: 'nowrap',
                       pointerEvents: 'none',
-                      boxShadow: '0 3px 10px rgba(0,0,0,0.4)',
+                      boxShadow: 'var(--shadow-sm)',
                       letterSpacing: '0.04em',
                       transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                       opacity: isHovered ? 0 : 1 // Hover时隐藏常驻标签以露出高精 HUD 面板
@@ -582,12 +582,12 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                       opacity: isHovered || isDragOver ? 1 : 0,
                       visibility: isHovered || isDragOver ? 'visible' : 'hidden',
                       transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                      background: 'rgba(7, 8, 14, 0.94)',
+                      background: 'var(--radar-hud-bg)',
                       backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(202, 138, 4, 0.65)',
+                      border: '1px solid var(--radar-hud-border)',
                       padding: '14px 18px',
                       borderRadius: '12px',
-                      boxShadow: '0 16px 48px rgba(0, 0, 0, 0.65), 0 0 25px rgba(202, 138, 4, 0.15)',
+                      boxShadow: 'var(--shadow-lg)',
                       pointerEvents: 'none',
                       whiteSpace: 'nowrap',
                       display: 'flex',
@@ -597,15 +597,15 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                       zIndex: 100
                     }}>
                       {/* 卡片头部修饰条 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.58rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--accent-color)', fontWeight: 700, letterSpacing: '0.08em', width: '100%', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '5px', marginBottom: '3px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.58rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--accent-color)', fontWeight: 700, letterSpacing: '0.08em', width: '100%', borderBottom: '1px solid var(--radar-hud-divider)', paddingBottom: '5px', marginBottom: '3px' }}>
                         <Wifi size={10} />
                         DISCOVERED PEER NODE
                       </div>
 
-                      <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.01em' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--radar-hud-text-primary)', letterSpacing: '-0.01em' }}>
                         {peer.nickname}
                       </span>
-                      <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono), monospace', fontWeight: 500 }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--radar-hud-text-secondary)', fontFamily: 'var(--font-mono), monospace', fontWeight: 500 }}>
                         {peer.ip}
                       </span>
 
@@ -627,8 +627,8 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
 
                       <div style={{ 
                         fontSize: '0.65rem', 
-                        color: 'rgba(255,255,255,0.4)', 
-                        borderTop: '1px solid rgba(255,255,255,0.06)', 
+                        color: 'var(--radar-hud-text-muted)', 
+                        borderTop: '1px solid var(--radar-hud-divider)', 
                         paddingTop: '6px', 
                         width: '100%', 
                         textAlign: 'center',
@@ -681,13 +681,13 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
       <style jsx global>{`
         @keyframes sonar-pulse-accent {
           0% {
-            box-shadow: 0 0 0 0 rgba(202, 138, 4, 0.45);
+            box-shadow: 0 0 0 0 var(--radar-pulse-glow, rgba(202, 138, 4, 0.45));
           }
           70% {
-            box-shadow: 0 0 0 8px rgba(202, 138, 4, 0);
+            box-shadow: 0 0 0 8px transparent;
           }
           100% {
-            box-shadow: 0 0 0 0 rgba(202, 138, 4, 0);
+            box-shadow: 0 0 0 0 transparent;
           }
         }
 
