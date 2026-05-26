@@ -231,3 +231,88 @@ code[class*="language-"] {
   color: #c2410c;
   border-color: rgba(234, 88, 12, 0.2);
 }
+
+/* ==========================================
+   大厂极简响应式两栏布局 (Stitch 规范)
+   ========================================== */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-app);
+}
+
+.sidebar-container {
+  width: 260px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 10;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.workspace-container {
+  flex: 1;
+  padding: 24px 32px;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: transparent;
+  min-width: 0; /* 防止子元素 flex 布局宽度溢出 */
+  transition: padding 0.3s ease;
+}
+
+/* 移动/窄屏自适应响应式触发（小于 960px 自动折叠侧边栏） */
+@media (max-width: 960px) {
+  .sidebar-container {
+    width: 80px;
+  }
+  
+  .sidebar-title-group {
+    display: none !important;
+  }
+  
+  .sidebar-logo-group {
+    justify-content: center !important;
+    padding: 24px 0 !important;
+  }
+  
+  .sidebar-nav {
+    align-items: center !important;
+  }
+  
+  .sidebar-nav-btn {
+    justify-content: center !important;
+    padding: 10px 0 !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+  }
+  
+  .sidebar-nav-text {
+    display: none !important;
+  }
+  
+  .sidebar-profile-card {
+    padding: 12px 0 !important;
+    justify-content: center !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  .sidebar-profile-details {
+    display: none !important;
+  }
+  
+  .sidebar-profile-edit {
+    display: none !important;
+  }
+  
+  .workspace-container {
+    padding: 16px 20px;
+  }
+}
