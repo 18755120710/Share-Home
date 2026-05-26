@@ -500,61 +500,6 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
           border-color: var(--error-color) !important;
           background: rgba(239, 68, 68, 0.08) !important;
         }
-
-        /* 局域网设备 Badge 在不同模式下的高端色彩深度定制 */
-        .device-badge {
-          border: 1px solid var(--border-color);
-        }
-        .device-badge.general {
-          background: rgba(255, 255, 255, 0.04);
-          color: var(--text-secondary);
-        }
-        .device-badge.windows {
-          background: rgba(59, 130, 246, 0.1);
-          color: #60a5fa;
-          border-color: rgba(59, 130, 246, 0.2);
-        }
-        .device-badge.macos {
-          background: rgba(255, 255, 255, 0.06);
-          color: #f4f4f5;
-          border-color: rgba(255, 255, 255, 0.15);
-        }
-        .device-badge.android {
-          background: rgba(16, 185, 129, 0.1);
-          color: #34d399;
-          border-color: rgba(16, 185, 129, 0.2);
-        }
-        .device-badge.linux {
-          background: rgba(249, 115, 22, 0.1);
-          color: #fb923c;
-          border-color: rgba(249, 115, 22, 0.2);
-        }
-
-        /* 亮色模式特殊高可见度覆盖（消除原本白底白字的痛点） */
-        [data-theme='light'] .device-badge.general {
-          background: rgba(9, 9, 11, 0.04);
-          color: var(--text-secondary);
-        }
-        [data-theme='light'] .device-badge.windows {
-          background: rgba(37, 99, 235, 0.08);
-          color: #1d4ed8;
-          border-color: rgba(37, 99, 235, 0.2);
-        }
-        [data-theme='light'] .device-badge.macos {
-          background: rgba(9, 9, 11, 0.05);
-          color: #18181b;
-          border-color: rgba(9, 9, 11, 0.12);
-        }
-        [data-theme='light'] .device-badge.android {
-          background: rgba(5, 150, 105, 0.08);
-          color: #047857;
-          border-color: rgba(5, 150, 105, 0.2);
-        }
-        [data-theme='light'] .device-badge.linux {
-          background: rgba(234, 88, 12, 0.08);
-          color: #c2410c;
-          border-color: rgba(234, 88, 12, 0.2);
-        }
       `}</style>
     </Card>
   );
