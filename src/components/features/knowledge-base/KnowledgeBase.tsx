@@ -383,16 +383,16 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
           const currentLang = codeLang;
           const blockId = `code_${i}`;
           parts.push(
-            <div key={blockId} style={{ position: 'relative', margin: '16px 0', borderRadius: '8px', overflow: 'hidden' }}>
+            <div key={blockId} style={{ position: 'relative', margin: '16px 0', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--code-border)' }}>
               <div style={{
-                background: '#1a1a1e',
+                background: 'var(--code-header-bg)',
                 padding: '6px 12px',
                 fontSize: '0.75rem',
                 color: 'var(--text-secondary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+                borderBottom: '1px solid var(--code-border)'
               }}>
                 <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{currentLang.toUpperCase()}</span>
                 <button
@@ -412,7 +412,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   {copiedCodeId === blockId ? '已复制' : '复制'}
                 </button>
               </div>
-              <pre style={{ margin: 0, padding: '16px', background: '#0e0e11', overflowX: 'auto' }}>
+              <pre style={{ margin: 0, padding: '16px', background: 'var(--code-pre-bg)', overflowX: 'auto' }}>
                 <code className={`language-${currentLang}`}>
                   {codeText}
                 </code>
@@ -475,7 +475,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
               if (match.index > lastIndex) {
                 segments.push(line.substring(lastIndex, match.index));
               }
-              segments.push(<strong key={keyIdx++} style={{ fontWeight: 700, color: '#ffffff' }}>{match[1]}</strong>);
+              segments.push(<strong key={keyIdx++} style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{match[1]}</strong>);
               lastIndex = regex.lastIndex;
             }
             if (lastIndex < line.length) {
@@ -512,7 +512,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         borderRight: '1px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
-        background: 'rgba(0, 0, 0, 0.15)',
+        background: 'var(--kb-sidebar-bg)',
         height: '100%'
       }}>
         {/* 文档库列表顶部按钮 */}
@@ -552,17 +552,17 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   style={{
                     padding: '10px 12px',
                     borderRadius: 'var(--radius-sm)',
-                    background: isSelected ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+                    background: isSelected ? 'var(--kb-item-selected-bg)' : 'transparent',
                     cursor: isRenaming ? 'default' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     transition: 'all 0.15s',
                     position: 'relative',
-                    border: isSelected ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid transparent'
+                    border: isSelected ? '1px solid var(--kb-item-selected-border)' : '1px solid transparent'
                   }}
                   onMouseEnter={(e) => {
-                    if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                    if (!isSelected) e.currentTarget.style.background = 'var(--kb-item-hover-bg)';
                     const actions = e.currentTarget.querySelector('.doc-actions');
                     if (actions) (actions as HTMLElement).style.opacity = '1';
                   }}
