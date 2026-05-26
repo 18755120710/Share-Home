@@ -101,50 +101,36 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
 
   const handleImportMarkdown = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !self) return;
+    if (!file || !editor || !selectedDoc) return;
 
-    // 提取文件名（去除 .md 后缀）作为云文档的初始标题
-    const fileNameWithoutExt = file.name.replace(/\.md$/i, '');
     const reader = new FileReader();
 
     reader.onload = async (event) => {
       const content = event.target?.result as string;
       if (typeof content !== 'string') return;
 
-      const docId = generateUUID();
-      const newDoc: KBDocument = {
-        id: docId,
-        title: fileNameWithoutExt || '未命名导入文档',
-        content: content,
-        type: 'file',
-        parentId: null, // 默认导入到根目录
-        senderId: self.id,
-        senderName: self.nickname,
-        senderAvatar: self.avatar,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
+      // 1. 将读取到的 Markdown 内容填充并解析进富文本编辑器
+      editor.commands.setContent(content);
 
-      try {
-        const res = await fetch('/api/documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newDoc)
-        });
-        const data = await res.json();
-        if (data.success) {
-          setDocuments(prev => [newDoc, ...prev]);
-          selectDocument(newDoc);
-          setViewMode('split'); // 导入后直接高亮选中并进入分栏预览模式
-          broadcastSync(newDoc); // 局域网实时同步广播
-        }
-      } catch (err) {
-        console.error('[KB] 导入 Markdown 物理文件物理写入失败:', err);
+      // 2. 状态值及预览缓存双向同步
+      setContentInput(content);
+      setContentPreview(content);
+
+      // 3. 提取本地文件名（剔除后缀）覆盖当前标题
+      const fileNameWithoutExt = file.name.replace(/\.md$/i, '');
+      if (fileNameWithoutExt) {
+        setTitleInput(fileNameWithoutExt);
+        titleInputRef.current = fileNameWithoutExt;
+        
+        // 4. 即时保存落盘并同步广播到局域网设备
+        triggerAutoSave(fileNameWithoutExt, content);
+      } else {
+        triggerAutoSave(titleInputRef.current, content);
       }
     };
 
     reader.readAsText(file);
-    e.target.value = ''; // 重置文件 input 以便用户能重复选择相同的文件
+    e.target.value = ''; // 清空 input 缓存
   };
 
   // 知识库目录栏折叠状态 (持久化偏好缓存)
@@ -1372,45 +1358,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
               <Plus size={14} />
               新建
             </Button>
-
-            <input 
-              type="file" 
-              accept=".md" 
-              style={{ display: 'none' }} 
-              ref={fileInputRef} 
-              onChange={handleImportMarkdown} 
-            />
-            <button
-              onClick={triggerImportClick}
-              title="导入本地 Markdown 文件"
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-                padding: '6px 10px',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                transition: 'all 0.2s',
-                height: '28px',
-                fontSize: '0.75rem',
-                fontWeight: 500
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                e.currentTarget.style.borderColor = 'var(--border-color)';
-              }}
-            >
-              <Upload size={14} />
-              导入
-            </button>
             
             {/* 新建根文件夹按钮 */}
             <button
@@ -1627,6 +1574,48 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   <Eye size={12} />
                   纯预览
                 </button>
+
+                <span style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 8px' }} />
+
+                <input 
+                  type="file" 
+                  accept=".md" 
+                  style={{ display: 'none' }} 
+                  ref={fileInputRef} 
+                  onChange={handleImportMarkdown} 
+                />
+                
+                <button
+                  onClick={triggerImportClick}
+                  title="导入本地 Markdown 内容并覆盖当前文档"
+                  style={{
+                    padding: '5px 12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    border: 'none',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    color: 'var(--text-secondary)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s',
+                    marginRight: '4px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
+                >
+                  <Upload size={12} />
+                  导入 MD
+                </button>
+
                 <span style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 8px' }} />
                 <button
                   onClick={toggleOutline}
