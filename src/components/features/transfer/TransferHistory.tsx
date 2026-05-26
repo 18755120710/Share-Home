@@ -79,42 +79,34 @@ export default function TransferHistory({
     // 降序排序
     .sort((a, b) => b.startedAt - a.startedAt);
 
-  // 获取 OS 图标和颜色
+  // 获取 OS 图标和类型类名
   const getOsInfo = (os: string) => {
     const lower = os.toLowerCase();
     if (lower.includes('win')) {
       return { 
         icon: <Monitor size={12} />, 
         label: 'Windows', 
-        bg: 'rgba(59, 130, 246, 0.08)', 
-        color: '#3b82f6',
-        borderColor: 'rgba(59, 130, 246, 0.15)' 
+        className: 'device-badge windows'
       };
     }
     if (lower.includes('mac') || lower.includes('ios') || lower.includes('apple')) {
       return { 
         icon: <Laptop size={12} />, 
-        label: 'Apple', 
-        bg: 'rgba(168, 85, 247, 0.08)', 
-        color: '#a855f7',
-        borderColor: 'rgba(168, 85, 247, 0.15)' 
+        label: 'macOS', 
+        className: 'device-badge macos'
       };
     }
     if (lower.includes('android') || lower.includes('phone') || lower.includes('mobile')) {
       return { 
         icon: <Smartphone size={12} />, 
-        label: 'Mobile', 
-        bg: 'rgba(16, 185, 129, 0.08)', 
-        color: '#10b981',
-        borderColor: 'rgba(16, 185, 129, 0.15)' 
+        label: 'Android', 
+        className: 'device-badge android'
       };
     }
     return { 
       icon: <Laptop size={12} />, 
-      label: 'Peer', 
-      bg: 'rgba(128, 128, 128, 0.08)', 
-      color: 'var(--text-secondary)',
-      borderColor: 'var(--border-color)' 
+      label: '未知设备', 
+      className: 'device-badge general'
     };
   };
 
@@ -314,7 +306,7 @@ export default function TransferHistory({
               placeholder="搜索文件名 / 对等伙伴..."
               style={{
                 width: '100%',
-                background: 'rgba(0, 0, 0, 0.03)',
+                background: 'var(--bg-item)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '6px',
                 padding: '8px 12px 8px 34px',
@@ -327,12 +319,12 @@ export default function TransferHistory({
               onFocus={(e) => {
                 e.target.style.borderColor = 'var(--accent-color)';
                 e.target.style.boxShadow = '0 0 0 2px var(--accent-glow)';
-                e.target.style.background = 'transparent';
+                e.target.style.background = 'var(--bg-sidebar)';
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = 'var(--border-color)';
                 e.target.style.boxShadow = 'none';
-                e.target.style.background = 'rgba(0, 0, 0, 0.03)';
+                e.target.style.background = 'var(--bg-item)';
               }}
             />
             <Search size={14} style={{
@@ -559,14 +551,11 @@ export default function TransferHistory({
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{senderName}</span>
-                          <span style={{
+                          <span className={sOs.className} style={{
                             fontSize: '0.62rem',
                             fontWeight: 600,
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            background: sOs.bg,
-                            color: sOs.color,
-                            border: `1px solid ${sOs.borderColor}`,
                             display: 'flex',
                             alignItems: 'center',
                             gap: '3px'
@@ -643,14 +632,11 @@ export default function TransferHistory({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '170px', flex: 1, justifyContent: 'flex-end', textAlign: 'right' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-end' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{
+                          <span className={rOs.className} style={{
                             fontSize: '0.62rem',
                             fontWeight: 600,
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            background: rOs.bg,
-                            color: rOs.color,
-                            border: `1px solid ${rOs.borderColor}`,
                             display: 'flex',
                             alignItems: 'center',
                             gap: '3px'
