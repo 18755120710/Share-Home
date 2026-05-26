@@ -47,7 +47,7 @@ export const Button: React.FC<ButtonProps> = ({
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
     fontFamily: 'var(--font-sans)',
     outline: 'none',
     userSelect: 'none',
@@ -61,7 +61,7 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled}
       onMouseEnter={(e) => {
         if (disabled) return;
-        e.currentTarget.style.transform = 'scale(0.98)';
+        e.currentTarget.style.transform = 'translateY(-1px)';
         if (variant === 'primary') {
           e.currentTarget.style.boxShadow = 'var(--shadow-md)';
           e.currentTarget.style.opacity = '0.9';
@@ -74,7 +74,7 @@ export const Button: React.FC<ButtonProps> = ({
       }}
       onMouseLeave={(e) => {
         if (disabled) return;
-        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.boxShadow = 'none';
         if (variant === 'primary') {
           e.currentTarget.style.background = 'var(--btn-primary-bg, #ffffff)';
@@ -85,6 +85,14 @@ export const Button: React.FC<ButtonProps> = ({
         } else if (variant === 'danger') {
           e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
         }
+      }}
+      onMouseDown={(e) => {
+        if (disabled) return;
+        e.currentTarget.style.transform = 'translateY(0) scale(0.96)';
+      }}
+      onMouseUp={(e) => {
+        if (disabled) return;
+        e.currentTarget.style.transform = 'translateY(-1px) scale(1)';
       }}
       {...props}
     >
