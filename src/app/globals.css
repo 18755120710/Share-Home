@@ -42,41 +42,108 @@
   --bg-item: rgba(255, 255, 255, 0.015);
   --bg-item-hover: rgba(255, 255, 255, 0.04);
   --bg-card-hover: rgba(20, 20, 25, 0.7);
+
+  /* 雷达专属变量 (暗色) */
+  --radar-bg-outer: radial-gradient(circle at center, rgba(16, 16, 28, 0.2) 0%, rgba(3, 3, 5, 0.85) 100%), linear-gradient(rgba(255, 255, 255, 0.007) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.007) 1px, transparent 1px);
+  --radar-bg-inner: radial-gradient(circle, rgba(16, 17, 30, 0.7) 0%, rgba(6, 6, 10, 0.98) 100%);
+  --radar-border: rgba(202, 138, 4, 0.28);
+  --radar-grid: rgba(202, 138, 4, 0.12);
+  --radar-grid-subtle: rgba(202, 138, 4, 0.06);
+  --radar-sweep: conic-gradient(from 0deg, rgba(202, 138, 4, 0.15) 0deg, rgba(202, 138, 4, 0.02) 80deg, transparent 150deg, transparent 360deg);
+  --radar-accent-text: rgba(202, 138, 4, 0.5);
+  --radar-center-bg: radial-gradient(circle, rgba(202, 138, 4, 0.35) 0%, rgba(202, 138, 4, 0.15) 100%);
+  --radar-center-shadow: rgba(202, 138, 4, 0.65);
+  --radar-peer-bg: rgba(20, 21, 35, 0.82);
+  --radar-peer-border: rgba(202, 138, 4, 0.35);
+  --radar-peer-shadow: rgba(202, 138, 4, 0.15);
+  --radar-hud-bg: rgba(7, 8, 14, 0.94);
+  --radar-hud-border: rgba(202, 138, 4, 0.65);
+  --radar-hud-text-primary: #ffffff;
+  --radar-hud-text-secondary: rgba(255, 255, 255, 0.7);
+  --radar-hud-text-muted: rgba(255, 255, 255, 0.4);
+  --radar-hud-divider: rgba(255, 255, 255, 0.06);
+  --radar-pulse-glow: rgba(202, 138, 4, 0.45);
+  --radar-corner-border: rgba(202, 138, 4, 0.3);
+  
+  /* 知识库专属变量 (暗色) */
+  --kb-sidebar-bg: rgba(0, 0, 0, 0.15);
+  --kb-item-selected-bg: rgba(255, 255, 255, 0.04);
+  --kb-item-selected-border: rgba(255, 255, 255, 0.05);
+  --kb-item-hover-bg: rgba(255, 255, 255, 0.02);
+  
+  /* 代码专属变量 (暗色) */
+  --code-header-bg: #1a1a1e;
+  --code-pre-bg: #0e0e11;
+  --code-border: rgba(255, 255, 255, 0.05);
 }
 
 [data-theme='light'] {
-  --bg-app: #f4f4f5;
-  --bg-card: rgba(255, 255, 255, 0.95);
-  --bg-card-hover: rgba(255, 255, 255, 1);
+  --bg-app: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #ffffff;
   --bg-sidebar: #ffffff;
-  --border-color: #e4e4e7;
-  --border-color-hover: #d4d4d8;
-  --text-primary: #09090b;
-  --text-secondary: #52525b;
-  --text-muted: #71717a;
+  --border-color: #e2e8f0;
+  --border-color-hover: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
   
   --accent-color: #2563eb;
-  --accent-glow: rgba(37, 99, 235, 0.06);
+  --accent-glow: rgba(37, 99, 235, 0.05);
   
-  --success-color: #059669;
-  --success-glow: rgba(5, 150, 105, 0.06);
+  --success-color: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.05);
   
-  --btn-primary-bg: #18181b;
+  --btn-primary-bg: #0f172a;
   --btn-primary-text: #ffffff;
-  --btn-secondary-bg: rgba(9, 9, 11, 0.04);
-  --btn-secondary-hover-bg: rgba(9, 9, 11, 0.08);
+  --btn-secondary-bg: #f8fafc;
+  --btn-secondary-hover-bg: #f1f5f9;
   
-  --bg-item: rgba(9, 9, 11, 0.02);
-  --bg-item-hover: rgba(9, 9, 11, 0.05);
+  --bg-item: #f8fafc;
+  --bg-item-hover: #f1f5f9;
   
   /* 亮色阴影与微光效 */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 20px rgba(9, 9, 11, 0.08);
-  --shadow-glow: 0 0 32px rgba(37, 99, 235, 0.08);
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.02);
+  --shadow-glow: none;
   
   /* 网格线与流光颜色在亮色下的重定义 */
-  --grid-color: rgba(9, 9, 11, 0.015);
-  --glow-color: rgba(37, 99, 235, 0.035);
+  --grid-color: rgba(226, 232, 240, 0.4);
+  --glow-color: rgba(37, 99, 235, 0.015);
+  
+  /* 雷达专属变量 (亮色) */
+  --radar-bg-outer: radial-gradient(circle at center, rgba(248, 250, 252, 0.85) 0%, rgba(241, 245, 249, 0.98) 100%), linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+  --radar-bg-inner: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+  --radar-border: rgba(59, 130, 246, 0.25);
+  --radar-grid: rgba(59, 130, 246, 0.12);
+  --radar-grid-subtle: rgba(59, 130, 246, 0.06);
+  --radar-sweep: conic-gradient(from 0deg, rgba(59, 130, 246, 0.1) 0deg, rgba(59, 130, 246, 0.02) 80deg, transparent 150deg, transparent 360deg);
+  --radar-accent-text: rgba(71, 85, 105, 0.5);
+  --radar-center-bg: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+  --radar-center-shadow: rgba(59, 130, 246, 0.15);
+  --radar-peer-bg: #ffffff;
+  --radar-peer-border: rgba(59, 130, 246, 0.35);
+  --radar-peer-shadow: rgba(148, 163, 184, 0.15);
+  --radar-hud-bg: rgba(255, 255, 255, 0.98);
+  --radar-hud-border: var(--border-color);
+  --radar-hud-text-primary: var(--text-primary);
+  --radar-hud-text-secondary: var(--text-secondary);
+  --radar-hud-text-muted: var(--text-muted);
+  --radar-hud-divider: var(--border-color);
+  --radar-pulse-glow: rgba(59, 130, 246, 0.25);
+  --radar-corner-border: rgba(59, 130, 246, 0.2);
+  
+  /* 知识库专属变量 (亮色) */
+  --kb-sidebar-bg: #f8fafc;
+  --kb-item-selected-bg: rgba(59, 130, 246, 0.08);
+  --kb-item-selected-border: rgba(59, 130, 246, 0.15);
+  --kb-item-hover-bg: rgba(9, 9, 11, 0.02);
+  
+  /* 代码专属变量 (亮色) */
+  --code-header-bg: #f1f5f9;
+  --code-pre-bg: #f8fafc;
+  --code-border: #e2e8f0;
 }
 
 * {
@@ -151,8 +218,8 @@ body::before {
 
 /* Prism 语法高亮覆盖，融入 Zinc 中性黑深邃色调 */
 pre[class*="language-"] {
-  background: #0e0e11 !important;
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  background: var(--code-pre-bg) !important;
+  border: 1px solid var(--code-border, rgba(255, 255, 255, 0.03)) !important;
 }
 
 code[class*="language-"] {
