@@ -284,13 +284,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
     // 监听文档更新（新建或修改）
     const unsubUpdate = socket.subscribe('documents:update', (updatedDoc: KBDocument) => {
       setDocuments(prev => {
-        const exists = prev.some(d => d.id === updatedDoc.id);
-        let next = [];
-        if (exists) {
-          next = prev.map(d => d.id === updatedDoc.id ? updatedDoc : d);
-        } else {
-          next = [updatedDoc, ...prev];
-        }
+        // 铁壁去重：先彻底剔除原先已存在相同 ID 的项，然后再塞入 updatedDoc 并排序，物理断绝 Key 重复！
+        const filtered = prev.filter(d => d.id !== updatedDoc.id);
+        const next = [updatedDoc, ...filtered];
         return next.sort((a, b) => b.updatedAt - a.updatedAt);
       });
 
@@ -981,6 +977,10 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
    */
   const triggerAutoSave = (newTitle: string, newContent: string) => {
     if (!selectedId || !self) return;
+    
+    // 防御：如果是云文件夹，绝对不进行任何正文内容自动保存落盘，防篡改
+    if (selectedDoc?.type === 'folder') return;
+
     setSaveStatus('dirty');
 
     if (saveTimeoutRef.current) {
@@ -990,6 +990,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
     saveTimeoutRef.current = setTimeout(async () => {
       setSaveStatus('saving');
       const updatedDoc: KBDocument = {
+        ...selectedDoc, // 铁壁防丢：继承原文件夹/文档的元属性（如 type, parentId）
         id: selectedId,
         title: newTitle.trim() || '无标题文档',
         content: newContent,
