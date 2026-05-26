@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Peer } from '@/types/peer';
 import { KBDocument } from '@/types/document';
 import Card from '../../ui/Card';
@@ -64,6 +64,24 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   // 编辑中的临时状态
   const [titleInput, setTitleInput] = useState('');
   const [contentInput, setContentInput] = useState('');
+  // 300ms 智能防抖预览内容状态，用来解脱打字全量重渲染，极大优化性能！
+  const [contentPreview, setContentPreview] = useState('');
+  
+  // 大纲目录面板 (TOC) 展开折叠状态 (持久化偏好缓存)
+  const [isOutlineOpen, setIsOutlineOpen] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kb_outline_open') !== 'false';
+      setIsOutlineOpen(saved);
+    }
+  }, []);
+
+  const toggleOutline = () => {
+    const next = !isOutlineOpen;
+    setIsOutlineOpen(next);
+    localStorage.setItem('kb_outline_open', String(next));
+  };
   
   // 重命名文档状态
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -76,6 +94,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   // 引用 textarea 元素，供工具栏插入字符使用
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // 用来做预览和大纲计算的防抖定时器
+  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const selectedDoc = documents.find(d => d.id === selectedId) || null;
 
@@ -108,7 +128,15 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       // 提取编辑器中的 Markdown 并更新状态，触发防抖自动落盘与 WebSocket 同步
       const markdown = (editor.storage as any).markdown.getMarkdown();
       setContentInput(markdown);
+      
+      // 1. 防抖保存落盘与广播（1秒防抖）
       triggerAutoSave(titleInputRef.current, markdown);
+
+      // 2. 预览与目录提取防抖（300ms防抖更新，彻底解放打字卡顿！）
+      if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = setTimeout(() => {
+        setContentPreview(markdown);
+      }, 300);
     }
   });
 
@@ -165,6 +193,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         if (updatedDoc.senderId !== self?.id) {
           setTitleInput(updatedDoc.title);
           setContentInput(updatedDoc.content);
+          setContentPreview(updatedDoc.content);
           setSaveStatus('saved');
         }
       }
@@ -177,6 +206,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         setSelectedId(null);
         setTitleInput('');
         setContentInput('');
+        setContentPreview('');
       }
     });
 
@@ -192,15 +222,188 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       // 延迟确保 DOM 已经渲染完毕
       setTimeout(() => Prism.highlightAll(), 50);
     }
-  }, [viewMode, selectedId, contentInput]);
+  }, [viewMode, selectedId, contentPreview]);
 
   const selectDocument = (doc: KBDocument) => {
     setSelectedId(doc.id);
     setTitleInput(doc.title);
     setContentInput(doc.content);
+    setContentPreview(doc.content);
     setSaveStatus('saved');
     setViewMode('split'); // 默认选中后进入极致直观的实时分栏对照模式！
   };
+
+  interface TOCItem {
+    id: string;
+    text: string;
+    level: number;
+  }
+
+  /**
+   * 精致实时 Markdown 大纲提取算法 (飞书大厂设计，智能避开代码块注释)
+   */
+  const extractOutline = (text: string): TOCItem[] => {
+    if (!text) return [];
+    const lines = text.split('\n');
+    const outline: TOCItem[] = [];
+    let inCode = false;
+
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      
+      // 避开代码块中 # 符号干扰
+      if (trimmed.startsWith('```')) {
+        inCode = !inCode;
+        return;
+      }
+      if (inCode) return;
+
+      if (trimmed.startsWith('# ')) {
+        outline.push({ id: `toc-${index}`, text: trimmed.substring(2).trim(), level: 1 });
+      } else if (trimmed.startsWith('## ')) {
+        outline.push({ id: `toc-${index}`, text: trimmed.substring(3).trim(), level: 2 });
+      } else if (trimmed.startsWith('### ')) {
+        outline.push({ id: `toc-${index}`, text: trimmed.substring(4).trim(), level: 3 });
+      } else if (trimmed.startsWith('#### ')) {
+        outline.push({ id: `toc-${index}`, text: trimmed.substring(5).trim(), level: 4 });
+      }
+    });
+
+    return outline;
+  };
+
+  /**
+   * 大纲点击锚点丝滑跳转定位
+   */
+  const handleScrollToHeading = (anchorId: string, headingText: string) => {
+    // 1. 若当前处于 split 或 read (预览) 模式下，直接定位预览 DOM 锚点
+    const previewEl = document.getElementById(anchorId);
+    if (previewEl) {
+      previewEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    // 2. 若纯编辑模式下没有预览区，去所见即所得 Tiptap Editor (ProseMirror) 内部寻得该标题内容并定位
+    const editorEl = document.querySelector('.ProseMirror');
+    if (editorEl) {
+      const headings = Array.from(editorEl.querySelectorAll('h1, h2, h3, h4, h5'));
+      const target = headings.find(h => h.textContent?.trim() === headingText);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  /**
+   * 使用 useMemo 细粒度拦截渲染，彻底解除打字时左侧列表频繁重绘引起的 CPU 卡顿！
+   */
+  const memoizedDocList = useMemo(() => {
+    if (documents.length === 0) {
+      return (
+        <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+          无任何知识库文档
+        </div>
+      );
+    }
+
+    return documents.map(doc => {
+      const isSelected = doc.id === selectedId;
+      const isRenaming = doc.id === renamingId;
+      
+      return (
+        <div
+          key={doc.id}
+          onClick={() => !isRenaming && selectDocument(doc)}
+          style={{
+            padding: '10px 12px',
+            borderRadius: 'var(--radius-sm)',
+            background: isSelected ? 'var(--kb-item-selected-bg)' : 'transparent',
+            cursor: isRenaming ? 'default' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            transition: 'all 0.15s',
+            position: 'relative',
+            border: isSelected ? '1px solid var(--kb-item-selected-border)' : '1px solid transparent'
+          }}
+          onMouseEnter={(e) => {
+            if (!isSelected) e.currentTarget.style.background = 'var(--kb-item-hover-bg)';
+            const actions = e.currentTarget.querySelector('.doc-actions');
+            if (actions) (actions as HTMLElement).style.opacity = '1';
+          }}
+          onMouseLeave={(e) => {
+            if (!isSelected) e.currentTarget.style.background = 'transparent';
+            const actions = e.currentTarget.querySelector('.doc-actions');
+            if (actions) (actions as HTMLElement).style.opacity = '0';
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
+            <FileText size={15} style={{ color: isSelected ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+            
+            {isRenaming ? (
+              <input
+                type="text"
+                value={renameTitle}
+                onChange={(e) => setRenameTitle(e.target.value)}
+                onBlur={() => saveRename(doc)}
+                onKeyDown={(e) => e.key === 'Enter' && saveRename(doc)}
+                autoFocus
+                style={{
+                  background: 'var(--bg-app)',
+                  border: '1px solid var(--accent-color)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.8rem',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  width: '100%',
+                  outline: 'none'
+                }}
+              />
+            ) : (
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                <span style={{ 
+                  fontSize: '0.825rem', 
+                  fontWeight: isSelected ? 600 : 400,
+                  color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)'
+                }}>
+                  {doc.title}
+                </span>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {doc.senderName} · {new Date(doc.updatedAt).toLocaleTimeString()}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 操作小按钮（重命名/删除） */}
+          {!isRenaming && (
+            <div className="doc-actions" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              opacity: 0,
+              transition: 'opacity 0.15s',
+              marginLeft: '6px',
+              flexShrink: 0
+            }}>
+              <button
+                onClick={(e) => startRename(doc, e)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}
+              >
+                <Edit2 size={12} />
+              </button>
+              <button
+                onClick={(e) => handleDeleteDocument(doc.id, e)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--error-color)', cursor: 'pointer', padding: '2px' }}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    });
+  }, [documents, selectedId, renamingId, renameTitle]);
 
   /**
    * 创建一篇新文档
@@ -391,6 +594,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
     };
   }, []);
 
@@ -517,11 +721,13 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         // 普通 Markdown 解析渲染
         const trimmed = line.trim();
         if (trimmed.startsWith('# ')) {
-          parts.push(<h2 key={i} style={{ fontSize: '1.6rem', fontWeight: 700, margin: '24px 0 12px', letterSpacing: '-0.02em', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>{trimmed.substring(2)}</h2>);
+          parts.push(<h2 key={i} id={`toc-${i}`} style={{ fontSize: '1.6rem', fontWeight: 700, margin: '24px 0 12px', letterSpacing: '-0.02em', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>{trimmed.substring(2)}</h2>);
         } else if (trimmed.startsWith('## ')) {
-          parts.push(<h3 key={i} style={{ fontSize: '1.3rem', fontWeight: 600, margin: '20px 0 10px', letterSpacing: '-0.015em' }}>{trimmed.substring(3)}</h3>);
+          parts.push(<h3 key={i} id={`toc-${i}`} style={{ fontSize: '1.3rem', fontWeight: 600, margin: '20px 0 10px', letterSpacing: '-0.015em' }}>{trimmed.substring(3)}</h3>);
         } else if (trimmed.startsWith('### ')) {
-          parts.push(<h4 key={i} style={{ fontSize: '1.1rem', fontWeight: 600, margin: '16px 0 8px' }}>{trimmed.substring(4)}</h4>);
+          parts.push(<h4 key={i} id={`toc-${i}`} style={{ fontSize: '1.1rem', fontWeight: 600, margin: '16px 0 8px' }}>{trimmed.substring(4)}</h4>);
+        } else if (trimmed.startsWith('#### ')) {
+          parts.push(<h5 key={i} id={`toc-${i}`} style={{ fontSize: '0.95rem', fontWeight: 600, margin: '14px 0 6px' }}>{trimmed.substring(5)}</h5>);
         } else if (trimmed.startsWith('> ')) {
           parts.push(
             <blockquote key={i} style={{
@@ -652,109 +858,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
           flexDirection: 'column',
           gap: '4px'
         }}>
-          {documents.length === 0 ? (
-            <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-              无任何知识库文档
-            </div>
-          ) : (
-            documents.map(doc => {
-              const isSelected = doc.id === selectedId;
-              const isRenaming = doc.id === renamingId;
-              
-              return (
-                <div
-                  key={doc.id}
-                  onClick={() => !isRenaming && selectDocument(doc)}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: isSelected ? 'var(--kb-item-selected-bg)' : 'transparent',
-                    cursor: isRenaming ? 'default' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    transition: 'all 0.15s',
-                    position: 'relative',
-                    border: isSelected ? '1px solid var(--kb-item-selected-border)' : '1px solid transparent'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) e.currentTarget.style.background = 'var(--kb-item-hover-bg)';
-                    const actions = e.currentTarget.querySelector('.doc-actions');
-                    if (actions) (actions as HTMLElement).style.opacity = '1';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) e.currentTarget.style.background = 'transparent';
-                    const actions = e.currentTarget.querySelector('.doc-actions');
-                    if (actions) (actions as HTMLElement).style.opacity = '0';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
-                    <FileText size={15} style={{ color: isSelected ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
-                    
-                    {isRenaming ? (
-                      <input
-                        type="text"
-                        value={renameTitle}
-                        onChange={(e) => setRenameTitle(e.target.value)}
-                        onBlur={() => saveRename(doc)}
-                        onKeyDown={(e) => e.key === 'Enter' && saveRename(doc)}
-                        autoFocus
-                        style={{
-                          background: 'var(--bg-app)',
-                          border: '1px solid var(--accent-color)',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.8rem',
-                          padding: '2px 4px',
-                          borderRadius: '4px',
-                          width: '100%',
-                          outline: 'none'
-                        }}
-                      />
-                    ) : (
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                        <span style={{ 
-                          fontSize: '0.825rem', 
-                          fontWeight: isSelected ? 600 : 400,
-                          color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)'
-                        }}>
-                          {doc.title}
-                        </span>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          {doc.senderName} · {new Date(doc.updatedAt).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 操作小按钮（重命名/删除） */}
-                  {!isRenaming && (
-                    <div className="doc-actions" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      opacity: 0,
-                      transition: 'opacity 0.15s',
-                      marginLeft: '6px',
-                      flexShrink: 0
-                    }}>
-                      <button
-                        onClick={(e) => startRename(doc, e)}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      <button
-                        onClick={(e) => handleDeleteDocument(doc.id, e)}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--error-color)', cursor: 'pointer', padding: '2px' }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
+          {memoizedDocList}
         </div>
       </div>
 
@@ -899,6 +1003,27 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                 >
                   <Eye size={12} />
                   纯预览
+                </button>
+                <span style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 8px' }} />
+                <button
+                  onClick={toggleOutline}
+                  style={{
+                    padding: '5px 12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    border: 'none',
+                    background: isOutlineOpen ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                    color: isOutlineOpen ? 'var(--accent-color)' : 'var(--text-secondary)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Columns size={12} style={{ transform: 'rotate(90deg)' }} />
+                  {isOutlineOpen ? '隐藏大纲' : '显示大纲'}
                 </button>
               </div>
             </div>
@@ -1077,10 +1202,41 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   transition: 'all 0.2s'
                 }}>
                   <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                    {renderMarkdown(contentInput)}
+                    {renderMarkdown(contentPreview)}
                   </div>
                 </div>
               )}
+
+              {/* 最右侧：TOC 大纲目录面板 */}
+              <div className={`kb-toc-container ${isOutlineOpen ? '' : 'collapsed'}`}>
+                <div className="kb-toc-header">
+                  <span>文档大纲</span>
+                  <button 
+                    onClick={toggleOutline}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  >
+                    <ChevronsRight size={14} />
+                  </button>
+                </div>
+                <div className="kb-toc-list">
+                  {extractOutline(contentPreview).length === 0 ? (
+                    <div style={{ padding: '24px 8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', fontStyle: 'italic' }}>
+                      暂无标题大纲
+                    </div>
+                  ) : (
+                    extractOutline(contentPreview).map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => handleScrollToHeading(item.id, item.text)}
+                        className={`kb-toc-item level-${item.level}`}
+                        title={item.text}
+                      >
+                        {item.text}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
 
             </div>
           </>
