@@ -23,7 +23,7 @@ export const Button: React.FC<ButtonProps> = ({
         };
       case 'secondary':
         return {
-          background: 'rgba(255, 255, 255, 0.04)',
+          background: 'var(--btn-secondary-bg)',
           color: 'var(--text-primary)',
           border: '1px solid var(--border-color)',
         };
@@ -66,7 +66,7 @@ export const Button: React.FC<ButtonProps> = ({
           e.currentTarget.style.boxShadow = 'var(--shadow-md)';
           e.currentTarget.style.opacity = '0.9';
         } else if (variant === 'secondary') {
-          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+          e.currentTarget.style.background = 'var(--btn-secondary-hover-bg)';
           e.currentTarget.style.borderColor = 'var(--border-color-hover)';
         } else if (variant === 'danger') {
           e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
@@ -80,7 +80,7 @@ export const Button: React.FC<ButtonProps> = ({
           e.currentTarget.style.background = 'var(--btn-primary-bg, #ffffff)';
           e.currentTarget.style.opacity = '1';
         } else if (variant === 'secondary') {
-          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+          e.currentTarget.style.background = 'var(--btn-secondary-bg)';
           e.currentTarget.style.borderColor = 'var(--border-color)';
         } else if (variant === 'danger') {
           e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
