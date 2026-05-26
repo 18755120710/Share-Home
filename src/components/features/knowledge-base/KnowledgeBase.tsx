@@ -3,16 +3,18 @@ import { Peer } from '@/types/peer';
 import { KBDocument } from '@/types/document';
 import Card from '../../ui/Card';
 import Button from '../../ui/Button';
+import { Extension } from '@tiptap/core';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import Placeholder from '@tiptap/extension-placeholder';
 import { DOMParser as PMDOMParser } from '@tiptap/pm/model';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { 
   Plus, FileText, Trash2, Edit2, Check, X, Eye, Edit3, 
   Bold, Italic, Heading, Quote, List, Code, Copy, 
   CheckSquare, Globe, Save, Columns, ChevronsLeft, ChevronsRight,
-  Folder, FolderOpen, FolderPlus, ChevronDown, ChevronRight, CornerDownRight, Move
+  Folder, FolderOpen, FolderPlus, ChevronDown, ChevronRight, CornerDownRight, Move, Upload
 } from 'lucide-react';
 import { generateUUID } from '@/lib/utils';
 import { SocketClient } from '@/lib/socketClient';
@@ -37,6 +39,49 @@ import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-json';
 import 'prismjs/components/prism-yaml';
 
+const MarkdownPaste = Extension.create({
+  name: 'markdownPaste',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('markdownPaste'),
+        props: {
+          handlePaste: (view, event) => {
+            const text = event.clipboardData?.getData('text/plain');
+            if (!text) return false;
+
+            // 识别粘贴的文本是否带 Markdown 标志
+            const isMarkdown = /^\s*(?:#+\s|-+\s|\*+\s|>+\s|```)/m.test(text) || text.includes('**') || text.includes('`');
+            const parser = this.editor.storage.markdown?.parser;
+
+            if (isMarkdown && parser) {
+              try {
+                // 将 Markdown 纯文本解析为 HTML
+                const html = parser.parse(text);
+
+                // 转化为 ProseMirror slice 并插入
+                const element = document.createElement('div');
+                element.innerHTML = html;
+
+                const slice = PMDOMParser.fromSchema(view.state.schema).parseSlice(element, {
+                  preserveWhitespace: true,
+                });
+
+                const transaction = view.state.tr.replaceSelection(slice);
+                view.dispatch(transaction);
+                return true; // 成功消费，拦截默认粘贴
+              } catch (e) {
+                console.error('[KB] 自定义 Extension 粘贴 Markdown 解析失败:', e);
+              }
+            }
+            return false;
+          }
+        }
+      })
+    ];
+  }
+});
+
 interface KnowledgeBaseProps {
   peers: Peer[];
   self: Peer | null;
@@ -46,6 +91,61 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   const [documents, setDocuments] = useState<KBDocument[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'split' | 'write' | 'read'>('split');
+
+  // 文件导入相关的引用和处理逻辑
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportMarkdown = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !self) return;
+
+    // 提取文件名（去除 .md 后缀）作为云文档的初始标题
+    const fileNameWithoutExt = file.name.replace(/\.md$/i, '');
+    const reader = new FileReader();
+
+    reader.onload = async (event) => {
+      const content = event.target?.result as string;
+      if (typeof content !== 'string') return;
+
+      const docId = generateUUID();
+      const newDoc: KBDocument = {
+        id: docId,
+        title: fileNameWithoutExt || '未命名导入文档',
+        content: content,
+        type: 'file',
+        parentId: null, // 默认导入到根目录
+        senderId: self.id,
+        senderName: self.nickname,
+        senderAvatar: self.avatar,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+
+      try {
+        const res = await fetch('/api/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newDoc)
+        });
+        const data = await res.json();
+        if (data.success) {
+          setDocuments(prev => [newDoc, ...prev]);
+          selectDocument(newDoc);
+          setViewMode('split'); // 导入后直接高亮选中并进入分栏预览模式
+          broadcastSync(newDoc); // 局域网实时同步广播
+        }
+      } catch (err) {
+        console.error('[KB] 导入 Markdown 物理文件物理写入失败:', err);
+      }
+    };
+
+    reader.readAsText(file);
+    e.target.value = ''; // 重置文件 input 以便用户能重复选择相同的文件
+  };
 
   // 知识库目录栏折叠状态 (持久化偏好缓存)
   const [isKbSidebarCollapsed, setIsKbSidebarCollapsed] = useState(false);
@@ -227,42 +327,13 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       Placeholder.configure({
         placeholder: '在这里开始书写飞书般的文档协作体验，输入 Markdown 标识符即时渲染...',
         emptyEditorClass: 'is-editor-empty',
-      })
+      }),
+      MarkdownPaste,
     ],
     content: selectedDoc ? selectedDoc.content : '',
     editorProps: {
       attributes: {
         class: 'ProseMirror',
-      },
-      handlePaste: (view, event) => {
-        const text = event.clipboardData?.getData('text/plain');
-        if (!text) return false;
-
-        // 启发式判断：如果行首包含标题(# )、无序列表(- /* )、引用(> )或加粗(**)或代码块(```)，就当作 Markdown 粘贴
-        const isMarkdown = /^\s*(?:#+\s|-+\s|\*+\s|>+\s|```)/m.test(text) || text.includes('**') || text.includes('`');
-        const parser = (view as any).editor?.storage?.markdown?.parser;
-
-        if (isMarkdown && parser) {
-          try {
-            // 调用 tiptap-markdown 的 parser 将其转换为 HTML
-            const html = parser.parse(text);
-
-            // 转化为 ProseMirror slice 并安全插入
-            const element = document.createElement('div');
-            element.innerHTML = html;
-
-            const slice = PMDOMParser.fromSchema(view.state.schema).parseSlice(element, {
-              preserveWhitespace: true,
-            });
-
-            const transaction = view.state.tr.replaceSelection(slice);
-            view.dispatch(transaction);
-            return true; // 拦截默认粘贴
-          } catch (e) {
-            console.error('[KB] 自定义 Markdown 粘贴拦截解析失败:', e);
-          }
-        }
-        return false;
       }
     },
     onUpdate: ({ editor }) => {
@@ -1301,6 +1372,45 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
               <Plus size={14} />
               新建
             </Button>
+
+            <input 
+              type="file" 
+              accept=".md" 
+              style={{ display: 'none' }} 
+              ref={fileInputRef} 
+              onChange={handleImportMarkdown} 
+            />
+            <button
+              onClick={triggerImportClick}
+              title="导入本地 Markdown 文件"
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                padding: '6px 10px',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                height: '28px',
+                fontSize: '0.75rem',
+                fontWeight: 500
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.borderColor = 'var(--border-color-hover)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                e.currentTarget.style.borderColor = 'var(--border-color)';
+              }}
+            >
+              <Upload size={14} />
+              导入
+            </button>
             
             {/* 新建根文件夹按钮 */}
             <button
