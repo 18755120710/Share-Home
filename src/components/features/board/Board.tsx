@@ -129,11 +129,11 @@ export const Board: React.FC<BoardProps> = ({ peers, self }) => {
         border: '1px solid var(--border-color)',
         borderRadius: 'var(--radius-md)',
         padding: '16px',
-        background: 'rgba(255, 255, 255, 0.01)'
+        background: 'var(--bg-item)'
       }}>
         {/* Tab 栏切换与语言选择 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', gap: '8px', background: 'rgba(255, 255, 255, 0.03)', padding: '3px', borderRadius: 'var(--radius-sm)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-app)', padding: '3px', borderRadius: 'var(--radius-sm)' }}>
             <button
               onClick={() => setActiveTab('text')}
               style={{
@@ -141,10 +141,11 @@ export const Board: React.FC<BoardProps> = ({ peers, self }) => {
                 fontSize: '0.8rem',
                 fontWeight: 500,
                 border: 'none',
-                background: activeTab === 'text' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                background: activeTab === 'text' ? 'var(--bg-card)' : 'transparent',
                 color: activeTab === 'text' ? 'var(--text-primary)' : 'var(--text-secondary)',
                 borderRadius: '6px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: activeTab === 'text' ? 'var(--shadow-sm)' : 'none'
               }}
             >
               富文本 / 笔记
@@ -156,10 +157,11 @@ export const Board: React.FC<BoardProps> = ({ peers, self }) => {
                 fontSize: '0.8rem',
                 fontWeight: 500,
                 border: 'none',
-                background: activeTab === 'gist' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                background: activeTab === 'gist' ? 'var(--bg-card)' : 'transparent',
                 color: activeTab === 'gist' ? 'var(--text-primary)' : 'var(--text-secondary)',
                 borderRadius: '6px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: activeTab === 'gist' ? 'var(--shadow-sm)' : 'none'
               }}
             >
               代码 Gist
@@ -171,7 +173,7 @@ export const Board: React.FC<BoardProps> = ({ peers, self }) => {
               value={codeLanguage}
               onChange={(e) => setCodeLanguage(e.target.value)}
               style={{
-                background: '#09090b',
+                background: 'var(--bg-card)',
                 color: 'var(--text-primary)',
                 border: '1px solid var(--border-color)',
                 padding: '4px 8px',
@@ -288,7 +290,7 @@ export const Board: React.FC<BoardProps> = ({ peers, self }) => {
                 {msg.type === 'text' ? (
                   msg.content
                 ) : (
-                  <pre style={{ margin: 0, padding: '12px', background: '#121214', borderRadius: '6px', overflowX: 'auto' }}>
+                  <pre style={{ margin: 0, padding: '12px', background: 'var(--code-pre-bg)', border: '1px solid var(--code-border)', borderRadius: '6px', overflowX: 'auto' }}>
                     <code className={`language-${msg.gistLanguage || 'javascript'}`}>
                       {msg.content}
                     </code>
