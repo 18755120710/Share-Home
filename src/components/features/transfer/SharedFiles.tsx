@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Card from '../../ui/Card';
 import Button from '../../ui/Button';
 import { formatBytes } from '@/lib/format';
@@ -36,6 +37,12 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
   const [zoom, setZoom] = useState(1);
   const [rotate, setRotate] = useState(0);
   const [isImgLoading, setIsImgLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -52,7 +59,9 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
   const previewUrl = `/api/transfer/shared/download?id=${file.id}&preview=true`;
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div 
       className="preview-overlay"
       onClick={onClose}
@@ -207,6 +216,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                   maxWidth: '100%',
                   maxHeight: '60vh',
                   borderRadius: '12px',
+                  boxShadow: '0 15px 35px rgba(0,0,0,0.5)',
                   outline: 'none',
                   background: '#000000'
                 }}
@@ -396,7 +406,8 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
