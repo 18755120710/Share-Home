@@ -186,6 +186,62 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   // 正在进行归属移动 (移动到...) 的 KBDocument.id
   const [movingDocId, setMovingDocId] = useState<string | null>(null);
 
+  // HTML5 智能拖拽交互核心状态与函数
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+
+  // 递归获取某个文件夹下的所有子代 ID (用于循环归属阻断)
+  const getFolderDescendantIds = (folderId: string): string[] => {
+    const children = documents.filter(d => d.parentId === folderId);
+    let ids = children.map(c => c.id);
+    children.forEach(c => {
+      if (c.type === 'folder') {
+        ids = [...ids, ...getFolderDescendantIds(c.id)];
+      }
+    });
+    return ids;
+  };
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('text/plain', id);
+    setDraggedId(id);
+  };
+
+  const handleDragOverNode = (e: React.DragEvent, targetDoc: KBDocument) => {
+    e.preventDefault();
+    if (targetDoc.type === 'folder' && targetDoc.id !== draggedId) {
+      // 循环归属检测阻断：防止将父文件夹拖入自己的子文件夹内
+      const invalidIds = getFolderDescendantIds(draggedId || '');
+      if (!invalidIds.includes(targetDoc.id)) {
+        setDragOverFolderId(targetDoc.id);
+      }
+    }
+  };
+
+  const handleDragLeaveNode = (e: React.DragEvent, id: string) => {
+    if (dragOverFolderId === id) {
+      setDragOverFolderId(null);
+    }
+  };
+
+  const handleDropOnNode = async (e: React.DragEvent, targetDoc: KBDocument) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain') || draggedId;
+    if (id && targetDoc.type === 'folder' && id !== targetDoc.id) {
+      const invalidIds = getFolderDescendantIds(id);
+      if (!invalidIds.includes(targetDoc.id)) {
+        await handleMoveDocument(id, targetDoc.id);
+      }
+    }
+    setDraggedId(null);
+    setDragOverFolderId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverFolderId(null);
+  };
+
   // 文件夹展开/折叠开关
   const toggleFolderExpand = (folderId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -587,6 +643,12 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         <div key={doc.id} style={{ display: 'flex', flexDirection: 'column' }}>
           {/* 单个节点条目 */}
           <div
+            draggable={!isRenaming}
+            onDragStart={(e) => handleDragStart(e, doc.id)}
+            onDragOver={(e) => handleDragOverNode(e, doc)}
+            onDragLeave={(e) => handleDragLeaveNode(e, doc.id)}
+            onDrop={(e) => handleDropOnNode(e, doc)}
+            onDragEnd={handleDragEnd}
             onClick={() => {
               if (isRenaming) return;
               if (isFolder) {
@@ -605,24 +667,36 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
               padding: '6px 8px 6px 12px',
               marginLeft: `${indentPadding}px`,
               borderRadius: 'var(--radius-sm)',
-              background: isSelected ? 'var(--kb-item-selected-bg)' : 'transparent',
-              cursor: isRenaming ? 'default' : 'pointer',
+              background: dragOverFolderId === doc.id 
+                ? 'rgba(234, 179, 8, 0.15)' 
+                : isSelected 
+                  ? 'var(--kb-item-selected-bg)' 
+                  : 'transparent',
+              cursor: isRenaming ? 'default' : 'grab',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               transition: 'all 0.15s',
               position: 'relative',
-              border: isSelected ? '1px solid var(--kb-item-selected-border)' : '1px solid transparent',
+              border: dragOverFolderId === doc.id 
+                ? '1px dashed #CA8A04' 
+                : isSelected 
+                  ? '1px solid var(--kb-item-selected-border)' 
+                  : '1px solid transparent',
+              boxShadow: dragOverFolderId === doc.id 
+                ? '0 0 10px rgba(234, 179, 8, 0.25)' 
+                : 'none',
+              opacity: draggedId === doc.id ? 0.35 : 1,
               marginTop: '2px',
               minHeight: '34px'
             }}
             onMouseEnter={(e) => {
-              if (!isSelected) e.currentTarget.style.background = 'var(--kb-item-hover-bg)';
+              if (!isSelected && dragOverFolderId !== doc.id) e.currentTarget.style.background = 'var(--kb-item-hover-bg)';
               const actions = e.currentTarget.querySelector('.doc-actions');
               if (actions) (actions as HTMLElement).style.opacity = '1';
             }}
             onMouseLeave={(e) => {
-              if (!isSelected) e.currentTarget.style.background = 'transparent';
+              if (!isSelected && dragOverFolderId !== doc.id) e.currentTarget.style.background = 'transparent';
               const actions = e.currentTarget.querySelector('.doc-actions');
               if (actions) (actions as HTMLElement).style.opacity = '0';
             }}
@@ -1363,76 +1437,94 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         pointerEvents: isKbSidebarCollapsed ? 'none' : 'auto',
         overflow: 'hidden'
       }}>
-        {/* 文档库列表顶部按钮 */}
-        <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* 文档库列表顶部标题与收起按钮 */}
+        <div style={{ padding: '16px 16px 10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
             <Globe size={14} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
             共享知识库 ({documents.length})
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-            <Button variant="primary" onClick={() => handleCreateDocument(null)} style={{ padding: '6px 10px', fontSize: '0.75rem', height: '28px' }}>
-              <Plus size={14} />
-              新建
-            </Button>
-            
-            {/* 新建根文件夹按钮 */}
-            <button
-              onClick={(e) => handleCreateFolder(null, e)}
-              title="新建根目录云文件夹"
-              style={{
-                background: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-                color: 'var(--accent-color)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                height: '28px',
-                width: '28px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
-                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)';
-                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.2)';
-              }}
-            >
-              <FolderPlus size={14} />
-            </button>
-            
-            {/* 收起侧边栏按钮 */}
-            <button
-              onClick={toggleKbSidebar}
-              title="收起知识库目录"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                padding: '4px',
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--text-muted)';
-              }}
-            >
-              <ChevronsLeft size={15} />
-            </button>
-          </div>
+          {/* 收起侧边栏按钮 */}
+          <button
+            onClick={toggleKbSidebar}
+            title="收起知识库目录"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+              e.currentTarget.style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
+          >
+            <ChevronsLeft size={15} />
+          </button>
+        </div>
+
+        {/* 极致审美：横向并排的 50-50 大胶囊新建按钮 */}
+        <div style={{ display: 'flex', gap: '8px', padding: '0 16px 12px 16px', borderBottom: '1px solid var(--border-color)' }}>
+          <Button 
+            variant="primary" 
+            onClick={() => handleCreateDocument(null)} 
+            style={{ 
+              flex: 1, 
+              height: '30px', 
+              fontSize: '0.75rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: '6px',
+              background: 'linear-gradient(135deg, var(--accent-color), #2563EB)',
+              boxShadow: '0 2px 6px rgba(59, 130, 246, 0.2)',
+              border: 'none',
+              color: '#FFF',
+              cursor: 'pointer'
+            }}
+          >
+            <Plus size={12} />
+            新建文档
+          </Button>
+          <button
+            onClick={(e) => handleCreateFolder(null, e)}
+            style={{
+              flex: 1,
+              height: '30px',
+              fontSize: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              background: 'rgba(234, 179, 8, 0.08)',
+              border: '1px solid rgba(234, 179, 8, 0.2)',
+              color: '#EAB308',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+              fontWeight: 600,
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(234, 179, 8, 0.14)';
+              e.currentTarget.style.borderColor = 'rgba(234, 179, 8, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(234, 179, 8, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(234, 179, 8, 0.2)';
+            }}
+          >
+            <FolderPlus size={12} />
+            新建文件夹
+          </button>
         </div>
 
         {/* 文档库目录项列表 */}
@@ -1445,6 +1537,54 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
           gap: '4px'
         }}>
           {memoizedDocList}
+
+          {/* 滑入式“移至根目录”拖拽大热区 (在DraggedId存在时优雅滑入显现) */}
+          {draggedId && (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.12)';
+                e.currentTarget.style.borderColor = 'var(--accent-color)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+                e.currentTarget.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.15)';
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = 'var(--border-color)';
+                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                if (draggedId) {
+                  // 物理移动归宿到根目录
+                  await handleMoveDocument(draggedId, null);
+                }
+                setDraggedId(null);
+                setDragOverFolderId(null);
+              }}
+              style={{
+                margin: '16px 8px 8px 8px',
+                padding: '12px',
+                border: '1.5px dashed var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                textAlign: 'center',
+                fontSize: '0.72rem',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                minHeight: '44px',
+                animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+              }}
+            >
+              <Globe size={12} style={{ opacity: 0.7 }} />
+              <span>✨ 放置于此移动到根目录</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2252,6 +2392,15 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        @keyframes slideUp {
+          0% { transform: translateY(12px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1); opacity: 0.8; }
         }
       `}</style>
     </Card>
