@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack -H 0.0.0.0",
+    "dev": "next dev --webpack -H 0.0.0.0 -p 8301",
     "build": "next build --webpack",
-    "start": "next start",
+    "start": "next start -p 8301",
     "lint": "eslint"
   },
   "dependencies": {
