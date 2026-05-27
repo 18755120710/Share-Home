@@ -3,10 +3,30 @@ import fs from 'fs';
 import { FileService } from '@/services/fileService';
 import { Readable } from 'stream';
 
+// 辅助函数：根据文件名推导 Mime-Type
+function getMimeType(fileName: string): string {
+  const ext = fileName.toLowerCase().split('.').pop();
+  switch (ext) {
+    case 'png': return 'image/png';
+    case 'jpg':
+    case 'jpeg': return 'image/jpeg';
+    case 'gif': return 'image/gif';
+    case 'webp': return 'image/webp';
+    case 'svg': return 'image/svg+xml';
+    case 'mp4': return 'video/mp4';
+    case 'webm': return 'video/webm';
+    case 'ogg': return 'video/ogg';
+    case 'mp3': return 'audio/mpeg';
+    case 'wav': return 'audio/wav';
+    default: return 'application/octet-stream';
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const isPreview = searchParams.get('preview') === 'true';
 
     if (!id) {
       return new NextResponse('缺少 id 参数', { status: 400 });
@@ -25,10 +45,16 @@ export async function GET(request: NextRequest) {
 
     const rangeHeader = request.headers.get('range');
 
-    // 大文件流式处理头部
+    // 动态处理流式预览和下载头部
     const headers = new Headers();
-    headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    if (isPreview) {
+      headers.set('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+    } else {
+      headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    }
     headers.set('Accept-Ranges', 'bytes');
+
+    const contentType = isPreview ? getMimeType(fileName) : 'application/octet-stream';
 
     if (rangeHeader) {
       // 1. 处理断点续传 HTTP Range 请求 (格式: bytes=start-end)
@@ -52,7 +78,7 @@ export async function GET(request: NextRequest) {
 
       headers.set('Content-Range', `bytes ${start}-${end}/${fileSize}`);
       headers.set('Content-Length', chunksize.toString());
-      headers.set('Content-Type', 'application/octet-stream');
+      headers.set('Content-Type', contentType);
 
       return new Response(webStream as any, {
         status: 206, // Partial Content
@@ -65,7 +91,7 @@ export async function GET(request: NextRequest) {
       const webStream = Readable.toWeb(fileStream);
 
       headers.set('Content-Length', fileSize.toString());
-      headers.set('Content-Type', 'application/octet-stream');
+      headers.set('Content-Type', contentType);
 
       return new Response(webStream as any, {
         status: 200,
