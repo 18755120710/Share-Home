@@ -70,6 +70,20 @@ export class ConfigService {
    * 获取当前已解析的绝对存储路径，若目录不存在则自动创建
    */
   public getStoragePath(): string {
+    // 优先读取 CLI 或环境变量中强制指定的存储目录，解决全局发布环境下的宿主文件隔离
+    if (process.env.CUSTOM_STORAGE_PATH) {
+      const cliPath = process.env.CUSTOM_STORAGE_PATH;
+      try {
+        if (!fs.existsSync(cliPath)) {
+          fs.mkdirSync(cliPath, { recursive: true });
+          console.log(`[ConfigService] 已根据环境变量创建存储目录: ${cliPath}`);
+        }
+      } catch (err) {
+        console.error(`[ConfigService] 物理环境变量目录创建失败: ${cliPath}`, err);
+      }
+      return cliPath;
+    }
+
     const rawPath = this.currentConfig.storagePath;
     let resolvedPath = '';
 

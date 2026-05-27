@@ -1,7 +1,23 @@
 {
   "name": "share-home",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "安全、无压缩的局域网零阻碍点对点极速传输与公共落盘共享空间",
+  "bin": {
+    "share-home": "./bin/cli.js"
+  },
+  "preferGlobal": true,
+  "files": [
+    "bin/",
+    ".next/",
+    "public/",
+    "package.json",
+    "README.md",
+    "src/services/",
+    "tsconfig.json"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "next dev --webpack -H 0.0.0.0 -p 8301",
     "build": "next build --webpack",
