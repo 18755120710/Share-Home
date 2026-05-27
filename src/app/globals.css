@@ -420,6 +420,7 @@ code[class*="language-"] {
   width: 44px !important;
   height: 44px !important;
   border-radius: var(--radius-sm) !important;
+  gap: 0 !important;
 }
 
 .sidebar-container.collapsed .sidebar-profile-card {

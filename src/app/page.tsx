@@ -194,13 +194,15 @@ export default function Home() {
         <div>
           <div className="sidebar-logo-group" style={{ 
             display: 'flex', 
+            flexDirection: isSidebarCollapsed ? 'column' : 'row',
             alignItems: 'center', 
             justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-            padding: '24px 20px',
+            gap: isSidebarCollapsed ? '12px' : '0px',
+            padding: isSidebarCollapsed ? '20px 8px' : '24px 20px',
             borderBottom: '1px solid var(--border-color)',
             position: 'relative'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden', justifyContent: 'center' }}>
               <div style={{
                 width: '32px',
                 height: '32px',
@@ -240,14 +242,10 @@ export default function Home() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.2s',
-                marginLeft: isSidebarCollapsed ? '0' : '8px',
-                position: isSidebarCollapsed ? 'absolute' : 'relative',
-                right: isSidebarCollapsed ? 'auto' : '0',
-                left: isSidebarCollapsed ? '50%' : 'auto',
-                transform: isSidebarCollapsed ? 'translateX(-50%)' : 'none',
-                top: isSidebarCollapsed ? 'calc(50% + 24px)' : 'auto', /* 折叠态下Logo下移，让折叠按钮放在偏下方 */
-                marginTop: isSidebarCollapsed ? '16px' : '0',
-                zIndex: 11
+                marginTop: isSidebarCollapsed ? '8px' : '0px',
+                width: isSidebarCollapsed ? '32px' : 'auto',
+                height: isSidebarCollapsed ? '32px' : 'auto',
+                flexShrink: 0
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
