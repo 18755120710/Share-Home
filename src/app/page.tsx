@@ -1029,20 +1029,23 @@ export default function Home() {
           right: 0,
           bottom: 0,
           zIndex: 10000,
-          background: 'rgba(9, 9, 11, 0.82)',
+          background: theme === 'dark' ? 'rgba(9, 9, 11, 0.75)' : 'rgba(255, 255, 255, 0.65)',
           backdropFilter: 'blur(20px) saturate(190%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '24px',
+          transition: 'all 0.3s ease'
         }}>
           <div style={{
-            background: '#18181b',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--card-bg, #ffffff)',
+            border: '1px solid var(--border-color, rgba(128, 128, 128, 0.15))',
             borderRadius: '24px',
             width: '100%',
             maxWidth: '540px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.1)',
+            boxShadow: theme === 'dark' 
+              ? '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 30px rgba(99, 102, 241, 0.08)' 
+              : '0 20px 40px -10px rgba(0, 0, 0, 0.08), 0 0 20px rgba(99, 102, 241, 0.04)',
             padding: '28px',
             display: 'flex',
             flexDirection: 'column',
@@ -1065,19 +1068,19 @@ export default function Home() {
                 <FolderOpen size={20} style={{ color: '#f59e0b' }} />
               </div>
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.01em', margin: 0 }}>发现历史存储数据</h3>
-                <p style={{ fontSize: '0.78rem', color: '#a1a1aa', marginTop: '2px', margin: 0 }}>检测到您的原有目录中存有数据文件</p>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', margin: 0 }}>发现历史存储数据</h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>检测到您的原有目录中存有数据文件</p>
               </div>
             </div>
 
             {/* 警示说明框 */}
             <div style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: 'rgba(128, 128, 128, 0.03)',
+              border: '1px solid var(--border-color)',
               borderRadius: '16px',
               padding: '16px',
               fontSize: '0.8rem',
-              color: '#d4d4d8',
+              color: 'var(--text-secondary)',
               lineHeight: 1.6,
               display: 'flex',
               flexDirection: 'column',
@@ -1086,15 +1089,15 @@ export default function Home() {
               <div>
                 您即将将默认存储路径更换为：
                 <div style={{
-                  background: 'rgba(99, 102, 241, 0.08)',
+                  background: 'rgba(99, 102, 241, 0.05)',
                   padding: '8px 12px',
                   borderRadius: '8px',
                   marginTop: '6px',
                   fontSize: '0.75rem',
                   fontFamily: 'monospace',
-                  color: '#818cf8',
+                  color: 'var(--accent-color)',
                   wordBreak: 'break-all',
-                  border: '1px solid rgba(99, 102, 241, 0.2)'
+                  border: '1px solid rgba(99, 102, 241, 0.15)'
                 }}>
                   {migrationPaths.newPath}
                 </div>
@@ -1103,15 +1106,15 @@ export default function Home() {
               <div>
                 原物理存储目录中存有共享文件及协作云文档：
                 <div style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
+                  background: 'rgba(128, 128, 128, 0.05)',
                   padding: '8px 12px',
                   borderRadius: '8px',
                   marginTop: '6px',
                   fontSize: '0.75rem',
                   fontFamily: 'monospace',
-                  color: '#d4d4d8',
+                  color: 'var(--text-muted)',
                   wordBreak: 'break-all',
-                  border: '1px solid rgba(255, 255, 255, 0.04)'
+                  border: '1px solid var(--border-color)'
                 }}>
                   {migrationPaths.oldPath}
                 </div>
@@ -1127,8 +1130,8 @@ export default function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
               {isMigrating ? (
                 <div style={{
-                  background: 'rgba(99, 102, 241, 0.04)',
-                  border: '1px solid rgba(99, 102, 241, 0.12)',
+                  background: 'rgba(99, 102, 241, 0.03)',
+                  border: '1px solid rgba(99, 102, 241, 0.1)',
                   borderRadius: '16px',
                   padding: '20px',
                   display: 'flex',
@@ -1137,11 +1140,11 @@ export default function Home() {
                 }}>
                   {/* 第一行：状态标题 + 实时百分比数值 */}
                   <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#818cf8', fontSize: '0.82rem', fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-color)', fontSize: '0.82rem', fontWeight: 600 }}>
                       <RefreshCw size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
                       <span>正在全速合并搬运历史文件...</span>
                     </div>
-                    <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', fontWeight: 700, color: '#60a5fa', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-color)', marginLeft: 'auto' }}>
                       {migrationProgress ? `${migrationProgress.percentage}%` : '0%'}
                     </span>
                   </div>
@@ -1150,19 +1153,19 @@ export default function Home() {
                   <div style={{
                     width: '100%',
                     height: '8px',
-                    background: 'rgba(255, 255, 255, 0.04)',
+                    background: 'rgba(128, 128, 128, 0.08)',
                     borderRadius: '99px',
                     overflow: 'hidden',
                     position: 'relative',
-                    border: '1px solid rgba(255, 255, 255, 0.02)'
+                    border: '1px solid var(--border-color)'
                   }}>
                     <div style={{
                       height: '100%',
                       width: `${migrationProgress ? migrationProgress.percentage : 0}%`,
-                      background: 'linear-gradient(90deg, #4f46e5 0%, #3b82f6 50%, #60a5fa 100%)',
+                      background: 'linear-gradient(90deg, var(--accent-color, #2563eb) 0%, rgba(99, 102, 241, 0.8) 100%)',
                       borderRadius: '99px',
                       transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: '0 0 10px rgba(99, 102, 241, 0.4)'
+                      boxShadow: '0 0 10px rgba(99, 102, 241, 0.2)'
                     }} />
                   </div>
 
@@ -1172,7 +1175,7 @@ export default function Home() {
                     flexDirection: 'column',
                     gap: '4px',
                     fontSize: '0.72rem',
-                    color: '#a1a1aa'
+                    color: 'var(--text-secondary)'
                   }}>
                     <div style={{
                       display: 'flex',
@@ -1180,17 +1183,17 @@ export default function Home() {
                       fontFamily: 'monospace'
                     }}>
                       <span>文件处理总进度:</span>
-                      <span style={{ marginLeft: 'auto', color: '#e4e4e7' }}>
+                      <span style={{ marginLeft: 'auto', color: 'var(--text-primary)' }}>
                         {migrationProgress ? `${migrationProgress.current} / ${migrationProgress.total}` : '0 / 0'}
                       </span>
                     </div>
                     
                     <div style={{
-                      background: 'rgba(0, 0, 0, 0.18)',
-                      border: '1px solid rgba(255, 255, 255, 0.03)',
+                      background: 'rgba(128, 128, 128, 0.05)',
+                      border: '1px solid var(--border-color)',
                       padding: '8px 12px',
                       borderRadius: '8px',
-                      color: '#d4d4d8',
+                      color: 'var(--text-primary)',
                       fontFamily: 'monospace',
                       whiteSpace: 'nowrap',
                       textOverflow: 'ellipsis',
@@ -1200,7 +1203,7 @@ export default function Home() {
                       alignItems: 'center',
                       gap: '6px'
                     }} title={migrationProgress?.currentFile || '准备迁移...'}>
-                      <span style={{ color: '#818cf8', flexShrink: 0 }}>📂</span>
+                      <span style={{ color: 'var(--accent-color)', flexShrink: 0 }}>📂</span>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {migrationProgress ? migrationProgress.currentFile : '建立安全通道...'}
                       </span>
@@ -1212,7 +1215,7 @@ export default function Home() {
                   <button
                     onClick={() => handleSaveConfig(true)}
                     style={{
-                      background: '#2563eb',
+                      background: 'var(--accent-color, #2563eb)',
                       color: '#ffffff',
                       border: 'none',
                       borderRadius: '12px',
@@ -1225,7 +1228,7 @@ export default function Home() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.15)'}
                     onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
@@ -1240,8 +1243,8 @@ export default function Home() {
                       style={{
                         flex: 1,
                         background: 'transparent',
-                        color: '#e4e4e7',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
                         borderRadius: '12px',
                         padding: '10px 16px',
                         fontSize: '0.82rem',
@@ -1250,12 +1253,10 @@ export default function Home() {
                         transition: 'all 0.2s'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                        e.currentTarget.style.color = '#ffffff';
+                        e.currentTarget.style.background = 'rgba(128, 128, 128, 0.06)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#e4e4e7';
                       }}
                     >
                       仅切换路径 (保留现状)
@@ -1270,7 +1271,7 @@ export default function Home() {
                       style={{
                         flex: 1,
                         background: 'transparent',
-                        color: '#a1a1aa',
+                        color: 'var(--text-muted)',
                         border: '1px solid transparent',
                         borderRadius: '12px',
                         padding: '10px 16px',
@@ -1279,8 +1280,8 @@ export default function Home() {
                         cursor: 'pointer',
                         transition: 'all 0.2s'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = '#a1a1aa'}
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                     >
                       取消修改
                     </button>
