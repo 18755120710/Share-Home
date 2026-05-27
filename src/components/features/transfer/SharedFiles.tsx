@@ -592,8 +592,15 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
       setFiles(updatedFiles);
     });
 
+    const handleStoragePathChanged = () => {
+      console.log('[SharedFiles] 监听到物理存储路径发生变更，正在秒级自动重载...');
+      fetchSharedFiles();
+    };
+    window.addEventListener('storage-path-changed', handleStoragePathChanged);
+
     return () => {
       unsubSharedUpdate();
+      window.removeEventListener('storage-path-changed', handleStoragePathChanged);
     };
   }, []);
 

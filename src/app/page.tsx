@@ -83,6 +83,9 @@ export default function Home() {
   const [configStatus, setConfigStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [configErrorMsg, setConfigErrorMsg] = useState('');
   const [isSelectingDir, setIsSelectingDir] = useState(false);
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [migrationPaths, setMigrationPaths] = useState<{ oldPath: string; newPath: string } | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
 
   // 初始化拉取主题设置
   useEffect(() => {
@@ -155,28 +158,58 @@ export default function Home() {
     }
   };
 
-  const handleSaveConfig = async () => {
+  const handleSaveConfig = async (migrate?: boolean) => {
     if (!storagePath.trim()) return;
+    
+    if (migrate === true) {
+      setIsMigrating(true);
+    }
     setConfigStatus('saving');
+    
     try {
       const res = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storagePath: storagePath.trim() })
+        body: JSON.stringify({ 
+          storagePath: storagePath.trim(),
+          migrate: migrate
+        })
       });
       const data = await res.json();
+      
       if (data.success) {
-        setStoragePath(data.storagePath);
-        setAbsolutePath(data.absolutePath);
-        setConfigStatus('success');
-        setTimeout(() => setConfigStatus('idle'), 3000);
+        if (data.requireMigration) {
+          // 触发迁移确认模态框
+          setMigrationPaths({ oldPath: data.oldPath, newPath: data.newPath });
+          setShowMigrationModal(true);
+          setConfigStatus('idle');
+        } else {
+          // 配置正式应用成功
+          setShowMigrationModal(false);
+          setStoragePath(data.storagePath);
+          setAbsolutePath(data.absolutePath);
+          setConfigStatus('success');
+          setTimeout(() => setConfigStatus('idle'), 3000);
+          
+          // 获取最新绝对路径
+          fetchConfig();
+          
+          // 派发自定义全局更改事件，让共享文件和知识库模块能感知变化并立即刷新重载
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('storage-path-changed'));
+          }
+        }
       } else {
+        setShowMigrationModal(false);
         setConfigStatus('error');
         setConfigErrorMsg(data.error || '路径无效或系统没有对该路径的写权限');
       }
     } catch (err: any) {
+      setShowMigrationModal(false);
       setConfigStatus('error');
       setConfigErrorMsg(err.message || '配置提交异常');
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -948,6 +981,206 @@ export default function Home() {
         isOpen={isTransferDrawerOpen}
         onClose={() => setIsTransferDrawerOpen(false)}
       />
+
+      {/* 4. 高端数据安全合并迁移确认弹窗 */}
+      {showMigrationModal && migrationPaths && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 10000,
+          background: 'rgba(9, 9, 11, 0.7)',
+          backdropFilter: 'blur(16px) saturate(180%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+        }}>
+          <div style={{
+            background: 'var(--card-bg, #18181b)',
+            border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: '540px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.08)',
+            padding: '28px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            position: 'relative',
+          }}>
+            {/* 头部区域 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'rgba(245, 158, 11, 0.08)',
+                border: '1px solid rgba(245, 158, 11, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <FolderOpen size={20} style={{ color: '#f59e0b' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', margin: 0 }}>发现历史存储数据</h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>检测到您的原有目录中存有数据文件</p>
+              </div>
+            </div>
+
+            {/* 警示说明框 */}
+            <div style={{
+              background: 'rgba(128, 128, 128, 0.04)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              padding: '16px',
+              fontSize: '0.8rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.6,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div>
+                您即将将默认存储路径更换为：
+                <div style={{
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  marginTop: '6px',
+                  fontSize: '0.75rem',
+                  fontFamily: 'monospace',
+                  color: 'var(--accent-color)',
+                  wordBreak: 'break-all',
+                  border: '1px solid rgba(99, 102, 241, 0.15)'
+                }}>
+                  {migrationPaths.newPath}
+                </div>
+              </div>
+
+              <div>
+                原物理存储目录中存有共享文件及协作云文档：
+                <div style={{
+                  background: 'rgba(0, 0, 0, 0.1)',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  marginTop: '6px',
+                  fontSize: '0.75rem',
+                  fontFamily: 'monospace',
+                  color: 'var(--text-muted)',
+                  wordBreak: 'break-all'
+                }}>
+                  {migrationPaths.oldPath}
+                </div>
+              </div>
+
+              <div style={{ color: '#f59e0b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', marginTop: '4px' }}>
+                <ShieldAlert size={13} style={{ flexShrink: 0 }} />
+                <span>推荐执行“一键自动迁移”，确保历史共享与云文档在新目录中无缝重现。</span>
+              </div>
+            </div>
+
+            {/* 行为决策按钮区 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+              {isMigrating ? (
+                <div style={{
+                  background: 'rgba(99, 102, 241, 0.08)',
+                  border: '1px solid rgba(99, 102, 241, 0.15)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  color: 'var(--accent-color)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600
+                }}>
+                  <RefreshCw size={15} style={{ animation: 'spin 1.2s linear infinite', display: 'inline-block' }} />
+                  <span>正在极速合并迁移历史文件，请勿断开服务...</span>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleSaveConfig(true)}
+                    style={{
+                      background: 'var(--accent-color, #2563eb)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '12px 20px',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.15)'}
+                    onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
+                  >
+                    <Check size={15} />
+                    一键自动迁移并应用
+                  </button>
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => handleSaveConfig(false)}
+                      style={{
+                        flex: 1,
+                        background: 'transparent',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '12px',
+                        padding: '10px 16px',
+                        fontSize: '0.82rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.06)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      仅切换路径 (保留现状)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMigrationModal(false);
+                        setMigrationPaths(null);
+                        // 恢复为原配置路径
+                        fetchConfig();
+                      }}
+                      style={{
+                        flex: 1,
+                        background: 'transparent',
+                        color: 'var(--text-muted)',
+                        border: '1px solid transparent',
+                        borderRadius: '12px',
+                        padding: '10px 16px',
+                        fontSize: '0.82rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                    >
+                      取消修改
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

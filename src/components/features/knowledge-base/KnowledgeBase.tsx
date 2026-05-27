@@ -467,9 +467,16 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       }
     });
 
+    const handleStoragePathChanged = () => {
+      console.log('[KB] 监听到物理存储路径发生变更，正在重载知识库文档树...');
+      fetchDocuments();
+    };
+    window.addEventListener('storage-path-changed', handleStoragePathChanged);
+
     return () => {
       unsubUpdate();
       unsubDelete();
+      window.removeEventListener('storage-path-changed', handleStoragePathChanged);
     };
   }, [selectedId, self]);
 
