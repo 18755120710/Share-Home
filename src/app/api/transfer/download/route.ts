@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
+import path from 'path';
 import { FileService } from '@/services/fileService';
 import { Readable } from 'stream';
 
@@ -22,7 +23,33 @@ export async function GET(request: NextRequest) {
     return new NextResponse('缺少 taskId 参数', { status: 400 });
   }
 
-  const uploadMetadata = FileService.getInstance().getUpload(taskId);
+  let uploadMetadata = FileService.getInstance().getUpload(taskId);
+  
+  // 自愈恢复机制：如果内存映射中查不到该任务（例如 Node.js 服务端发生了重启），我们尝试从持久化的 transfer_tasks.json 任务记录中重建恢复它！
+  if (!uploadMetadata) {
+    console.log(`[DownloadAPI] [自愈] 内存中未找到 TaskId ${taskId} 的映射，正在尝试从持久化任务清单中恢复...`);
+    const tasks = FileService.getInstance().getTransferTasks();
+    const task = tasks[taskId];
+    if (task) {
+      const storageDir = FileService.getInstance().getDownloadsDir();
+      const possiblePath = path.join(storageDir, task.fileName);
+      
+      if (fs.existsSync(possiblePath)) {
+        // 重建内存注册映射，方便后续的 Range 或正常流式下载可以顺利使用
+        FileService.getInstance().registerUpload(taskId, possiblePath, task.fileName, task.fileSize);
+        uploadMetadata = {
+          taskId,
+          filePath: possiblePath,
+          fileName: task.fileName,
+          fileSize: task.fileSize
+        };
+        console.log(`[DownloadAPI] [自愈] 已成功从持久化清单重建恢复内存映射: ${task.fileName}`);
+      } else {
+        console.warn(`[DownloadAPI] [自愈失败] 任务记录存在，但在磁盘中未找到物理文件: ${possiblePath}`);
+      }
+    }
+  }
+
   if (!uploadMetadata) {
     return new NextResponse('任务不存在或已被注销', { status: 404 });
   }
