@@ -12,7 +12,7 @@ import KnowledgeBase from '@/components/features/knowledge-base/KnowledgeBase';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { 
-  Radio, RefreshCw, Laptop, Edit3, Check, 
+  Radio, RefreshCw, Laptop, Monitor, Smartphone, Edit3, Check, 
   Files, FileText, Settings, ShieldAlert, FolderOpen,
   Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X,
   History, ArrowRight, CheckCircle2, XCircle, Ban,
@@ -84,23 +84,15 @@ export default function Home() {
   const [configStatus, setConfigStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [configErrorMsg, setConfigErrorMsg] = useState('');
   const [isSelectingDir, setIsSelectingDir] = useState(false);
-  const [showMigrationModal, setShowMigrationModal] = useState(true);
-  const [migrationPaths, setMigrationPaths] = useState<{ oldPath: string; newPath: string } | null>({
-    oldPath: 'D:\\Butvan_All_Projects\\butvan_project\\Share Home\\storage',
-    newPath: 'D:\\Resource_Alls\\share-home-data'
-  });
-  const [isMigrating, setIsMigrating] = useState(true);
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [migrationPaths, setMigrationPaths] = useState<{ oldPath: string; newPath: string } | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
   const [migrationProgress, setMigrationProgress] = useState<{
     total: number;
     current: number;
     percentage: number;
     currentFile: string;
-  } | null>({
-    total: 28,
-    current: 12,
-    percentage: 43,
-    currentFile: 'D:\\Butvan_All_Projects\\butvan_project\\Share Home\\storage\\shared\\极速局域网文件共享核心架构.mp4'
-  });
+  } | null>(null);
 
   // 初始化拉取主题设置
   useEffect(() => {
@@ -166,6 +158,39 @@ export default function Home() {
       unsubMigrationProgress();
     };
   }, []);
+
+  // 当 self 数据加载成功后，自动同步初始化本端昵称与头像
+  useEffect(() => {
+    if (self && !newNickname) {
+      setNewNickname(self.nickname);
+      setNewAvatar(self.avatar || '💻');
+    }
+  }, [self, newNickname]);
+
+  const renderSelfAvatar = (avatar: string, size = 13) => {
+    switch (avatar) {
+      case 'avatar-1':
+        return <Laptop size={size} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />;
+      case 'avatar-2':
+        return <Monitor size={size} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />;
+      case 'avatar-3':
+        return <Smartphone size={size} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />;
+      default:
+        if (avatar && avatar.trim()) {
+          if (avatar === '💻') {
+            return <Laptop size={size} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />;
+          }
+          if (avatar === '🖥️') {
+            return <Monitor size={size} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />;
+          }
+          if (avatar === '📱') {
+            return <Smartphone size={size} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />;
+          }
+          return <span style={{ fontSize: `${size}px`, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{avatar}</span>;
+        }
+        return <Laptop size={size} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />;
+    }
+  };
 
   const startEditProfile = () => {
     if (self) {
@@ -556,9 +581,16 @@ export default function Home() {
                           flex: 1
                         }}
                       >
-                        <option value="avatar-1">笔记本</option>
-                        <option value="avatar-2">显示器</option>
-                        <option value="avatar-3">手机</option>
+                        <option value="avatar-1">💻 笔记本</option>
+                        <option value="avatar-2">🖥️ 显示器</option>
+                        <option value="avatar-3">📱 手机</option>
+                        <option value="🚀">🚀 火箭</option>
+                        <option value="🐱">🐱 猫咪</option>
+                        <option value="🦊">🦊 狐狸</option>
+                        <option value="🤖">🤖 机器人</option>
+                        <option value="🍎">🍎 苹果</option>
+                        <option value="🎨">🎨 调色板</option>
+                        <option value="⚡">⚡ 闪电</option>
                       </select>
                       <button onClick={saveProfile} style={{ 
                         background: 'var(--accent-color)', 
@@ -597,7 +629,7 @@ export default function Home() {
                     onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', minWidth: 0 }}>
-                      <Laptop size={13} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+                      {renderSelfAvatar(self.avatar, 13)}
                       <span className="sidebar-profile-details" style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {self.nickname}
                       </span>
@@ -808,200 +840,395 @@ export default function Home() {
             </div>
           )}
 
-          {/* TAB 3: 系统配置控制台 */}
+          {/* TAB 3: 系统配置控制台仪表盘 */}
           {activeTab === 'settings' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '800px' }} className="fade-in">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
+              gap: '24px',
+              width: '100%',
+              alignItems: 'start'
+            }} className="fade-in">
               
-              {/* 核心配置：动态存储路径修改 */}
-              <Card>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '6px',
-                      background: 'rgba(37, 99, 235, 0.08)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <FolderOpen size={14} style={{ color: 'var(--accent-color)' }} />
-                    </div>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>默认文件及文档存储目录</h3>
-                  </div>
-
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    局域网中收到的所有大文件、文本文件，以及你创建/同步的飞书知识库 Markdown 云文档，都会实时存放于此物理目录中。支持绝对路径或以 `./` 开头的根相对路径。
-                  </p>
-
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                    <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        value={storagePath}
-                        onChange={(e) => setStoragePath(e.target.value)}
-                        placeholder="例如: ./storage"
-                        style={{
-                          width: '100%',
-                          background: 'rgba(0, 0, 0, 0.2)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '10px 16px',
-                          paddingRight: '45px',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.85rem',
-                          outline: 'none',
-                          transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = 'var(--accent-color)'}
-                        onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
-                      />
-                      <button
-                        onClick={handleSelectDirectory}
-                        disabled={isSelectingDir}
-                        title="打开系统文件夹选择器"
-                        style={{
-                          position: 'absolute',
-                          right: '8px',
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-secondary)',
-                          cursor: 'pointer',
-                          padding: '6px',
-                          borderRadius: '4px',
+              {/* ===================== 左侧分栏：核心存储与网络服务控制器 ===================== */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* 核心配置：动态存储路径修改 */}
+                <Card>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    
+                    {/* 头部标题与存储徽章 */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '8px',
+                          background: 'rgba(37, 99, 235, 0.08)',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = 'var(--accent-color)';
-                          e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'var(--text-secondary)';
-                          e.currentTarget.style.background = 'transparent';
-                        }}
-                      >
-                        {isSelectingDir ? (
-                          <RefreshCw size={15} style={{ animation: 'spin 1.2s linear infinite', display: 'inline-block' }} />
-                        ) : (
-                          <FolderOpen size={15} />
-                        )}
-                      </button>
-                    </div>
-                    <Button onClick={() => handleSaveConfig()} disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}>
-                      {configStatus === 'saving' ? '正在校验保存...' : '应用修改'}
-                    </Button>
-                  </div>
-
-                  {/* 状态反馈 */}
-                  {configStatus === 'success' && (
-                    <div style={{
-                      padding: '10px 14px',
-                      background: 'var(--success-glow)',
-                      border: '1px solid rgba(16, 185, 129, 0.15)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.75rem',
-                      color: 'var(--success-color)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <Check size={14} />
-                      存储路径校验通过，修改已成功持久化保存！
-                    </div>
-                  )}
-
-                  {configStatus === 'error' && (
-                    <div style={{
-                      padding: '10px 14px',
-                      background: 'rgba(239, 68, 68, 0.08)',
-                      border: '1px solid rgba(239, 68, 68, 0.15)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.75rem',
-                      color: '#f87171',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <ShieldAlert size={14} />
-                      修改失败：{configErrorMsg}
-                    </div>
-                  )}
-
-                  {absolutePath && (
-                    <div style={{ 
-                      fontSize: '0.72rem', 
-                      color: 'var(--text-muted)', 
-                      background: 'rgba(255, 255, 255, 0.01)',
-                      padding: '10px 14px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px dashed var(--border-color)',
-                      wordBreak: 'break-all'
-                    }}>
-                      <strong>当前服务器绝对落盘路径：</strong> {absolutePath}
-                    </div>
-                  )}
-                </div>
-              </Card>
-
-              {/* 本端设备的高端硬件及网络参数 */}
-              <Card>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '6px',
-                      background: 'rgba(37, 99, 235, 0.08)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <Cpu size={14} style={{ color: 'var(--accent-color)' }} />
-                    </div>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>本端局域网硬件参数</h3>
-                  </div>
-
-                  {self && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ display: 'flex', fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
-                        <span style={{ color: 'var(--text-secondary)', width: '120px' }}>设备标识 (ID)</span>
-                        <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{self.id}</span>
+                          justifyContent: 'center'
+                        }}>
+                          <FolderOpen size={14} style={{ color: 'var(--accent-color)' }} />
+                        </div>
+                        <h3 style={{ fontSize: '0.95rem', fontWeight: 600, margin: 0 }}>默认文件及文档存储目录</h3>
                       </div>
-                      <div style={{ display: 'flex', fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
-                        <span style={{ color: 'var(--text-secondary)', width: '120px' }}>局域网 IP 地址</span>
-                        <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{self.ip}</span>
-                      </div>
-                      <div style={{ display: 'flex', fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
-                        <span style={{ color: 'var(--text-secondary)', width: '120px' }}>节点监听端口</span>
-                        <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{self.port}</span>
-                      </div>
-                      <div style={{ display: 'flex', fontSize: '0.8rem' }}>
-                        <span style={{ color: 'var(--text-secondary)', width: '120px' }}>系统默认服务</span>
-                        <span style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Server size={12} style={{ color: 'var(--accent-color)' }} />
-                          Next.js Web 服务 (Active) · WebSocket 信道 (Active)
-                        </span>
-                      </div>
+                      
+                      {/* 物理路径健康微光指示灯 */}
+                      <span style={{
+                        fontSize: '0.68rem',
+                        background: 'rgba(16, 185, 129, 0.08)',
+                        color: 'var(--success-color)',
+                        border: '1px solid rgba(16, 185, 129, 0.15)',
+                        padding: '2px 8px',
+                        borderRadius: '99px',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <span style={{
+                          width: '5px',
+                          height: '5px',
+                          borderRadius: '50%',
+                          background: 'var(--success-color)',
+                          display: 'inline-block',
+                          boxShadow: '0 0 6px var(--success-color)'
+                        }} />
+                        存储就绪
+                      </span>
                     </div>
-                  )}
-                </div>
-              </Card>
 
-              {/* 局域网协同办公安全指引 */}
-              <Card>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                  <Info size={16} style={{ color: 'var(--accent-color)', flexShrink: 0, marginTop: '2px' }} />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 600 }}>去中心化网络提醒</h4>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                      Share Home 依赖 mDNS 多播及去中心化点对点网络工作。请确保所有协作节点设备均连入同一局域网（或 Wi-Fi），且本端防火墙已开放相应的 WebSocket 及 HTTP 端口信道，即可获得最佳体验。
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                      收到的局域网传输文件，以及您创建同步的云文档，均会实时存放于此物理目录中。支持绝对路径或以 `./` 开头的根相对路径。
                     </p>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                      <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          value={storagePath}
+                          onChange={(e) => setStoragePath(e.target.value)}
+                          placeholder="例如: ./storage"
+                          style={{
+                            width: '100%',
+                            background: 'rgba(0, 0, 0, 0.15)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '10px',
+                            padding: '10px 16px',
+                            paddingRight: '45px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.85rem',
+                            outline: 'none',
+                            transition: 'all 0.2s',
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = 'var(--accent-color)';
+                            e.target.style.boxShadow = '0 0 0 2px rgba(99, 102, 241, 0.12)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = 'var(--border-color)';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        />
+                        <button
+                          onClick={handleSelectDirectory}
+                          disabled={isSelectingDir}
+                          title="弹出系统文件浏览器选择物理存储路径"
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            padding: '6px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'var(--accent-color)';
+                            e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'var(--text-secondary)';
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          {isSelectingDir ? (
+                            <RefreshCw size={15} style={{ animation: 'spin 1.2s linear infinite', display: 'inline-block' }} />
+                          ) : (
+                            <FolderOpen size={15} />
+                          )}
+                        </button>
+                      </div>
+                      <Button onClick={() => handleSaveConfig()} disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}>
+                        {configStatus === 'saving' ? '正在校验保存...' : '应用修改'}
+                      </Button>
+                    </div>
+
+                    {/* 状态反馈 */}
+                    {configStatus === 'success' && (
+                      <div style={{
+                        padding: '10px 14px',
+                        background: 'var(--success-glow)',
+                        border: '1px solid rgba(16, 185, 129, 0.15)',
+                        borderRadius: '10px',
+                        fontSize: '0.75rem',
+                        color: 'var(--success-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <Check size={14} />
+                        存储路径校验通过，修改已成功持久化保存！
+                      </div>
+                    )}
+
+                    {configStatus === 'error' && (
+                      <div style={{
+                        padding: '10px 14px',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.15)',
+                        borderRadius: '10px',
+                        fontSize: '0.75rem',
+                        color: '#f87171',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <ShieldAlert size={14} />
+                        修改失败：{configErrorMsg}
+                      </div>
+                    )}
+
+                    {absolutePath && (
+                      <div style={{ 
+                        fontSize: '0.72rem', 
+                        color: 'var(--text-muted)', 
+                        background: 'rgba(128, 128, 128, 0.03)',
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        border: '1px dashed var(--border-color)',
+                        wordBreak: 'break-all',
+                        fontFamily: 'monospace'
+                      }}>
+                        <strong>当前服务器绝对落盘路径：</strong> {absolutePath}
+                      </div>
+                    )}
                   </div>
-                </div>
-              </Card>
+                </Card>
+
+                {/* 局域网协同办公安全指引 */}
+                <Card style={{
+                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.02) 0%, rgba(59, 130, 246, 0.02) 100%)',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                    <Info size={16} style={{ color: 'var(--accent-color)', flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>去中心化局域网多播提醒</h4>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                        Share Home 依赖 mDNS 多播及去中心化点对点网络工作。请确保所有协作节点设备均连入同一局域网（或 Wi-Fi），且本端防火墙已开放相应的 WebSocket 及 HTTP 端口信道，即可获得最佳体验。
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* ===================== 右侧分栏：本端极客身份个性化与网络探测 ===================== */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* 新增：设备身份档案舱卡片 */}
+                <Card>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '8px',
+                        background: 'rgba(99, 102, 241, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Edit3 size={14} style={{ color: 'var(--accent-color)' }} />
+                      </div>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 600, margin: 0 }}>本端设备身份名片</h3>
+                    </div>
+
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                      个性化您在局域网中的展现身份，设置后邻居节点将立即看到您的更改。
+                    </p>
+
+                    {/* 头像展示与拟物化键盘选择 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <label style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 500 }}>快速选择专属极客头像</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '6px' }}>
+                        {['💻', '🚀', '🐱', '🦊', '🤖', '🍎', '🎨', '⚡'].map((emoji) => {
+                          const isSelected = newAvatar === emoji;
+                          return (
+                            <button
+                              key={emoji}
+                              onClick={() => setNewAvatar(emoji)}
+                              style={{
+                                fontSize: '1.3rem',
+                                padding: '8px 0',
+                                background: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'rgba(128, 128, 128, 0.02)',
+                                border: isSelected ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                boxShadow: isSelected ? '0 0 10px rgba(99, 102, 241, 0.15)' : 'none',
+                                transform: isSelected ? 'scale(1.06)' : 'scale(1)',
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isSelected) e.currentTarget.style.background = 'rgba(128, 128, 128, 0.06)';
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isSelected) e.currentTarget.style.background = 'rgba(128, 128, 128, 0.02)';
+                              }}
+                            >
+                              {emoji}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 昵称编辑输入框及一键同步按钮 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+                      <label style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 500 }}>自定义设备昵称</label>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <input
+                          type="text"
+                          value={newNickname}
+                          onChange={(e) => setNewNickname(e.target.value)}
+                          placeholder="输入您的专属极客昵称"
+                          maxLength={16}
+                          style={{
+                            flex: 1,
+                            background: 'rgba(0, 0, 0, 0.15)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '10px',
+                            padding: '10px 14px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.85rem',
+                            outline: 'none',
+                            transition: 'all 0.2s'
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = 'var(--accent-color)';
+                            e.target.style.boxShadow = '0 0 0 2px rgba(99, 102, 241, 0.12)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = 'var(--border-color)';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        />
+                        <Button 
+                          onClick={saveProfile} 
+                          disabled={!newNickname.trim() || !!(self && self.nickname === newNickname && self.avatar === newAvatar)}
+                        >
+                          同步修改档案
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* 本端设备的高端硬件及网络参数 */}
+                <Card>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '8px',
+                        background: 'rgba(37, 99, 235, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Cpu size={14} style={{ color: 'var(--accent-color)' }} />
+                      </div>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 600, margin: 0 }}>本端局域网硬件参数</h3>
+                    </div>
+
+                    {self && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>设备唯一标识</span>
+                          <span style={{ 
+                            color: 'var(--text-primary)', 
+                            fontFamily: 'monospace', 
+                            background: 'rgba(128, 128, 128, 0.05)', 
+                            padding: '3px 8px', 
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            wordBreak: 'break-all'
+                          }}>{self.id}</span>
+                        </div>
+                        <div style={{ display: 'flex', fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>本端网络 IP 地址</span>
+                          <span style={{ 
+                            color: 'var(--text-primary)', 
+                            fontFamily: 'monospace', 
+                            background: 'rgba(128, 128, 128, 0.05)', 
+                            padding: '3px 8px', 
+                            borderRadius: '6px',
+                            fontSize: '0.72rem'
+                          }}>{self.ip}</span>
+                        </div>
+                        <div style={{ display: 'flex', fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>节点侦听端口</span>
+                          <span style={{ 
+                            color: 'var(--text-primary)', 
+                            fontFamily: 'monospace', 
+                            background: 'rgba(128, 128, 128, 0.05)', 
+                            padding: '3px 8px', 
+                            borderRadius: '6px',
+                            fontSize: '0.72rem'
+                          }}>{self.port}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.76rem', marginTop: '4px' }}>
+                          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>去中心化服务信道状态</span>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '2px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success-color)', fontWeight: 600 }}>
+                              <span style={{ 
+                                width: '6px', 
+                                height: '6px', 
+                                borderRadius: '50%', 
+                                background: 'var(--success-color)', 
+                                display: 'inline-block', 
+                                boxShadow: '0 0 8px var(--success-color)',
+                                animation: 'pulse 2s infinite'
+                              }} />
+                              WebSocket 信道 (Active)
+                            </span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success-color)', fontWeight: 600 }}>
+                              <span style={{ 
+                                width: '6px', 
+                                height: '6px', 
+                                borderRadius: '50%', 
+                                background: 'var(--success-color)', 
+                                display: 'inline-block', 
+                                boxShadow: '0 0 8px var(--success-color)',
+                                animation: 'pulse 2s infinite'
+                              }} />
+                              mDNS 发现 (Active)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+              </div>
 
             </div>
           )}

@@ -23,12 +23,18 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
   const renderAvatarIcon = (avatar: string, size = 18) => {
     switch (avatar) {
       case 'avatar-1':
+      case '💻':
         return <Laptop size={size} />;
       case 'avatar-2':
+      case '🖥️':
         return <Monitor size={size} />;
       case 'avatar-3':
+      case '📱':
         return <Smartphone size={size} />;
       default:
+        if (avatar && avatar.trim()) {
+          return <span style={{ fontSize: `${size}px`, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{avatar}</span>;
+        }
         return <Laptop size={size} />;
     }
   };
