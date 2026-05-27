@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MdnsService } from '@/services/mdnsService';
 import { SocketService } from '@/services/socketService';
 
+const getRuntimePort = (value: string | undefined, fallback: number) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 export async function GET(request: NextRequest) {
   const globalSymbols = global as any;
+  const webPort = getRuntimePort(process.env.SHARE_HOME_WEB_PORT || process.env.PORT, 3000);
+  const wsPort = getRuntimePort(process.env.SHARE_HOME_WS_PORT, webPort + 1);
+  const host = process.env.SHARE_HOME_HOST || process.env.HOSTNAME || '127.0.0.1';
 
   if (!globalSymbols.__services_initialized__) {
     console.log('[InitAPI] 正在全局初始化局域网后台常驻服务...');
@@ -11,11 +19,11 @@ export async function GET(request: NextRequest) {
     const sockets = SocketService.getInstance();
     const mdns = MdnsService.getInstance();
 
-    // 1. 启动 WebSocket 服务器于端口 3001，服务于本端前端
-    sockets.start(3001);
+    // 1. 启动 WebSocket 服务器，服务于本端前端
+    sockets.start(wsPort, host);
 
-    // 2. 启动 mDNS 广播，使用默认昵称和头像，监听端口为 web 端的 3000
-    mdns.start('局域网伙伴', 'avatar-1', 3000);
+    // 2. 启动 mDNS 广播，使用当前 Web 端口
+    mdns.start('局域网伙伴', 'avatar-1', webPort);
 
     // 绑定 mDNS 在线设备列表更新到 WebSocket 广播上实现解耦
     mdns.onPeersChange((peers) => {
@@ -57,7 +65,7 @@ export async function GET(request: NextRequest) {
 
   // 只要不是本机的 Host 进程 ID，就将其注册为 Web 浏览器虚拟在线终端
   if (clientId !== mdns.getSelfId()) {
-    mdns.registerWebPeer(clientId, clientIp, nickname, avatar, 3000, os);
+      mdns.registerWebPeer(clientId, clientIp, nickname, avatar, webPort, os);
   }
 
   return NextResponse.json({
@@ -68,7 +76,7 @@ export async function GET(request: NextRequest) {
       nickname,
       avatar,
       ip: clientIp,
-      port: 3000,
+      port: webPort,
       os, // 支持跨终端的真实操作系统显示
     }
   });
@@ -76,6 +84,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: Request) {
   try {
+    const webPort = getRuntimePort(process.env.SHARE_HOME_WEB_PORT || process.env.PORT, 3000);
     const { nickname, avatar, clientId, os } = await request.json();
     if (!nickname || !avatar) {
       return NextResponse.json({ success: false, error: '昵称和头像不能为空' }, { status: 400 });
@@ -95,7 +104,7 @@ export async function POST(request: Request) {
       } else if (clientIp === '::1') {
         clientIp = '127.0.0.1';
       }
-      mdns.registerWebPeer(clientId, clientIp, nickname, avatar, 3000, os || 'Windows');
+      mdns.registerWebPeer(clientId, clientIp, nickname, avatar, webPort, os || 'Windows');
     } else {
       // 远端浏览器访问的是这台主机的控制台，因此资料更新应作用于主机广播身份。
       mdns.updateBroadcast(nickname, avatar);

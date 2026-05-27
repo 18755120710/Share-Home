@@ -19,17 +19,17 @@ export class SocketService {
   }
 
   /**
-   * 在指定端口启动 WebSocket 服务器，服务于本机浏览器前端 (绑定 0.0.0.0 以支持局域网外端穿透)
+   * 在指定端口启动 WebSocket 服务器，服务于本机浏览器前端
    */
-  public start(port: number): void {
+  public start(port: number, host = process.env.SHARE_HOME_HOST || '127.0.0.1'): void {
     if (this.isStarted) {
       console.log(`[WebSocket] 通信服务已在运行中，无需重复启动。`);
       return;
     }
 
-    console.log(`[WebSocket] 正在启动通信服务, 监听端口: ${port}, 绑定 Host: 0.0.0.0`);
+    console.log(`[WebSocket] 正在启动通信服务, 监听端口: ${port}, 绑定 Host: ${host}`);
     try {
-      this.wss = new WebSocketServer({ port, host: '0.0.0.0' });
+      this.wss = new WebSocketServer({ port, host });
 
       this.wss.on('connection', (ws: WebSocket, req: any) => {
         this.clients.add(ws);
@@ -74,7 +74,8 @@ export class SocketService {
         }
 
         if (clientId && clientId !== mdns.getSelfId()) {
-          mdns.registerWebPeer(clientId, clientIp, nickname, avatar, 3000, os);
+          const webPort = Number(process.env.SHARE_HOME_WEB_PORT || process.env.PORT || 3000);
+          mdns.registerWebPeer(clientId, clientIp, nickname, avatar, webPort, os);
         }
 
         // 监听客户端发来的测试或控制指令

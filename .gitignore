@@ -23,6 +23,14 @@
 # misc
 .DS_Store
 *.pem
+.idea/
+
+# local runtime/user storage
+/storage/
+
+# large local media/installers
+*.dmg
+*.iso
 
 # debug
 npm-debug.log*

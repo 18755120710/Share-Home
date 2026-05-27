@@ -237,7 +237,8 @@ export function useFileTransfer(self: any) {
       try {
         const arrayBuffer = await chunk.arrayBuffer();
         const selfIp = self?.ip || window.location.hostname || '127.0.0.1';
-        const downloadUrl = `http://${selfIp}:3000/api/transfer/download?taskId=${taskId}`;
+        const hostWithPort = typeof window !== 'undefined' ? window.location.host : `${selfIp}:3000`;
+        const downloadUrl = `http://${hostWithPort}/api/transfer/download?taskId=${taskId}`;
         const res = await fetch(
           `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}` +
           `&targetClientId=${encodeURIComponent(targetPeerId)}&targetPeerName=${encodeURIComponent(targetPeerName)}` +
@@ -276,7 +277,7 @@ export function useFileTransfer(self: any) {
 
     // 3. 本地合并注册完毕，向远端 Peer 发送文件传输请求
     const selfIp = window.location.hostname; // 获取自身 IP 供对方拉取
-    const downloadUrl = `http://${selfIp}:3000/api/transfer/download?taskId=${taskId}`;
+    const downloadUrl = `http://${window.location.host}/api/transfer/download?taskId=${taskId}`;
     
     console.log(`[useFileTransfer] 本地暂存合并完毕！正在向对方投递接收申请...`);
 

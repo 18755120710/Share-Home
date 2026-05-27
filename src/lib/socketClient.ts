@@ -34,6 +34,7 @@ export class SocketClient {
     let nickname = '局域网伙伴';
     let avatar = 'avatar-1';
     let os = 'Windows';
+    let wsPort = '3001';
     if (typeof window !== 'undefined') {
       clientId = localStorage.getItem('share_home_client_id') || '';
       if (!clientId) {
@@ -52,13 +53,17 @@ export class SocketClient {
     }
 
     try {
-      await fetch(`/api/init?clientId=${encodeURIComponent(clientId)}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}&os=${os}`, { cache: 'no-store' });
+      const initRes = await fetch(`/api/init?clientId=${encodeURIComponent(clientId)}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}&os=${os}`, { cache: 'no-store' });
+      const initData = await initRes.json();
+      if (initData.wsPort) {
+        wsPort = String(initData.wsPort);
+      }
     } catch (err) {
       console.warn('[SocketClient] 初始化宿主服务失败，仍将尝试连接 WebSocket:', err);
     }
 
-    console.log(`[SocketClient] 正在建立全局共享通信长连接: ${protocol}://${host}:3001?clientId=${clientId}`);
-    const wsUrl = `${protocol}://${host}:3001?clientId=${clientId}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}&os=${os}`;
+    console.log(`[SocketClient] 正在建立全局共享通信长连接: ${protocol}://${host}:${wsPort}?clientId=${clientId}`);
+    const wsUrl = `${protocol}://${host}:${wsPort}?clientId=${clientId}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}&os=${os}`;
     const ws = new WebSocket(wsUrl);
     this.ws = ws;
 
