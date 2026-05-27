@@ -305,9 +305,24 @@ export class FileService {
       }
     });
 
+    // 3.5. 强力防重清洗：若多个索引对象指向同一物理文件路径，优先保留具有真实物理设备信息（非自愈导入）的那条
+    const uniqueFilesMap = new Map<string, SharedFile>();
+    validIndexedFiles.forEach(file => {
+      const resolvedPath = path.resolve(file.filePath);
+      const existing = uniqueFilesMap.get(resolvedPath);
+      if (!existing) {
+        uniqueFilesMap.set(resolvedPath, file);
+      } else {
+        if (existing.deviceInfo === '本地存储自愈导入' && file.deviceInfo !== '本地存储自愈导入') {
+          uniqueFilesMap.set(resolvedPath, file);
+        }
+      }
+    });
+    const uniqueIndexedFiles = Array.from(uniqueFilesMap.values());
+
     // 4. 物理文件自愈重建索引：如果有物理文件没有在 validIndexedFiles 中记录，则自动登记
-    let hasChanges = validIndexedFiles.length !== indexedFiles.length;
-    const finalFiles = [...validIndexedFiles];
+    let hasChanges = uniqueIndexedFiles.length !== indexedFiles.length;
+    const finalFiles = [...uniqueIndexedFiles];
 
     physicalFiles.forEach(fileName => {
       const fullPath = path.join(sharedDir, fileName);
@@ -319,7 +334,10 @@ export class FileService {
             return path.resolve(f.filePath) === path.resolve(fullPath) || f.fileName === fileName;
           });
 
-          if (!isRegistered) {
+          // 增加 5 秒创建时间保护缓冲区，避免因大文件分片合并落盘瞬间尚未登记元数据而被误判为未登记的物理文件
+          const isRecent = (Date.now() - (stat.mtimeMs || stat.birthtimeMs || Date.now())) < 5000;
+
+          if (!isRegistered && !isRecent) {
             // 自动补全登记元数据
             const fileId = `shared_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             const newFile: SharedFile = {
@@ -353,7 +371,18 @@ export class FileService {
    * 注册一个公共共享文件
    */
   public registerSharedFile(id: string, fileName: string, fileSize: number, filePath: string, deviceInfo: string): void {
-    const files = this.getSharedFiles();
+    // 1. 先安全读取元数据索引文件，将当前新文件提前登记，解决物理合并落盘瞬时与 getSharedFiles() 产生的 Race Condition
+    let indexedFiles: SharedFile[] = [];
+    const metaPath = this.getSharedFilesPath();
+    if (fs.existsSync(metaPath)) {
+      try {
+        const data = fs.readFileSync(metaPath, 'utf-8');
+        indexedFiles = JSON.parse(data);
+      } catch (err) {
+        console.error('[FileService] 提前读取元数据失败:', err);
+      }
+    }
+
     const newFile: SharedFile = {
       id,
       fileName,
@@ -363,14 +392,20 @@ export class FileService {
       filePath
     };
 
-    const filtered = files.filter(f => f.id !== id);
+    // 剔除相同 id
+    const filtered = indexedFiles.filter(f => f.id !== id);
     filtered.push(newFile);
 
+    // 提前写回元数据，使随后的 getSharedFiles 物理文件自愈扫描中能够正确识别“已登记”
     this.writeSharedFilesMetadata(filtered);
+
+    // 2. 然后，再调用包含自愈与物理清洗的 getSharedFiles 得到最新的干净列表
+    const cleanFiles = this.getSharedFiles();
+
     console.log(`[FileService] 公共共享文件已保存并写入索引: ${fileName} (${id})`);
 
-    // 广播事件通知局域网所有在线伙伴
-    SocketService.getInstance().broadcast('shared-files:update', filtered.sort((a, b) => b.uploadedAt - a.uploadedAt));
+    // 3. 广播事件通知局域网所有在线伙伴
+    SocketService.getInstance().broadcast('shared-files:update', cleanFiles);
   }
 
   /**
