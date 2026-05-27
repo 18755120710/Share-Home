@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Card from '../../ui/Card';
-import Button from '../../ui/Button';
 import { formatBytes } from '@/lib/format';
 import { SocketClient } from '@/lib/socketClient';
 import { 
   UploadCloud, File, Trash2, Download, Monitor, Laptop, 
   Smartphone, Cpu, HelpCircle, CheckCircle2, AlertCircle,
   Eye, FileImage, FileVideo, FileAudio, RotateCw, ZoomIn, 
-  ZoomOut, RefreshCw, X, Music, Play, ExternalLink
+  ZoomOut, RefreshCw, X, Music, Search, ArrowUpDown, 
+  LayoutGrid, List, Sparkles, FolderOpen, Calendar, HardDrive, Info
 } from 'lucide-react';
 
 interface SharedFile {
@@ -38,6 +38,10 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
   const [rotate, setRotate] = useState(0);
   const [isImgLoading, setIsImgLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -59,12 +63,39 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
   const previewUrl = `/api/transfer/shared/download?id=${file.id}&preview=true`;
 
+  const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+    if (zoom <= 1) return;
+    e.preventDefault();
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || zoom <= 1) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 0.15 : -0.15;
+    setZoom(z => Math.max(0.4, Math.min(3, z + zoomFactor)));
+  };
+
   if (!mounted) return null;
 
   return createPortal(
     <div 
       className="preview-overlay"
       onClick={onClose}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
       style={{
         position: 'fixed',
         top: 0,
@@ -72,86 +103,100 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
         right: 0,
         bottom: 0,
         zIndex: 9999,
-        backdropFilter: 'blur(20px) saturate(180%)',
+        backdropFilter: 'blur(24px) saturate(190%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '24px',
-        animation: 'fade-in 0.25s ease'
+        animation: 'fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
       }}
     >
       <div 
-        className="preview-modal-card"
+        className="preview-modal-card-cinema"
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: '960px',
+          maxWidth: '1000px',
           maxHeight: '85vh',
-          borderRadius: '16px',
+          borderRadius: '24px',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          animation: 'preview-scale-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          animation: 'preview-scale-up-elastic 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'
         }}
       >
-        {/* 顶部标题与关闭 */}
-        <div className="preview-header-bar" style={{
+        {/* 顶部标题栏 */}
+        <div className="preview-header-bar-cinema" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '16px 24px'
+          padding: '18px 28px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-            {isImage && <FileImage size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />}
-            {isVideo && <FileVideo size={18} style={{ color: '#10b981', flexShrink: 0 }} />}
-            {isAudio && <FileAudio size={18} style={{ color: '#ec4899', flexShrink: 0 }} />}
-            <span className="preview-header-title" style={{ 
-              fontWeight: 600, 
-              fontSize: '0.95rem',
-              overflow: 'hidden', 
-              textOverflow: 'ellipsis', 
-              whiteSpace: 'nowrap'
-            }} title={file.fileName}>
-              {file.fileName}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+            <div className="preview-header-icon-shell" style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              {isImage && <FileImage size={16} style={{ color: '#6366f1' }} />}
+              {isVideo && <FileVideo size={16} style={{ color: '#10b981' }} />}
+              {isAudio && <FileAudio size={16} style={{ color: '#ec4899' }} />}
+              {!isImage && !isVideo && !isAudio && <File size={16} style={{ color: '#a1a1aa' }} />}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <span className="preview-header-title-cinema" style={{ 
+                fontWeight: 600, 
+                fontSize: '0.95rem',
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis', 
+                whiteSpace: 'nowrap'
+              }} title={file.fileName}>
+                {file.fileName}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {formatBytes(file.fileSize)}
+              </span>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* 顶栏独立外链直达 */}
             <a 
               href={previewUrl} 
               target="_blank" 
               rel="noreferrer"
-              className="preview-header-action-btn"
+              className="preview-action-pill"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '0.75rem',
+                padding: '8px 16px',
+                borderRadius: '12px',
+                fontSize: '0.78rem',
                 textDecoration: 'none',
-                fontWeight: 500,
-                transition: 'all 0.15s'
+                fontWeight: 600,
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
             >
-              <ExternalLink size={12} />
-              <span>新窗口打开</span>
+              <span>新窗口查看</span>
             </a>
 
             <button 
               onClick={onClose}
-              className="preview-header-action-btn"
+              className="preview-close-btn-cinema"
               style={{
-                width: '30px',
-                height: '30px',
-                borderRadius: '8px',
+                width: '34px',
+                height: '34px',
+                borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                transition: 'all 0.15s'
+                border: 'none',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
             >
               <X size={16} />
@@ -160,16 +205,20 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
         </div>
 
         {/* 核心展示区 */}
-        <div className="preview-content-area" style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          position: 'relative',
-          minHeight: '380px',
-          padding: '20px'
-        }}>
+        <div 
+          className="preview-content-area-cinema" 
+          onWheel={isImage ? handleWheel : undefined}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            position: 'relative',
+            minHeight: '420px',
+            padding: '24px'
+          }}
+        >
           {isImage && (
             <div style={{ 
               position: 'relative', 
@@ -178,26 +227,38 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
             }}>
               {isImgLoading && (
-                <div style={{ position: 'absolute', color: '#a1a1aa', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 1 }}>
-                  <RefreshCw size={14} className="animate-spin" />
-                  <span>正在极速渲染高解析度图片...</span>
+                <div className="preview-loading-box" style={{ 
+                  position: 'absolute', 
+                  fontSize: '0.85rem', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '10px', 
+                  zIndex: 2,
+                  padding: '12px 20px',
+                  borderRadius: '12px'
+                }}>
+                  <RefreshCw size={14} className="animate-spin-fast" />
+                  <span>正在极速载入高清画幅...</span>
                 </div>
               )}
               <img 
+                ref={imgRef}
                 src={previewUrl} 
                 alt={file.fileName}
                 onLoad={() => setIsImgLoading(false)}
-                className="preview-img-element"
+                onMouseDown={handleMouseDown}
+                className="preview-img-element-cinema"
                 style={{
                   maxWidth: '100%',
-                  maxHeight: '60vh',
+                  maxHeight: '62vh',
                   objectFit: 'contain',
-                  borderRadius: '6px',
-                  transform: `scale(${zoom}) rotate(${rotate}deg)`,
-                  transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  borderRadius: '12px',
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${zoom}) rotate(${rotate}deg)`,
+                  transition: isDragging ? 'none' : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
                   opacity: isImgLoading ? 0 : 1
                 }}
               />
@@ -214,59 +275,79 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                 preload="auto"
                 style={{
                   maxWidth: '100%',
-                  maxHeight: '60vh',
-                  borderRadius: '12px',
-                  boxShadow: '0 15px 35px rgba(0,0,0,0.5)',
+                  maxHeight: '62vh',
+                  borderRadius: '16px',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
                   outline: 'none',
-                  background: '#000000'
+                  background: '#000000',
+                  margin: 'auto'
                 }}
               />
             </div>
           )}
 
           {isAudio && (
-            <div className="preview-audio-container" style={{
+            <div className="preview-audio-shell" style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '24px',
-              padding: '40px',
+              gap: '28px',
+              padding: '48px 40px',
               width: '100%',
-              maxWidth: '480px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              borderRadius: '24px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+              maxWidth: '440px',
+              borderRadius: '28px',
             }}>
               {/* CD 唱盘旋转效果 */}
               <div 
-                className="audio-disc-container"
+                className="audio-disc-neon-container"
                 style={{
-                  width: '120px',
-                  height: '120px',
+                  width: '150px',
+                  height: '150px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   position: 'relative',
-                  animation: 'spin 12s linear infinite'
                 }}
               >
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Music size={14} />
+                <div className="audio-disc-neon-pulse" />
+                <div 
+                  className="audio-disc-core"
+                  style={{
+                    width: '138px',
+                    height: '138px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'radial-gradient(circle, #09090b 25%, #18181b 60%, #27272a 100%)',
+                    boxShadow: 'inset 0 0 10px rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.4)',
+                    animation: 'spin 16s linear infinite',
+                    position: 'relative'
+                  }}
+                >
+                  {/* 胶片纹路 */}
+                  <div className="disc-grooves" />
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 12px rgba(99, 102, 241, 0.4)',
+                    zIndex: 2
+                  }}>
+                    <Music size={16} style={{ color: '#ffffff' }} />
+                  </div>
                 </div>
               </div>
 
-              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span className="preview-audio-name" style={{ fontWeight: 600, fontSize: '0.95rem' }}>{file.fileName}</span>
-                <span style={{ color: '#a1a1aa', fontSize: '0.78rem' }}>{formatBytes(file.fileSize)}</span>
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span className="preview-audio-name-cinema" style={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em' }}>{file.fileName}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{formatBytes(file.fileSize)}</span>
               </div>
 
               <audio 
@@ -282,37 +363,53 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
             </div>
           )}
 
-          {/* 如果不是这三种格式，提供直接下载的阻碍指引 */}
+          {/* 不支持在线预览格式 */}
           {!isImage && !isVideo && !isAudio && (
-            <div style={{
+            <div className="preview-unsupported-box" style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '16px',
-              color: '#a1a1aa',
+              gap: '20px',
               textAlign: 'center',
-              padding: '40px'
+              padding: '48px 32px',
+              maxWidth: '400px',
+              borderRadius: '20px'
             }}>
-              <AlertCircle size={40} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span>暂不支持此格式的在线预览</span>
-                <span style={{ fontSize: '0.8rem' }}>您可以直接通过右侧操作按钮将其流式下载到本地查看。</span>
+              <div className="unsupported-icon-glow" style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.15)',
+                boxShadow: '0 0 16px rgba(239, 68, 68, 0.06)'
+              }}>
+                <AlertCircle size={28} style={{ color: '#ef4444' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>暂不支持该格式在线预览</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  该文件可能属于二进制、压缩包或未识别文档。您可以极速安全下载到本地打开。
+                </span>
               </div>
               <a 
                 href={`/api/transfer/shared/download?id=${file.id}`}
                 download={file.fileName}
-                style={{ textDecoration: 'none', marginTop: '10px' }}
+                style={{ textDecoration: 'none', width: '100%', marginTop: '8px' }}
               >
-                <button style={{
+                <button className="preview-action-btn-primary" style={{
+                  width: '100%',
                   border: 'none',
-                  padding: '8px 20px',
-                  borderRadius: '8px',
+                  padding: '12px 24px',
+                  borderRadius: '12px',
                   fontWeight: 600,
-                  fontSize: '0.82rem',
+                  fontSize: '0.85rem',
                   cursor: 'pointer',
-                  transition: 'all 0.15s'
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                 }}>
-                  立即下载
+                  立即极速下载
                 </button>
               </a>
             </div>
@@ -321,27 +418,28 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
         {/* 底部图片控制条 */}
         {isImage && (
-          <div className="preview-bottom-toolbar" style={{
+          <div className="preview-bottom-toolbar-cinema" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '20px',
-            padding: '12px 24px'
+            gap: '16px',
+            padding: '14px 28px'
           }}>
             <button 
               onClick={() => setZoom(z => Math.min(z + 0.2, 3))}
-              className="preview-toolbar-btn"
+              className="preview-toolbar-btn-cinema"
               style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
+                padding: '8px 14px',
+                borderRadius: '10px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.8rem',
+                gap: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.15s'
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
-              title="放大"
+              title="放大 (支持滚轮)"
             >
               <ZoomIn size={14} />
               <span>放大</span>
@@ -349,16 +447,17 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
             <button 
               onClick={() => setZoom(z => Math.max(z - 0.2, 0.4))}
-              className="preview-toolbar-btn"
+              className="preview-toolbar-btn-cinema"
               style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
+                padding: '8px 14px',
+                borderRadius: '10px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.8rem',
+                gap: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.15s'
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
               title="缩小"
             >
@@ -368,37 +467,39 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
             <button 
               onClick={() => setRotate(r => r + 90)}
-              className="preview-toolbar-btn"
+              className="preview-toolbar-btn-cinema"
               style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
+                padding: '8px 14px',
+                borderRadius: '10px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.8rem',
+                gap: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.15s'
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
-              title="旋转 90°"
+              title="顺时针旋转 90°"
             >
               <RotateCw size={14} />
               <span>旋转</span>
             </button>
 
             <button 
-              onClick={() => { setZoom(1); setRotate(0); }}
-              className="preview-toolbar-btn"
+              onClick={() => { setZoom(1); setRotate(0); setPosition({ x: 0, y: 0 }); }}
+              className="preview-toolbar-btn-cinema"
               style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
+                padding: '8px 14px',
+                borderRadius: '10px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.8rem',
+                gap: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.15s'
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
-              title="重置缩放与角度"
+              title="恢复初始视口"
             >
               <RefreshCw size={14} />
               <span>重置</span>
@@ -445,10 +546,21 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [previewFile, setPreviewFile] = useState<SharedFile | null>(null);
+
+  // 重构新增：状态与多维筛选过滤
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedType, setSelectedType] = useState<'all' | 'image' | 'video' | 'audio' | 'document'>('all');
+  const [sortBy, setSortBy] = useState<'time-desc' | 'time-asc' | 'size-desc' | 'size-asc'>('time-desc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // 重构新增：上传测速
+  const [uploadSpeed, setUploadSpeed] = useState('');
+  const [remainingTime, setRemainingTime] = useState('');
+  const uploadStartRef = useRef<number>(0);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. 初始化拉取公共文件列表
+  // 初始化拉取公共文件列表
   const fetchSharedFiles = async () => {
     try {
       const res = await fetch('/api/transfer/shared');
@@ -464,7 +576,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
   useEffect(() => {
     fetchSharedFiles();
 
-    // 2. 订阅局域网公共文件列表更新 WebSocket 事件 (所有伙伴共享)
+    // 订阅局域网公共文件列表更新 WebSocket 事件 (所有伙伴共享)
     const socket = SocketClient.getInstance();
     const unsubSharedUpdate = socket.subscribe('shared-files:update', (updatedFiles: SharedFile[]) => {
       console.log('[SharedFiles] 收到局域网公共文件列表广播更新:', updatedFiles);
@@ -507,7 +619,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
     }
   };
 
-  // 核心上传逻辑
+  // 核心上传逻辑（植入测速与时间预估算法）
   const handleUpload = async (file: File) => {
     if (!file) return;
 
@@ -515,11 +627,33 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
     setUploadProgress(0);
     setStatus('uploading');
     setErrorMsg('');
+    setUploadSpeed('计算中...');
+    setRemainingTime('');
+    uploadStartRef.current = Date.now();
 
     try {
       const deviceInfo = getDeviceInfo();
       const success = await uploadPublicFile(file, deviceInfo, (progress) => {
         setUploadProgress(progress);
+        
+        // 测速核心算法
+        const now = Date.now();
+        const elapsed = (now - uploadStartRef.current) / 1000; // 秒
+        if (elapsed > 0.3) { // 稍微延迟以防极早期速度不稳定
+          const uploadedBytes = file.size * (progress / 100);
+          const speed = uploadedBytes / elapsed; // bytes/sec
+          setUploadSpeed(`${formatBytes(speed)}/s`);
+          
+          const remainingBytes = file.size - uploadedBytes;
+          const remSec = speed > 0 ? Math.round(remainingBytes / speed) : 0;
+          if (progress >= 99) {
+            setRemainingTime('正在落盘校验合并...');
+          } else if (remSec > 0) {
+            setRemainingTime(`预计剩 ${remSec} 秒`);
+          } else {
+            setRemainingTime('即将完成');
+          }
+        }
       });
 
       if (success) {
@@ -528,6 +662,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
           setStatus('idle');
           setUploadingFile(null);
           setUploadProgress(0);
+          setUploadSpeed('');
+          setRemainingTime('');
         }, 2000);
         fetchSharedFiles();
       } else {
@@ -563,26 +699,26 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
   const getFileIcon = (fileName: string) => {
     const ext = fileName.toLowerCase().split('.').pop() || '';
     if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
-      return <FileImage size={15} style={{ color: '#3b82f6' }} />;
+      return <FileImage size={16} style={{ color: '#6366f1' }} />;
     }
     if (['mp4', 'webm', 'ogg'].includes(ext)) {
-      return <FileVideo size={15} style={{ color: '#10b981' }} />;
+      return <FileVideo size={16} style={{ color: '#10b981' }} />;
     }
-    if (['mp3', 'wav'].includes(ext)) {
-      return <FileAudio size={15} style={{ color: '#ec4899' }} />;
+    if (['mp3', 'wav', 'ogg'].includes(ext)) {
+      return <FileAudio size={16} style={{ color: '#ec4899' }} />;
     }
-    return <File size={15} style={{ color: 'var(--text-secondary)' }} />;
+    return <File size={16} style={{ color: 'var(--text-secondary)' }} />;
   };
 
   const getFileIconBg = (fileName: string) => {
     const ext = fileName.toLowerCase().split('.').pop() || '';
     if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
-      return 'rgba(59, 130, 246, 0.08)';
+      return 'rgba(99, 102, 241, 0.08)';
     }
     if (['mp4', 'webm', 'ogg'].includes(ext)) {
       return 'rgba(16, 185, 129, 0.08)';
     }
-    if (['mp3', 'wav'].includes(ext)) {
+    if (['mp3', 'wav', 'ogg'].includes(ext)) {
       return 'rgba(236, 72, 153, 0.08)';
     }
     return 'rgba(128, 128, 128, 0.08)';
@@ -593,35 +729,35 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
     return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg'].includes(ext);
   };
 
-  // 根据设备信息渲染不同的专属高端 Badge 图标
+  // 专属流光高端 Badge
   const renderDeviceBadge = (deviceInfo: string) => {
-    let icon = <HelpCircle size={12} />;
-    let badgeClass = 'device-badge general';
+    let icon = <HelpCircle size={11} />;
+    let badgeClass = 'custom-device-badge general-glow';
 
     if (deviceInfo.includes('Windows')) {
-      icon = <Laptop size={12} />;
-      badgeClass = 'device-badge windows';
+      icon = <Laptop size={11} />;
+      badgeClass = 'custom-device-badge windows-glow';
     } else if (deviceInfo.includes('macOS') || deviceInfo.includes('iOS')) {
-      icon = <Monitor size={12} />;
-      badgeClass = 'device-badge macos';
+      icon = <Monitor size={11} />;
+      badgeClass = 'custom-device-badge macos-glow';
     } else if (deviceInfo.includes('Android')) {
-      icon = <Smartphone size={12} />;
-      badgeClass = 'device-badge android';
+      icon = <Smartphone size={11} />;
+      badgeClass = 'custom-device-badge android-glow';
     } else if (deviceInfo.includes('Linux')) {
-      icon = <Cpu size={12} />;
-      badgeClass = 'device-badge linux';
+      icon = <Cpu size={11} />;
+      badgeClass = 'custom-device-badge linux-glow';
     }
 
     return (
       <span className={badgeClass} style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '5px',
+        gap: '4px',
         padding: '3px 8px',
-        borderRadius: '12px',
-        fontSize: '0.72rem',
+        borderRadius: '20px',
+        fontSize: '0.7rem',
         fontWeight: 600,
-        transition: 'all 0.15s'
+        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
       }}>
         {icon}
         {deviceInfo}
@@ -629,330 +765,952 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
     );
   };
 
+  // 前端过滤与排序实现
+  const filteredFiles = files
+    .filter(file => {
+      // 1. 模糊搜索匹配
+      const matchesSearch = file.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            file.deviceInfo.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (!matchesSearch) return false;
+
+      // 2. 文件类型筛选
+      if (selectedType === 'all') return true;
+      const ext = file.fileName.toLowerCase().split('.').pop() || '';
+      if (selectedType === 'image') return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+      if (selectedType === 'video') return ['mp4', 'webm', 'ogg'].includes(ext);
+      if (selectedType === 'audio') return ['mp3', 'wav', 'ogg'].includes(ext);
+      if (selectedType === 'document') {
+        return !['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg'].includes(ext);
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      // 3. 排序逻辑
+      if (sortBy === 'time-desc') return b.uploadedAt - a.uploadedAt;
+      if (sortBy === 'time-asc') return a.uploadedAt - b.uploadedAt;
+      if (sortBy === 'size-desc') return b.fileSize - a.fileSize;
+      if (sortBy === 'size-asc') return a.fileSize - b.fileSize;
+      return 0;
+    });
+
   return (
-    <Card 
+    <div 
+      className="share-center-master-container"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`shared-files-card-container ${isDragOver ? 'drag-over' : ''}`}
-      style={{ 
-        flex: 1.3, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: '20px', 
-        minHeight: '400px',
-        backdropFilter: 'blur(20px)',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        position: 'relative',
-        borderRadius: '16px'
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        width: '100%',
+        position: 'relative'
       }}
     >
       
-      {/* 标题栏 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 0 4px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.025em', color: 'var(--text-primary)' }}>公共共享空间</h2>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            局域网公共落盘文件长效存储，所有设备即插即用、流式极速下发（松开文件于页面即可极速上传）
-          </p>
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* 高档胶囊 Badge */}
-          <span style={{ 
-            fontSize: '0.75rem', 
-            color: 'var(--text-secondary)',
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-            padding: '4px 10px',
-            borderRadius: '20px',
-            fontWeight: 500
-          }}>
-            已共享: {files.length} 个文件
-          </span>
-          
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-            disabled={status === 'uploading'}
-          />
-          
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={status === 'uploading'}
-            style={{
-              display: 'inline-flex',
+      {/* 顶部智能 Control Hub */}
+      <div className="control-hub-panel" style={{
+        padding: '16px 20px',
+        borderRadius: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        backdropFilter: 'blur(20px)',
+        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+      }}>
+        {/* 第一排：标题、搜索和视图切换 */}
+        <div className="control-hub-top-row" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="control-hub-logo-icon" style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              background: 'linear-gradient(135deg, var(--accent-color), #2563eb)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              cursor: status === 'uploading' ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
-            }}
-            onMouseEnter={(e) => {
-              if (status !== 'uploading') e.currentTarget.style.filter = 'brightness(1.1)';
-            }}
-            onMouseLeave={(e) => {
-              if (status !== 'uploading') e.currentTarget.style.filter = 'none';
-            }}
-          >
-            <UploadCloud size={14} />
-            <span>{status === 'uploading' ? '正在上传...' : '上传文件'}</span>
-          </button>
+              justifyContent: 'center',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15))',
+              border: '1px solid rgba(99,102,241,0.2)'
+            }}>
+              <FolderOpen size={16} style={{ color: '#6366f1' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                公共落盘共享空间
+                <span className="premium-glow-badge" style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 800,
+                  padding: '1px 6px',
+                  borderRadius: '6px',
+                  background: 'linear-gradient(90deg, #6366f1, #a855f7)',
+                  color: '#ffffff',
+                  boxShadow: '0 0 8px rgba(99,102,241,0.3)',
+                  textTransform: 'uppercase'
+                }}>P2P Hub</span>
+              </h2>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>局域网长效存储中转站 · 支持文件即拖即传</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1', justifyContent: 'flex-end', minWidth: '280px' }}>
+            {/* 模糊搜索舱 */}
+            <div className="search-input-shell" style={{
+              position: 'relative',
+              maxWidth: '300px',
+              width: '100%'
+            }}>
+              <Search size={13} style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-muted)'
+              }} />
+              <input
+                type="text"
+                placeholder="搜索文件、设备名称..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 14px 8px 34px',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  outline: 'none',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              />
+            </div>
+
+            {/* 视图切换按钮 */}
+            <div className="view-mode-pill" style={{
+              display: 'flex',
+              padding: '2px',
+              borderRadius: '10px',
+            }}>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`view-switch-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                title="网格视图"
+                style={{
+                  border: 'none',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                <LayoutGrid size={13} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`view-switch-btn ${viewMode === 'list' ? 'active' : ''}`}
+                title="精细列表"
+                style={{
+                  border: 'none',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                <List size={13} />
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* 第二排：胶囊类型筛选与排序选择 */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          paddingTop: '12px',
+          flexWrap: 'wrap'
+        }}>
+          {/* 胶囊过滤器 */}
+          <div className="capsule-filters-scroller" style={{
+            display: 'flex',
+            gap: '8px',
+            overflowX: 'auto',
+            paddingBottom: '2px'
+          }}>
+            <button 
+              onClick={() => setSelectedType('all')} 
+              className={`capsule-tab-btn ${selectedType === 'all' ? 'active' : ''}`}
+            >
+              全部
+            </button>
+            <button 
+              onClick={() => setSelectedType('image')} 
+              className={`capsule-tab-btn ${selectedType === 'image' ? 'active' : ''}`}
+            >
+              图片 🖼️
+            </button>
+            <button 
+              onClick={() => setSelectedType('video')} 
+              className={`capsule-tab-btn ${selectedType === 'video' ? 'active' : ''}`}
+            >
+              视频 🎥
+            </button>
+            <button 
+              onClick={() => setSelectedType('audio')} 
+              className={`capsule-tab-btn ${selectedType === 'audio' ? 'active' : ''}`}
+            >
+              音频 🎵
+            </button>
+            <button 
+              onClick={() => setSelectedType('document')} 
+              className={`capsule-tab-btn ${selectedType === 'document' ? 'active' : ''}`}
+            >
+              文档及其他 📂
+            </button>
+          </div>
+
+          {/* 排序器 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <ArrowUpDown size={11} />
+              排序:
+            </span>
+            <select
+              value={sortBy}
+              onChange={(e: any) => setSortBy(e.target.value)}
+              className="hub-sort-select"
+              style={{
+                fontSize: '0.75rem',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                outline: 'none',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              <option value="time-desc">上传时间 (最新优先)</option>
+              <option value="time-asc">上传时间 (最早优先)</option>
+              <option value="size-desc">文件大小 (从大到小)</option>
+              <option value="size-asc">文件大小 (从小到大)</option>
+            </select>
+
+            <span className="files-count-badge" style={{
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              padding: '4px 10px',
+              borderRadius: '20px',
+            }}>
+              共 {filteredFiles.length} 项
+            </span>
+          </div>
+        </div>
+
       </div>
 
-      {/* 极窄、微光大厂科技感状态指示栏 */}
-      {status !== 'idle' && (
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: `1px solid ${
-            status === 'uploading' ? 'rgba(59, 130, 246, 0.2)' :
-            status === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'
-          }`,
-          borderRadius: '12px',
-          padding: '12px 16px',
+      {/* 主体响应式复合双栏布局区域 */}
+      <div className="share-center-workspace-columns" style={{
+        display: 'flex',
+        gap: '20px',
+        width: '100%',
+        alignItems: 'flex-start'
+      }}>
+        
+        {/* 左侧：投递太空舱 (Upload Space Cabin) */}
+        <div className="upload-cabin-aside" style={{
+          width: '320px',
+          flexShrink: 0,
           display: 'flex',
           flexDirection: 'column',
-          gap: '8px',
-          animation: 'fade-in 0.25s ease'
+          gap: '16px'
         }}>
-          {status === 'uploading' && uploadingFile && (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '80%' }}>
-                  正在极速分片上传: {uploadingFile.name} ({formatBytes(uploadingFile.size)})
-                </span>
-                <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>{uploadProgress}%</span>
-              </div>
-              <div style={{ width: '100%', height: '3px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '2px', overflow: 'hidden' }}>
-                <div style={{
-                  width: `${uploadProgress}%`,
-                  height: '100%',
-                  background: 'linear-gradient(90deg, var(--accent-color), #60a5fa)',
-                  borderRadius: '2.5px',
-                  transition: 'width 0.15s linear',
-                  boxShadow: '0 0 6px var(--accent-color)'
-                }} />
-              </div>
-            </>
-          )}
-          
-          {status === 'success' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success-color)', fontSize: '0.8rem', fontWeight: 600 }}>
-              <CheckCircle2 size={14} />
-              <span>共享上传成功！文件已在服务器物理落盘并向局域网广播同步。</span>
-            </div>
-          )}
-          
-          {status === 'error' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--error-color)', fontSize: '0.8rem', fontWeight: 600 }}>
-              <AlertCircle size={14} />
-              <span>上传失败: {errorMsg || '发生了未知错误'}</span>
-            </div>
-          )}
-        </div>
-      )}
+          {/* 上传拖拽面板 */}
+          <div 
+            onClick={() => {
+              if (status !== 'uploading') fileInputRef.current?.click();
+            }}
+            className={`drop-zone-cabin ${isDragOver ? 'drag-over' : ''} ${status === 'uploading' ? 'disabled' : ''}`}
+            style={{
+              padding: '40px 24px',
+              borderRadius: '20px',
+              border: '2px dashed rgba(99, 102, 241, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              cursor: status === 'uploading' ? 'not-allowed' : 'pointer',
+              position: 'relative',
+              overflow: 'hidden',
+              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
+            {/* 炫光水滴流体发光层 */}
+            <div className="drop-zone-glow-aura" />
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+              disabled={status === 'uploading'}
+            />
 
-      {/* 共享文件列表 */}
-      <div style={{ 
-        flex: 1, 
-        overflowY: 'auto', 
-        maxHeight: '340px',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
-        borderRadius: '12px',
-        background: 'rgba(0, 0, 0, 0.1)'
-      }}>
-        {files.length === 0 ? (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            padding: '60px 0',
-            opacity: 0.35
-          }}>
-            <File size={28} style={{ color: 'var(--text-muted)' }} />
-            <p style={{ fontSize: '0.8rem', marginTop: '12px', color: 'var(--text-secondary)' }}>
-              暂无公共共享文件，拖拽文件即可占领沙发
-            </p>
+            <div className="icon-cabin-pulse" style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08))',
+              border: '1px solid rgba(99,102,241,0.15)',
+              marginBottom: '16px',
+              position: 'relative',
+              zIndex: 2
+            }}>
+              <UploadCloud size={22} className="cloud-upload-icon-anim" style={{ color: '#6366f1' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative', zIndex: 2 }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                极速闪传投递舱
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                松开文件拖入页面任意处上传
+              </span>
+            </div>
+
+            <button className="cabin-select-btn" style={{
+              marginTop: '20px',
+              border: 'none',
+              padding: '8px 18px',
+              borderRadius: '10px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: status === 'uploading' ? 'not-allowed' : 'pointer',
+              zIndex: 2,
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}>
+              选择文件投递
+            </button>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px' }}>
-            {files.map((file) => {
-              const dateStr = new Date(file.uploadedAt).toLocaleString('zh-CN', {
-                month: 'numeric',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              });
-              const isPreviewable = canPreview(file.fileName);
 
-              return (
-                <div
-                  key={file.id}
-                  className="shared-file-item-row"
-                  style={{
+          {/* 上传进度指示舱 (立体水滴波浪进度球) */}
+          {status !== 'idle' && (
+            <div className="upload-progress-cabin" style={{
+              padding: '20px',
+              borderRadius: '20px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px',
+              animation: 'fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}>
+              {status === 'uploading' && uploadingFile && (
+                <>
+                  {/* 高精美立体波浪球 */}
+                  <div className="wave-progress-orb" style={{
+                    width: '100px',
+                    height: '100px',
+                    borderRadius: '50%',
+                    position: 'relative',
+                    overflow: 'hidden',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 16px',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    borderRadius: '12px',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    cursor: isPreviewable ? 'pointer' : 'default',
-                    position: 'relative'
-                  }}
-                  onClick={() => {
-                    if (isPreviewable) {
-                      setPreviewFile(file);
-                    }
-                  }}
-                >
-                  {/* 左侧：文件图标与基本信息 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '10px',
-                      background: getFileIconBg(file.fileName),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
+                    justifyContent: 'center',
+                    boxShadow: '0 8px 24px rgba(99, 102, 241, 0.15)',
+                    border: '2px solid rgba(99, 102, 241, 0.2)'
+                  }}>
+                    {/* 背景波浪水面 */}
+                    <div className="wave-progress-water" style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: `${uploadProgress}%`,
+                      background: 'linear-gradient(180deg, #6366f1, #818cf8)',
+                      transition: 'height 0.2s linear',
+                      width: '100%',
+                      zIndex: 1
                     }}>
-                      {getFileIcon(file.fileName)}
+                      <div className="water-sine-wave wave-1" />
+                      <div className="water-sine-wave wave-2" />
                     </div>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span 
-                          style={{ 
-                            fontSize: '0.88rem', 
-                            fontWeight: 600, 
-                            color: 'var(--text-primary)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                          title={file.fileName}
-                        >
-                          {file.fileName}
-                        </span>
-                        {isPreviewable && (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            padding: '1px 6px',
-                            background: 'rgba(59, 130, 246, 0.1)',
-                            border: '1px solid rgba(59, 130, 246, 0.15)',
-                            color: '#60a5fa',
-                            borderRadius: '4px',
-                            fontSize: '0.65rem',
-                            fontWeight: 600
-                          }}>
-                            <Eye size={10} />
-                            <span>在线预览</span>
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        <span>{formatBytes(file.fileSize)}</span>
-                        <span>•</span>
-                        <span>{dateStr}</span>
-                      </div>
-                    </div>
+
+                    <span style={{ 
+                      fontSize: '1.25rem', 
+                      fontWeight: 800, 
+                      color: uploadProgress > 48 ? '#ffffff' : 'var(--text-primary)',
+                      zIndex: 3,
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '-0.02em',
+                      transition: 'color 0.2s'
+                    }}>
+                      {uploadProgress}%
+                    </span>
                   </div>
 
-                  {/* 右侧：设备徽章与操作按钮组 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                    {renderDeviceBadge(file.deviceInfo)}
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {isPreviewable && (
-                        <button
-                          onClick={() => setPreviewFile(file)}
-                          title="在线预览"
-                          className="action-btn preview-btn"
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          <Eye size={13} style={{ color: '#60a5fa' }} />
-                        </button>
-                      )}
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', width: '100%', display: 'block' }}>
+                      {uploadingFile.name}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      文件大小: {formatBytes(uploadingFile.size)}
+                    </span>
+                  </div>
 
-                      <a
-                        href={`/api/transfer/shared/download?id=${file.id}`}
-                        download={file.fileName}
-                        style={{ textDecoration: 'none' }}
-                      >
-                        <button
-                          title="安全下载"
-                          className="action-btn download-btn"
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          <Download size={13} style={{ color: 'var(--success-color)' }} />
-                        </button>
-                      </a>
-
-                      <button
-                        onClick={() => handleDelete(file.id)}
-                        title="物理删除"
-                        className="action-btn delete-btn"
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          width: '30px',
-                          height: '30px',
-                          borderRadius: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        <Trash2 size={13} style={{ color: 'var(--error-color)' }} />
-                      </button>
+                  {/* 测速及时间栏 */}
+                  <div style={{
+                    width: '100%',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '8px',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                    paddingTop: '12px'
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>闪传速度</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#6366f1', fontFamily: 'var(--font-mono)' }}>{uploadSpeed}</span>
                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>预计剩余</span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>{remainingTime || '计算中'}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {status === 'success' && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '16px 0',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 12px rgba(16, 185, 129, 0.1)'
+                  }}>
+                    <CheckCircle2 size={20} style={{ color: '#10b981' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>共享投递成功！</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>文件已物理落盘并全局同步</span>
                   </div>
                 </div>
-              );
-            })}
+              )}
+
+              {status === 'error' && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '16px 0',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 12px rgba(239, 68, 68, 0.1)'
+                  }}>
+                    <AlertCircle size={20} style={{ color: '#ef4444' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ef4444' }}>投递遭遇异常</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{errorMsg || '发生了未知错误'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 局域网提醒说明卡片 */}
+          <div className="cabin-info-card" style={{
+            padding: '16px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            display: 'flex',
+            gap: '12px',
+          }}>
+            <Info size={14} style={{ color: '#6366f1', flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>去中心化局域网广播</span>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                在这里上传的文件将被同步落盘于服务器指定物理目录，所有连入同一局域网的设备均可无损直接拉取，实现企业级 AirDrop 体验。
+              </p>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* 右侧：星轨资源池 (Resource Orbit) */}
+        <div className="resource-orbit-area" style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          
+          {filteredFiles.length === 0 ? (
+            <div className="orbit-empty-state" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              padding: '90px 24px',
+              borderRadius: '20px',
+              border: '1px dashed rgba(255, 255, 255, 0.06)'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.04)',
+                marginBottom: '16px'
+              }}>
+                <File size={24} style={{ color: 'var(--text-muted)' }} />
+              </div>
+              <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                资源池里空空如也
+              </h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', maxWidth: '320px', lineHeight: 1.4 }}>
+                暂无匹配该分类或关键字的文件。松开文件于页面任意位置，即可极速完成第一份投递！
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* 网格视图骨架 */}
+              {viewMode === 'grid' && (
+                <div className="orbit-files-grid" style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                  gap: '16px',
+                  width: '100%'
+                }}>
+                  {filteredFiles.map((file) => {
+                    const dateStr = new Date(file.uploadedAt).toLocaleString('zh-CN', {
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+                    const isPreviewable = canPreview(file.fileName);
+
+                    return (
+                      <div
+                        key={file.id}
+                        className="orbit-grid-card"
+                        style={{
+                          borderRadius: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          overflow: 'hidden',
+                          position: 'relative',
+                          transition: 'all 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
+                        }}
+                      >
+                        {/* 上半部：毛玻璃底图与格式图标展示区 */}
+                        <div 
+                          className="grid-card-thumbnail-wrapper"
+                          onClick={() => {
+                            if (isPreviewable) setPreviewFile(file);
+                          }}
+                          style={{
+                            height: '110px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            cursor: isPreviewable ? 'pointer' : 'default',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {/* 缩略图毛玻璃背景（如果是图片则直接流式拉取） */}
+                          {canPreview(file.fileName) && file.fileName.toLowerCase().match(/\.(png|jpg|jpeg|gif|webp|svg)$/) ? (
+                            <>
+                              <img 
+                                src={`/api/transfer/shared/download?id=${file.id}&preview=true`} 
+                                alt="" 
+                                style={{
+                                  position: 'absolute',
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  filter: 'blur(8px) brightness(0.65)',
+                                  opacity: 0.8
+                                }}
+                              />
+                              <img 
+                                src={`/api/transfer/shared/download?id=${file.id}&preview=true`} 
+                                alt={file.fileName}
+                                style={{
+                                  position: 'relative',
+                                  maxHeight: '85%',
+                                  maxWidth: '85%',
+                                  objectFit: 'contain',
+                                  borderRadius: '6px',
+                                  boxShadow: '0 6px 16px rgba(0,0,0,0.35)',
+                                  zIndex: 2,
+                                  transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                                }}
+                                className="grid-thumbnail-image"
+                              />
+                            </>
+                          ) : (
+                            <div className="grid-thumbnail-icon-shell" style={{
+                              width: '46px',
+                              height: '46px',
+                              borderRadius: '12px',
+                              background: getFileIconBg(file.fileName),
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                              transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                              zIndex: 2
+                            }}>
+                              {getFileIcon(file.fileName)}
+                            </div>
+                          )}
+
+                          {/* 悬浮预览小 Badge */}
+                          {isPreviewable && (
+                            <span className="grid-preview-badge" style={{
+                              position: 'absolute',
+                              top: '10px',
+                              left: '10px',
+                              zIndex: 3,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              borderRadius: '20px',
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                            }}>
+                              <Eye size={10} />
+                              <span>在线预览</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 下半部：卡片信息与操作按钮区 */}
+                        <div style={{
+                          padding: '14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px',
+                          flex: 1
+                        }}>
+                          {/* 文件名 */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                            <span 
+                              className="grid-card-filename"
+                              style={{ 
+                                fontSize: '0.82rem', 
+                                fontWeight: 700, 
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'block'
+                              }}
+                              title={file.fileName}
+                            >
+                              {file.fileName}
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              {formatBytes(file.fileSize)} · {dateStr}
+                            </span>
+                          </div>
+
+                          {/* 设备 Badge 与操作按钮 */}
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+                            paddingTop: '8px',
+                            marginTop: 'auto'
+                          }}>
+                            {renderDeviceBadge(file.deviceInfo)}
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {isPreviewable && (
+                                <button
+                                  onClick={() => setPreviewFile(file)}
+                                  title="在线预览"
+                                  className="action-btn-circle preview-glow"
+                                  style={{
+                                    border: 'none',
+                                    width: '26px',
+                                    height: '26px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                                  }}
+                                >
+                                  <Eye size={12} style={{ color: '#6366f1' }} />
+                                </button>
+                              )}
+
+                              <a
+                                href={`/api/transfer/shared/download?id=${file.id}`}
+                                download={file.fileName}
+                                style={{ textDecoration: 'none' }}
+                              >
+                                <button
+                                  title="极速下载"
+                                  className="action-btn-circle download-glow"
+                                  style={{
+                                    border: 'none',
+                                    width: '26px',
+                                    height: '26px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                                  }}
+                                >
+                                  <Download size={12} style={{ color: '#10b981' }} />
+                                </button>
+                              </a>
+
+                              <button
+                                onClick={() => handleDelete(file.id)}
+                                title="物理删除"
+                                className="action-btn-circle delete-glow"
+                                style={{
+                                  border: 'none',
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                                }}
+                              >
+                                <Trash2 size={12} style={{ color: '#ef4444' }} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 精细列表视图骨架 */}
+              {viewMode === 'list' && (
+                <div className="orbit-files-list-container" style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  width: '100%'
+                }}>
+                  {filteredFiles.map((file) => {
+                    const dateStr = new Date(file.uploadedAt).toLocaleString('zh-CN', {
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+                    const isPreviewable = canPreview(file.fileName);
+
+                    return (
+                      <div
+                        key={file.id}
+                        className="orbit-list-row"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 16px',
+                          borderRadius: '12px',
+                          transition: 'all 0.24s cubic-bezier(0.16, 1, 0.3, 1)',
+                          cursor: isPreviewable ? 'pointer' : 'default',
+                        }}
+                        onClick={() => {
+                          if (isPreviewable) setPreviewFile(file);
+                        }}
+                      >
+                        {/* 左侧：文件图标与文件名 */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: '1', minWidth: 0 }}>
+                          <div className="list-row-icon-shell" style={{
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '10px',
+                            background: getFileIconBg(file.fileName),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            {getFileIcon(file.fileName)}
+                          </div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span 
+                                className="list-row-filename"
+                                style={{ 
+                                  fontSize: '0.85rem', 
+                                  fontWeight: 700, 
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                title={file.fileName}
+                              >
+                                {file.fileName}
+                              </span>
+                              {isPreviewable && (
+                                <span className="list-preview-pill" style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '2px',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.62rem',
+                                  fontWeight: 700,
+                                }}>
+                                  <Eye size={10} />
+                                  <span>在线预览</span>
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              <span>{formatBytes(file.fileSize)}</span>
+                              <span>•</span>
+                              <span>{dateStr}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 右侧：设备徽章与操作按钮组 */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                          {renderDeviceBadge(file.deviceInfo)}
+                          
+                          <div className="list-row-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {isPreviewable && (
+                              <button
+                                onClick={() => setPreviewFile(file)}
+                                title="在线预览"
+                                className="action-btn-circle preview-glow"
+                                style={{
+                                  border: 'none',
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                                }}
+                              >
+                                <Eye size={12} style={{ color: '#6366f1' }} />
+                              </button>
+                            )}
+
+                            <a
+                              href={`/api/transfer/shared/download?id=${file.id}`}
+                              download={file.fileName}
+                              style={{ textDecoration: 'none' }}
+                            >
+                              <button
+                                title="极速下载"
+                                className="action-btn-circle download-glow"
+                                style={{
+                                  border: 'none',
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                                }}
+                              >
+                                <Download size={12} style={{ color: '#10b981' }} />
+                              </button>
+                            </a>
+
+                            <button
+                              onClick={() => handleDelete(file.id)}
+                              title="物理删除"
+                              className="action-btn-circle delete-glow"
+                              style={{
+                                border: 'none',
+                                width: '26px',
+                                height: '26px',
+                                  borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                              }}
+                            >
+                              <Trash2 size={12} style={{ color: '#ef4444' }} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
       </div>
 
       {/* 在线多媒体预览浮层弹窗 */}
@@ -963,246 +1721,714 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
         />
       )}
 
-      {/* 亮暗双色主题高精美 Badge 与表格微交互 CSS */}
+      {/* 亮暗双色主题高精美 Glassmorphism 全局及微交互 CSS */}
       <style jsx global>{`
-        /* ================= 共享中心主 Card 容器自适应 ================= */
-        .shared-files-card-container {
+        /* ================= 1. 顶部 Control Hub 配色与特效 ================= */
+        .control-hub-panel {
           background: rgba(30, 30, 35, 0.45) !important;
           border: 1px solid rgba(255, 255, 255, 0.08) !important;
-          box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15) !important;
+          box-shadow: 0 20px 25px rgba(0, 0, 0, 0.2) !important;
         }
         
-        [data-theme='light'] .shared-files-card-container {
+        [data-theme='light'] .control-hub-panel {
           background: rgba(255, 255, 255, 0.75) !important;
           border: 1px solid rgba(0, 0, 0, 0.06) !important;
-          box-shadow: 0 20px 25px rgba(0, 0, 0, 0.04) !important;
+          box-shadow: 0 15px 30px rgba(0, 0, 0, 0.03) !important;
         }
 
-        .shared-files-card-container.drag-over {
-          border: 2px dashed var(--accent-color) !important;
-          background: var(--accent-glow) !important;
+        .search-input-shell input {
+          background: rgba(0, 0, 0, 0.2) !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          color: var(--text-primary) !important;
+        }
+        .search-input-shell input:focus {
+          border-color: rgba(99, 102, 241, 0.6) !important;
+          background: rgba(0, 0, 0, 0.28) !important;
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.15) !important;
         }
 
-        /* ================= 共享中心列表项自适应 ================= */
-        .shared-file-item-row {
-          background: rgba(255, 255, 255, 0.02) !important;
-          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        [data-theme='light'] .search-input-shell input {
+          background: rgba(0, 0, 0, 0.03) !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          color: var(--text-primary) !important;
         }
-        
-        .shared-file-item-row:hover {
-          background: rgba(255, 255, 255, 0.05) !important;
-          border-color: rgba(255, 255, 255, 0.1) !important;
-          transform: translateY(-1.5px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        [data-theme='light'] .search-input-shell input:focus {
+          border-color: rgba(99, 102, 241, 0.5) !important;
+          background: #ffffff !important;
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.08) !important;
         }
 
-        [data-theme='light'] .shared-file-item-row {
-          background: rgba(0, 0, 0, 0.015) !important;
+        .view-mode-pill {
+          background: rgba(0, 0, 0, 0.15) !important;
+          border: 1px solid rgba(255, 255, 255, 0.04) !important;
+        }
+        [data-theme='light'] .view-mode-pill {
+          background: rgba(0, 0, 0, 0.03) !important;
           border: 1px solid rgba(0, 0, 0, 0.04) !important;
         }
-        
-        [data-theme='light'] .shared-file-item-row:hover {
-          background: rgba(0, 0, 0, 0.035) !important;
-          border-color: rgba(0, 0, 0, 0.08) !important;
-          transform: translateY(-1.5px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+        .view-switch-btn {
+          background: transparent !important;
+          color: var(--text-muted) !important;
+        }
+        .view-switch-btn.active {
+          background: rgba(255, 255, 255, 0.08) !important;
+          color: #6366f1 !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+        }
+        [data-theme='light'] .view-switch-btn.active {
+          background: #ffffff !important;
+          color: #6366f1 !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
         }
 
-        .action-btn:hover {
+        /* 胶囊过滤器样式 */
+        .capsule-tab-btn {
+          border: none !important;
+          padding: 6px 14px !important;
+          border-radius: 20px !important;
+          font-size: 0.76rem !important;
+          font-weight: 600 !important;
+          cursor: pointer !important;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          background: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+          color: var(--text-secondary) !important;
+          white-space: nowrap !important;
+        }
+        .capsule-tab-btn:hover {
+          background: rgba(255, 255, 255, 0.06) !important;
+          color: var(--text-primary) !important;
+        }
+        .capsule-tab-btn.active {
+          background: rgba(99, 102, 241, 0.12) !important;
+          border-color: rgba(99, 102, 241, 0.25) !important;
+          color: #818cf8 !important;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08) !important;
+        }
+
+        [data-theme='light'] .capsule-tab-btn {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border: 1px solid rgba(0, 0, 0, 0.04) !important;
+          color: var(--text-secondary) !important;
+        }
+        [data-theme='light'] .capsule-tab-btn:hover {
+          background: rgba(0, 0, 0, 0.04) !important;
+          color: var(--text-primary) !important;
+        }
+        [data-theme='light'] .capsule-tab-btn.active {
+          background: #6366f1 !important;
+          border-color: #6366f1 !important;
+          color: #ffffff !important;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.18) !important;
+        }
+
+        .hub-sort-select {
+          background: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+          color: var(--text-secondary) !important;
+        }
+        .hub-sort-select:hover {
+          background: rgba(255, 255, 255, 0.06) !important;
+          color: var(--text-primary) !important;
+        }
+        [data-theme='light'] .hub-sort-select {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border: 1px solid rgba(0, 0, 0, 0.05) !important;
+          color: var(--text-secondary) !important;
+        }
+        [data-theme='light'] .hub-sort-select:hover {
+          background: rgba(0, 0, 0, 0.04) !important;
+          color: var(--text-primary) !important;
+        }
+
+        .files-count-badge {
+          background: rgba(255, 255, 255, 0.04) !important;
+          color: var(--text-secondary) !important;
+          border: 1px solid rgba(255, 255, 255, 0.04) !important;
+        }
+        [data-theme='light'] .files-count-badge {
+          background: rgba(0, 0, 0, 0.03) !important;
+          color: var(--text-secondary) !important;
+          border: 1px solid rgba(0, 0, 0, 0.04) !important;
+        }
+
+        /* ================= 2. 左侧闪传投递舱 (Upload Cabin) ================= */
+        .drop-zone-cabin {
+          background: rgba(30, 30, 35, 0.45) !important;
+          box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15) !important;
+        }
+        [data-theme='light'] .drop-zone-cabin {
+          background: rgba(255, 255, 255, 0.75) !important;
+          box-shadow: 0 15px 25px rgba(0, 0, 0, 0.02) !important;
+        }
+
+        .drop-zone-glow-aura {
+          position: absolute;
+          top: -40px;
+          left: -40px;
+          right: -40px;
+          bottom: -40px;
+          background: radial-gradient(circle at center, rgba(99,102,241,0.04) 0%, transparent 65%);
+          z-index: 1;
+          pointer-events: none;
+          transition: background 0.3s;
+        }
+
+        .drop-zone-cabin.drag-over {
+          border-color: #6366f1 !important;
+          box-shadow: 0 0 25px rgba(99, 102, 241, 0.25) !important;
+          background: rgba(99, 102, 241, 0.03) !important;
+        }
+        .drop-zone-cabin.drag-over .drop-zone-glow-aura {
+          background: radial-gradient(circle at center, rgba(99,102,241,0.08) 0%, transparent 70%);
+        }
+
+        .drop-zone-cabin.drag-over .cloud-upload-icon-anim {
+          animation: drop-bounce 0.8s infinite alternate cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .cabin-select-btn {
+          background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+          color: #ffffff !important;
+          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2) !important;
+        }
+        .cabin-select-btn:hover {
+          filter: brightness(1.15) !important;
+          box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3) !important;
+          transform: translateY(-1px);
+        }
+
+        .upload-progress-cabin {
+          background: rgba(30, 30, 35, 0.45) !important;
+          box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15) !important;
+        }
+        [data-theme='light'] .upload-progress-cabin {
+          background: rgba(255, 255, 255, 0.75) !important;
+          box-shadow: 0 15px 25px rgba(0, 0, 0, 0.02) !important;
+        }
+
+        .cabin-info-card {
+          background: rgba(255, 255, 255, 0.01) !important;
+          background: rgba(255, 255, 255, 0.01) !important;
+        }
+        [data-theme='light'] .cabin-info-card {
+          background: rgba(0, 0, 0, 0.01) !important;
+          border-color: rgba(0, 0, 0, 0.04) !important;
+        }
+
+        /* 立体水滴波浪球动画 */
+        .water-sine-wave {
+          position: absolute;
+          width: 200%;
+          height: 200%;
+          background: rgba(255, 255, 255, 0.12);
+          border-radius: 38%;
+          left: -50%;
+          bottom: 0;
+          pointer-events: none;
+        }
+        .wave-1 {
+          animation: spin-sine-1 7s linear infinite;
+        }
+        .wave-2 {
+          animation: spin-sine-2 9s linear infinite;
+          border-radius: 40%;
+          background: rgba(255, 255, 255, 0.08);
+        }
+
+        @keyframes spin-sine-1 {
+          0% { transform: translateY(0) rotate(0deg); }
+          100% { transform: translateY(-4px) rotate(360deg); }
+        }
+        @keyframes spin-sine-2 {
+          0% { transform: translateY(0) rotate(0deg); }
+          100% { transform: translateY(-2px) rotate(-360deg); }
+        }
+
+        /* ================= 3. 右侧网格卡片 (Grid Card) ================= */
+        .orbit-grid-card {
+          background: rgba(30, 30, 35, 0.4) !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+        }
+        .orbit-grid-card:hover {
+          border-color: rgba(99, 102, 241, 0.22) !important;
+          box-shadow: 0 12px 24px rgba(99, 102, 241, 0.06), 0 4px 10px rgba(0, 0, 0, 0.12) !important;
+          transform: translateY(-3px) scale(1.01);
+        }
+
+        [data-theme='light'] .orbit-grid-card {
+          background: rgba(255, 255, 255, 0.7) !important;
+          border: 1px solid rgba(0, 0, 0, 0.05) !important;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.02) !important;
+        }
+        [data-theme='light'] .orbit-grid-card:hover {
+          border-color: rgba(99, 102, 241, 0.2) !important;
+          box-shadow: 0 12px 24px rgba(99, 102, 241, 0.05), 0 4px 10px rgba(0, 0, 0, 0.03) !important;
+          transform: translateY(-3px) scale(1.01);
+        }
+
+        .grid-card-thumbnail-wrapper {
+          background: rgba(0, 0, 0, 0.25) !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+        }
+        [data-theme='light'] .grid-card-thumbnail-wrapper {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+        }
+
+        .orbit-grid-card:hover .grid-thumbnail-image {
+          transform: scale(1.05) rotate(1deg);
+        }
+        .orbit-grid-card:hover .grid-thumbnail-icon-shell {
+          transform: scale(1.08) rotate(-2deg);
+        }
+
+        .grid-preview-badge {
+          background: rgba(9, 9, 11, 0.7) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          color: #d4d4d8 !important;
+          backdrop-filter: blur(8px) !important;
+        }
+        [data-theme='light'] .grid-preview-badge {
+          background: rgba(255, 255, 255, 0.85) !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          color: #4b5563 !important;
+          backdrop-filter: blur(8px) !important;
+        }
+
+        .grid-card-filename {
+          color: var(--text-primary) !important;
+        }
+
+        /* 圆形微动效操作按钮 */
+        .action-btn-circle {
+          background: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .action-btn-circle:hover {
+          transform: scale(1.1) translateY(-0.5px);
           background: rgba(255, 255, 255, 0.08) !important;
           border-color: rgba(255, 255, 255, 0.15) !important;
         }
-        [data-theme='light'] .action-btn:hover {
+
+        [data-theme='light'] .action-btn-circle {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+        }
+        [data-theme='light'] .action-btn-circle:hover {
+          transform: scale(1.1) translateY(-0.5px);
           background: rgba(0, 0, 0, 0.05) !important;
-          border-color: rgba(0, 0, 0, 0.1) !important;
+          border-color: rgba(0, 0, 0, 0.12) !important;
         }
 
-        .preview-btn:hover {
-          box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
+        .preview-glow:hover {
+          box-shadow: 0 0 10px rgba(99, 102, 241, 0.25) !important;
         }
-        .download-btn:hover {
-          box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+        .download-glow:hover {
+          box-shadow: 0 0 10px rgba(16, 185, 129, 0.25) !important;
         }
-        .delete-btn:hover {
-          border-color: rgba(239, 68, 68, 0.25) !important;
+        .delete-glow:hover {
           background: rgba(239, 68, 68, 0.08) !important;
-          box-shadow: 0 0 8px rgba(239, 68, 68, 0.15);
-        }
-        [data-theme='light'] .delete-btn:hover {
-          border-color: rgba(239, 68, 68, 0.3) !important;
-          background: rgba(239, 68, 68, 0.05) !important;
+          border-color: rgba(239, 68, 68, 0.25) !important;
+          box-shadow: 0 0 10px rgba(239, 68, 68, 0.25) !important;
         }
 
-        /* ================= 预览 Modal 遮罩与卡片自适应 ================= */
+        /* ================= 4. 右侧精细列表 (List View) ================= */
+        .orbit-list-row {
+          background: rgba(30, 30, 35, 0.4) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+        .orbit-list-row:hover {
+          background: rgba(30, 30, 35, 0.6) !important;
+          border-color: rgba(99, 102, 241, 0.2) !important;
+          transform: translateY(-1.5px);
+          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12), 0 0 8px rgba(99,102,241,0.04) !important;
+        }
+
+        [data-theme='light'] .orbit-list-row {
+          background: rgba(255, 255, 255, 0.7) !important;
+          border: 1px solid rgba(0, 0, 0, 0.04) !important;
+        }
+        [data-theme='light'] .orbit-list-row:hover {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(99, 102, 241, 0.18) !important;
+          transform: translateY(-1.5px);
+          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.03), 0 0 8px rgba(99,102,241,0.03) !important;
+        }
+
+        .list-row-filename {
+          color: var(--text-primary) !important;
+        }
+
+        .list-preview-pill {
+          background: rgba(99, 102, 241, 0.1) !important;
+          border: 1px solid rgba(99, 102, 241, 0.15) !important;
+          color: #818cf8 !important;
+        }
+        [data-theme='light'] .list-preview-pill {
+          background: rgba(99, 102, 241, 0.06) !important;
+          border: 1px solid rgba(99, 102, 241, 0.12) !important;
+          color: #4f46e5 !important;
+        }
+
+        /* ================= 5. 高阶流光设备 Badge 体系 ================= */
+        .custom-device-badge {
+          background: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          color: var(--text-secondary) !important;
+        }
+        [data-theme='light'] .custom-device-badge {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border: 1px solid rgba(0, 0, 0, 0.05) !important;
+        }
+
+        /* 苹果设备 */
+        .macos-glow {
+          background: linear-gradient(135deg, rgba(226, 232, 240, 0.06), rgba(71, 85, 105, 0.06)) !important;
+          border-color: rgba(226, 232, 240, 0.15) !important;
+          color: #e2e8f0 !important;
+          box-shadow: 0 0 8px rgba(226, 232, 240, 0.03);
+        }
+        [data-theme='light'] .macos-glow {
+          background: linear-gradient(135deg, rgba(241, 245, 249, 0.8), rgba(203, 213, 225, 0.8)) !important;
+          border-color: rgba(148, 163, 184, 0.2) !important;
+          color: #334155 !important;
+          box-shadow: none;
+        }
+
+        /* Windows 设备 */
+        .windows-glow {
+          background: linear-gradient(135deg, rgba(96, 165, 250, 0.08), rgba(37, 99, 235, 0.08)) !important;
+          border-color: rgba(96, 165, 250, 0.2) !important;
+          color: #60a5fa !important;
+          box-shadow: 0 0 8px rgba(37, 99, 235, 0.05);
+        }
+        [data-theme='light'] .windows-glow {
+          background: linear-gradient(135deg, rgba(239, 246, 255, 0.9), rgba(191, 219, 254, 0.9)) !important;
+          border-color: rgba(96, 165, 250, 0.3) !important;
+          color: #2563eb !important;
+          box-shadow: none;
+        }
+
+        /* 安卓设备 */
+        .android-glow {
+          background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(5, 150, 105, 0.08)) !important;
+          border-color: rgba(52, 211, 153, 0.2) !important;
+          color: #34d399 !important;
+          box-shadow: 0 0 8px rgba(5, 150, 105, 0.05);
+        }
+        [data-theme='light'] .android-glow {
+          background: linear-gradient(135deg, rgba(236, 253, 245, 0.9), rgba(167, 243, 208, 0.9)) !important;
+          border-color: rgba(52, 211, 153, 0.3) !important;
+          color: #059669 !important;
+          box-shadow: none;
+        }
+
+        /* Linux 与其它设备 */
+        .linux-glow {
+          background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(217, 119, 6, 0.08)) !important;
+          border-color: rgba(251, 191, 36, 0.2) !important;
+          color: #fbbf24 !important;
+          box-shadow: 0 0 8px rgba(217, 119, 6, 0.05);
+        }
+        [data-theme='light'] .linux-glow {
+          background: linear-gradient(135deg, rgba(255, 251, 235, 0.9), rgba(253, 244, 215, 0.9)) !important;
+          border-color: rgba(251, 191, 36, 0.3) !important;
+          color: #d97706 !important;
+          box-shadow: none;
+        }
+
+        /* ================= 6. 影院级多媒体预览弹窗 ================= */
         .preview-overlay {
-          background: rgba(9, 9, 11, 0.85) !important;
+          background: rgba(6, 6, 8, 0.88) !important;
         }
         [data-theme='light'] .preview-overlay {
-          background: rgba(15, 23, 42, 0.55) !important;
-          backdrop-filter: blur(16px) saturate(140%) !important;
+          background: rgba(15, 23, 42, 0.6) !important;
         }
 
-        .preview-modal-card {
-          background: rgba(30, 30, 36, 0.75) !important;
-          border: 1px solid rgba(255, 255, 255, 0.08) !important;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-          backdrop-filter: blur(30px) !important;
+        .preview-modal-card-cinema {
+          background: rgba(24, 24, 28, 0.72) !important;
+          border: 1px solid rgba(255, 255, 255, 0.09) !important;
+          box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7) !important;
+          backdrop-filter: blur(35px) !important;
+          background-image: radial-gradient(circle at top, rgba(99, 102, 241, 0.08) 0%, transparent 65%) !important;
         }
-
-        [data-theme='light'] .preview-modal-card {
-          background: rgba(255, 255, 255, 0.88) !important;
+        [data-theme='light'] .preview-modal-card-cinema {
+          background: rgba(255, 255, 255, 0.85) !important;
           border: 1px solid rgba(0, 0, 0, 0.08) !important;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12) !important;
-          backdrop-filter: blur(30px) !important;
+          box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.15) !important;
+          backdrop-filter: blur(35px) !important;
+          background-image: radial-gradient(circle at top, rgba(99, 102, 241, 0.05) 0%, transparent 65%) !important;
         }
 
-        /* ================= 预览顶栏与标题自适应 ================= */
-        .preview-header-bar {
-          background: rgba(0, 0, 0, 0.2) !important;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        .preview-header-bar-cinema {
+          background: rgba(0, 0, 0, 0.25) !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
         }
-        
-        .preview-header-title {
-          color: #f4f4f5 !important;
-        }
-
-        [data-theme='light'] .preview-header-bar {
+        [data-theme='light'] .preview-header-bar-cinema {
           background: rgba(0, 0, 0, 0.02) !important;
           border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
         }
-        
-        [data-theme='light'] .preview-header-title {
-          color: #18181b !important;
-        }
 
-        /* ================= 预览按钮及关闭按钮自适应 ================= */
-        .preview-header-action-btn {
-          background: rgba(255, 255, 255, 0.06) !important;
-          border: 1px solid rgba(255, 255, 255, 0.08) !important;
-          color: #d4d4d8 !important;
-        }
-        
-        .preview-header-action-btn:hover {
-          background: rgba(255, 255, 255, 0.12) !important;
-          color: #ffffff !important;
-        }
-
-        [data-theme='light'] .preview-header-action-btn {
-          background: rgba(0, 0, 0, 0.03) !important;
-          border: 1px solid rgba(0, 0, 0, 0.08) !important;
-          color: #4b5563 !important;
-        }
-        
-        [data-theme='light'] .preview-header-action-btn:hover {
-          background: rgba(0, 0, 0, 0.06) !important;
-          color: #09090b !important;
-        }
-
-        .preview-close-btn:hover {
-          background: rgba(239, 68, 68, 0.2) !important;
-          border-color: rgba(239, 68, 68, 0.3) !important;
-          color: #fca5a5 !important;
-        }
-
-        /* ================= 预览内容展示区 - 黑白/浅灰高阶棋盘格自适应 ================= */
-        .preview-content-area {
-          background-color: #121214 !important;
-          background-image: linear-gradient(45deg, #18181b 25%, transparent 25%, transparent 75%, #18181b 75%, #18181b), 
-                            linear-gradient(45deg, #18181b 25%, transparent 25%, transparent 75%, #18181b 75%, #18181b) !important;
-          background-size: 20px 20px !important;
-          background-position: 0 0, 10px 10px !important;
-        }
-
-        [data-theme='light'] .preview-content-area {
-          background-color: #fcfcfd !important;
-          background-image: linear-gradient(45deg, #f0f0f3 25%, transparent 25%, transparent 75%, #f0f0f3 75%, #f0f0f3), 
-                            linear-gradient(45deg, #f0f0f3 25%, transparent 25%, transparent 75%, #f0f0f3 75%, #f0f0f3) !important;
-        }
-
-        .preview-img-element {
-          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5) !important;
-        }
-
-        [data-theme='light'] .preview-img-element {
-          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08) !important;
-        }
-
-        /* ================= 预览音频播放卡片自适应 ================= */
-        .preview-audio-container {
+        .preview-header-icon-shell {
           background: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
         }
-        
-        .preview-audio-name {
-          color: #e4e4e7 !important;
-        }
-
-        [data-theme='light'] .preview-audio-container {
+        [data-theme='light'] .preview-header-icon-shell {
           background: rgba(0, 0, 0, 0.02) !important;
           border-color: rgba(0, 0, 0, 0.06) !important;
         }
-        
-        [data-theme='light'] .preview-audio-name {
-          color: #18181b !important;
+
+        .preview-header-title-cinema {
+          color: #f4f4f5 !important;
+        }
+        [data-theme='light'] .preview-header-title-cinema {
+          color: #0f172a !important;
         }
 
-        /* ================= 预览底栏与控制按钮自适应 ================= */
-        .preview-bottom-toolbar {
-          border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
-          background: rgba(0, 0, 0, 0.15) !important;
+        .preview-action-pill {
+          background: rgba(99, 102, 241, 0.1) !important;
+          border: 1px solid rgba(99, 102, 241, 0.2) !important;
+          color: #818cf8 !important;
+        }
+        .preview-action-pill:hover {
+          background: rgba(99, 102, 241, 0.16) !important;
+          color: #ffffff !important;
+          box-shadow: 0 0 10px rgba(99, 102, 241, 0.2) !important;
+          transform: translateY(-0.5px);
+        }
+        [data-theme='light'] .preview-action-pill {
+          background: #6366f1 !important;
+          border-color: #6366f1 !important;
+          color: #ffffff !important;
+        }
+        [data-theme='light'] .preview-action-pill:hover {
+          filter: brightness(1.08) !important;
+          box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2) !important;
         }
 
-        [data-theme='light'] .preview-bottom-toolbar {
+        .preview-close-btn-cinema {
+          background: rgba(255, 255, 255, 0.04) !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          color: #a1a1aa !important;
+        }
+        .preview-close-btn-cinema:hover {
+          background: rgba(239, 68, 68, 0.12) !important;
+          border-color: rgba(239, 68, 68, 0.25) !important;
+          color: #fca5a5 !important;
+        }
+        [data-theme='light'] .preview-close-btn-cinema {
+          background: rgba(0, 0, 0, 0.03) !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          color: #4b5563 !important;
+        }
+        [data-theme='light'] .preview-close-btn-cinema:hover {
+          background: rgba(239, 68, 68, 0.08) !important;
+          border-color: rgba(239, 68, 68, 0.2) !important;
+          color: #ef4444 !important;
+        }
+
+        /* 磨砂黑白棋盘格预览展示区 */
+        .preview-content-area-cinema {
+          background-color: #0d0d0f !important;
+          background-image: linear-gradient(45deg, #131316 25%, transparent 25%, transparent 75%, #131316 75%, #131316), 
+                            linear-gradient(45deg, #131316 25%, transparent 25%, transparent 75%, #131316 75%, #131316) !important;
+          background-size: 24px 24px !important;
+          background-position: 0 0, 12px 12px !important;
+        }
+        [data-theme='light'] .preview-content-area-cinema {
+          background-color: #fafafc !important;
+          background-image: linear-gradient(45deg, #f1f1f5 25%, transparent 25%, transparent 75%, #f1f1f5 75%, #f1f1f5), 
+                            linear-gradient(45deg, #f1f1f5 25%, transparent 25%, transparent 75%, #f1f1f5 75%, #f1f1f5) !important;
+        }
+
+        .preview-loading-box {
+          background: rgba(9, 9, 11, 0.8) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          color: #d4d4d8 !important;
+          backdrop-filter: blur(8px) !important;
+        }
+        [data-theme='light'] .preview-loading-box {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          color: #4b5563 !important;
+        }
+
+        .preview-img-element-cinema {
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+        }
+        [data-theme='light'] .preview-img-element-cinema {
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        /* 唱片机高级呼吸光圈 */
+        .preview-audio-shell {
+          background: rgba(255, 255, 255, 0.02) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important;
+        }
+        [data-theme='light'] .preview-audio-shell {
+          background: rgba(0,0,0,0.02) !important;
+          border-color: rgba(0,0,0,0.06) !important;
+          box-shadow: 0 15px 30px rgba(0,0,0,0.04) !important;
+        }
+
+        .preview-audio-name-cinema {
+          color: #f4f4f5 !important;
+        }
+        [data-theme='light'] .preview-audio-name-cinema {
+          color: #0f172a !important;
+        }
+
+        .audio-disc-neon-container {
+          background: rgba(99, 102, 241, 0.03) !important;
+          border: 1px solid rgba(99, 102, 241, 0.1) !important;
+        }
+        .audio-disc-neon-pulse {
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          right: -2px;
+          bottom: -2px;
+          border-radius: 50%;
+          background: conic-gradient(from 180deg, #6366f1, #a855f7, #3b82f6, #6366f1);
+          opacity: 0.15;
+          filter: blur(12px);
+          animation: spin 8s linear infinite;
+        }
+
+        .disc-grooves {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          border-radius: 50%;
+          background: repeating-radial-gradient(circle, transparent, transparent 3px, rgba(255,255,255,0.01) 4px, rgba(255,255,255,0.02) 5px);
+          pointer-events: none;
+        }
+
+        .preview-unsupported-box {
+          background: rgba(255, 255, 255, 0.02) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+        [data-theme='light'] .preview-unsupported-box {
+          background: rgba(0,0,0,0.02) !important;
+          border-color: rgba(0,0,0,0.05) !important;
+        }
+
+        .preview-action-btn-primary {
+          background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+          color: #ffffff !important;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+        }
+        .preview-action-btn-primary:hover {
+          filter: brightness(1.1) !important;
+          transform: translateY(-0.5px);
+          box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3) !important;
+        }
+
+        /* 预览控制条 */
+        .preview-bottom-toolbar-cinema {
+          border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+          background: rgba(0, 0, 0, 0.25) !important;
+        }
+        [data-theme='light'] .preview-bottom-toolbar-cinema {
           border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
           background: rgba(0, 0, 0, 0.02) !important;
         }
 
-        .preview-toolbar-btn {
-          background: rgba(255, 255, 255, 0.06) !important;
-          border: 1px solid rgba(255, 255, 255, 0.08) !important;
-          color: #e4e4e7 !important;
+        .preview-toolbar-btn-cinema {
+          background: rgba(255, 255, 255, 0.04) !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          color: #d4d4d8 !important;
         }
-        
-        .preview-toolbar-btn:hover {
-          background: rgba(255, 255, 255, 0.12) !important;
+        .preview-toolbar-btn-cinema:hover {
+          background: rgba(255, 255, 255, 0.08) !important;
           color: #ffffff !important;
+          border-color: rgba(255, 255, 255, 0.15) !important;
         }
-
-        [data-theme='light'] .preview-toolbar-btn {
+        [data-theme='light'] .preview-toolbar-btn-cinema {
           background: rgba(0, 0, 0, 0.03) !important;
-          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
           color: #4b5563 !important;
         }
-        
-        [data-theme='light'] .preview-toolbar-btn:hover {
+        [data-theme='light'] .preview-toolbar-btn-cinema:hover {
           background: rgba(0, 0, 0, 0.06) !important;
-          color: #09090b !important;
+          color: #0f172a !important;
+          border-color: rgba(0, 0, 0, 0.12) !important;
         }
 
-        /* ================= 高级大厂平滑动效定义 ================= */
+        /* ================= 7. 全局动效 ================= */
         @keyframes fade-in {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        @keyframes preview-scale-up {
-          from {
+        @keyframes preview-scale-up-elastic {
+          0% {
             opacity: 0;
-            transform: scale(0.96);
+            transform: scale(0.93) translateY(8px);
           }
-          to {
+          100% {
             opacity: 1;
-            transform: scale(1);
+            transform: scale(1) translateY(0);
           }
         }
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        @keyframes spin-back {
+          from { transform: rotate(360deg); }
+          to { transform: rotate(0deg); }
+        }
         
-        .animate-spin {
-          animation: spin 1s linear infinite;
+        .animate-spin-fast {
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes drop-bounce {
+          from { transform: translateY(0); }
+          to { transform: translateY(-6px); }
+        }
+
+        /* 响应式样式适配 */
+        @media (max-width: 1024px) {
+          .share-center-workspace-columns {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .upload-cabin-aside {
+            width: 100% !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .control-hub-panel {
+            padding: 12px 14px !important;
+          }
+          .search-input-shell {
+            max-width: 100% !important;
+            width: 100% !important;
+            order: 2;
+          }
+          .control-hub-top-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .control-hub-top-row > div:last-child {
+            justify-content: space-between !important;
+            width: 100% !important;
+          }
+          .orbit-files-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+          }
+          .grid-card-thumbnail-wrapper {
+            height: 90px !important;
+          }
         }
       `}</style>
-    </Card>
+    </div>
   );
 };
 export default SharedFiles;
