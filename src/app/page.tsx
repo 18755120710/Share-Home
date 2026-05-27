@@ -82,6 +82,7 @@ export default function Home() {
   const [absolutePath, setAbsolutePath] = useState('');
   const [configStatus, setConfigStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [configErrorMsg, setConfigErrorMsg] = useState('');
+  const [isSelectingDir, setIsSelectingDir] = useState(false);
 
   // 初始化拉取主题设置
   useEffect(() => {
@@ -176,6 +177,29 @@ export default function Home() {
     } catch (err: any) {
       setConfigStatus('error');
       setConfigErrorMsg(err.message || '配置提交异常');
+    }
+  };
+
+  const handleSelectDirectory = async () => {
+    setIsSelectingDir(true);
+    try {
+      const res = await fetch('/api/config/select-directory', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (!data.canceled && data.path) {
+          setStoragePath(data.path);
+        }
+      } else {
+        setConfigStatus('error');
+        setConfigErrorMsg(data.error || '系统弹窗调用异常，请手动输入路径');
+      }
+    } catch (err: any) {
+      setConfigStatus('error');
+      setConfigErrorMsg(err.message || '调用系统资源管理器失败，请手动输入路径');
+    } finally {
+      setIsSelectingDir(false);
     }
   };
 
@@ -740,26 +764,62 @@ export default function Home() {
                   </p>
 
                   <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                    <input
-                      type="text"
-                      value={storagePath}
-                      onChange={(e) => setStoragePath(e.target.value)}
-                      placeholder="例如: ./storage"
-                      style={{
-                        flex: 1,
-                        background: 'rgba(0, 0, 0, 0.2)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-sm)',
-                        padding: '10px 16px',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.85rem',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = 'var(--accent-color)'}
-                      onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
-                    />
-                    <Button onClick={handleSaveConfig} disabled={configStatus === 'saving' || !storagePath.trim()}>
+                    <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={storagePath}
+                        onChange={(e) => setStoragePath(e.target.value)}
+                        placeholder="例如: ./storage"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '10px 16px',
+                          paddingRight: '45px',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.85rem',
+                          outline: 'none',
+                          transition: 'border-color 0.2s'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = 'var(--accent-color)'}
+                        onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
+                      />
+                      <button
+                        onClick={handleSelectDirectory}
+                        disabled={isSelectingDir}
+                        title="打开系统文件夹选择器"
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = 'var(--accent-color)';
+                          e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = 'var(--text-secondary)';
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        {isSelectingDir ? (
+                          <RefreshCw size={15} style={{ animation: 'spin 1.2s linear infinite', display: 'inline-block' }} />
+                        ) : (
+                          <FolderOpen size={15} />
+                        )}
+                      </button>
+                    </div>
+                    <Button onClick={handleSaveConfig} disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}>
                       {configStatus === 'saving' ? '正在校验保存...' : '应用修改'}
                     </Button>
                   </div>
