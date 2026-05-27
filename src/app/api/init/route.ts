@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     status: 'ready',
     clientId,
+    wsPort,
     self: {
       id: clientId, // 返回本客户端独立的身份 ID，解决同名过滤冲突
       nickname,
