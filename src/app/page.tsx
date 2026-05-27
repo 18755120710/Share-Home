@@ -161,7 +161,10 @@ export default function Home() {
   const handleSaveConfig = async (migrate?: boolean) => {
     if (!storagePath.trim()) return;
     
-    if (migrate === true) {
+    // 强制防御性检查：若因为 React 事件绑定错误导致将 Event 传入，则安全过滤为 undefined
+    const realMigrate = typeof migrate === 'boolean' ? migrate : undefined;
+    
+    if (realMigrate === true) {
       setIsMigrating(true);
     }
     setConfigStatus('saving');
@@ -172,7 +175,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           storagePath: storagePath.trim(),
-          migrate: migrate
+          migrate: realMigrate
         })
       });
       const data = await res.json();
@@ -852,7 +855,7 @@ export default function Home() {
                         )}
                       </button>
                     </div>
-                    <Button onClick={handleSaveConfig} disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}>
+                    <Button onClick={() => handleSaveConfig()} disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}>
                       {configStatus === 'saving' ? '正在校验保存...' : '应用修改'}
                     </Button>
                   </div>
