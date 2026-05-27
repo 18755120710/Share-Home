@@ -994,20 +994,20 @@ export default function Home() {
           right: 0,
           bottom: 0,
           zIndex: 10000,
-          background: 'rgba(9, 9, 11, 0.7)',
-          backdropFilter: 'blur(16px) saturate(180%)',
+          background: 'rgba(9, 9, 11, 0.82)',
+          backdropFilter: 'blur(20px) saturate(190%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '24px',
         }}>
           <div style={{
-            background: 'var(--card-bg, #18181b)',
-            border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
+            background: '#18181b',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '24px',
             width: '100%',
             maxWidth: '540px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.08)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.1)',
             padding: '28px',
             display: 'flex',
             flexDirection: 'column',
@@ -1030,19 +1030,19 @@ export default function Home() {
                 <FolderOpen size={20} style={{ color: '#f59e0b' }} />
               </div>
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', margin: 0 }}>发现历史存储数据</h3>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>检测到您的原有目录中存有数据文件</p>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.01em', margin: 0 }}>发现历史存储数据</h3>
+                <p style={{ fontSize: '0.78rem', color: '#a1a1aa', marginTop: '2px', margin: 0 }}>检测到您的原有目录中存有数据文件</p>
               </div>
             </div>
 
             {/* 警示说明框 */}
             <div style={{
-              background: 'rgba(128, 128, 128, 0.04)',
-              border: '1px solid var(--border-color)',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
               borderRadius: '16px',
               padding: '16px',
               fontSize: '0.8rem',
-              color: 'var(--text-secondary)',
+              color: '#d4d4d8',
               lineHeight: 1.6,
               display: 'flex',
               flexDirection: 'column',
@@ -1051,15 +1051,15 @@ export default function Home() {
               <div>
                 您即将将默认存储路径更换为：
                 <div style={{
-                  background: 'rgba(0, 0, 0, 0.2)',
+                  background: 'rgba(99, 102, 241, 0.08)',
                   padding: '8px 12px',
                   borderRadius: '8px',
                   marginTop: '6px',
                   fontSize: '0.75rem',
                   fontFamily: 'monospace',
-                  color: 'var(--accent-color)',
+                  color: '#818cf8',
                   wordBreak: 'break-all',
-                  border: '1px solid rgba(99, 102, 241, 0.15)'
+                  border: '1px solid rgba(99, 102, 241, 0.2)'
                 }}>
                   {migrationPaths.newPath}
                 </div>
@@ -1068,21 +1068,22 @@ export default function Home() {
               <div>
                 原物理存储目录中存有共享文件及协作云文档：
                 <div style={{
-                  background: 'rgba(0, 0, 0, 0.1)',
+                  background: 'rgba(255, 255, 255, 0.04)',
                   padding: '8px 12px',
                   borderRadius: '8px',
                   marginTop: '6px',
                   fontSize: '0.75rem',
                   fontFamily: 'monospace',
-                  color: 'var(--text-muted)',
-                  wordBreak: 'break-all'
+                  color: '#d4d4d8',
+                  wordBreak: 'break-all',
+                  border: '1px solid rgba(255, 255, 255, 0.04)'
                 }}>
                   {migrationPaths.oldPath}
                 </div>
               </div>
 
-              <div style={{ color: '#f59e0b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', marginTop: '4px' }}>
-                <ShieldAlert size={13} style={{ flexShrink: 0 }} />
+              <div style={{ color: '#fbbf24', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', marginTop: '4px' }}>
+                <ShieldAlert size={13} style={{ flexShrink: 0, color: '#fbbf24' }} />
                 <span>推荐执行“一键自动迁移”，确保历史共享与云文档在新目录中无缝重现。</span>
               </div>
             </div>
@@ -1099,7 +1100,7 @@ export default function Home() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '10px',
-                  color: 'var(--accent-color)',
+                  color: '#818cf8',
                   fontSize: '0.82rem',
                   fontWeight: 600
                 }}>
@@ -1111,7 +1112,7 @@ export default function Home() {
                   <button
                     onClick={() => handleSaveConfig(true)}
                     style={{
-                      background: 'var(--accent-color, #2563eb)',
+                      background: '#2563eb',
                       color: '#ffffff',
                       border: 'none',
                       borderRadius: '12px',
@@ -1124,7 +1125,7 @@ export default function Home() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.15)'}
                     onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
@@ -1139,8 +1140,8 @@ export default function Home() {
                       style={{
                         flex: 1,
                         background: 'transparent',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border-color)',
+                        color: '#e4e4e7',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
                         borderRadius: '12px',
                         padding: '10px 16px',
                         fontSize: '0.82rem',
@@ -1148,8 +1149,14 @@ export default function Home() {
                         cursor: 'pointer',
                         transition: 'all 0.2s'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.06)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                        e.currentTarget.style.color = '#ffffff';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#e4e4e7';
+                      }}
                     >
                       仅切换路径 (保留现状)
                     </button>
@@ -1163,7 +1170,7 @@ export default function Home() {
                       style={{
                         flex: 1,
                         background: 'transparent',
-                        color: 'var(--text-muted)',
+                        color: '#a1a1aa',
                         border: '1px solid transparent',
                         borderRadius: '12px',
                         padding: '10px 16px',
@@ -1172,8 +1179,8 @@ export default function Home() {
                         cursor: 'pointer',
                         transition: 'all 0.2s'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                      onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = '#a1a1aa'}
                     >
                       取消修改
                     </button>
