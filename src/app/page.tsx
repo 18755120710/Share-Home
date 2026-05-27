@@ -349,7 +349,7 @@ export default function Home() {
               }}
             >
               <FileText size={15} style={{ color: activeTab === 'knowledge' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
-              <span className="sidebar-nav-text">飞书云文档</span>
+              <span className="sidebar-nav-text">云文档</span>
             </button>
 
             <button
