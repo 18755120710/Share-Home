@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useMdnsPeers } from '@/hooks/useMdnsPeers';
 import { useFileTransfer } from '@/hooks/useFileTransfer';
+import { SocketClient } from '@/lib/socketClient';
 import PeerList from '@/components/features/peers/PeerList';
 import Transfer from '@/components/features/transfer/Transfer';
 import SharedFiles from '@/components/features/transfer/SharedFiles';
@@ -83,9 +84,23 @@ export default function Home() {
   const [configStatus, setConfigStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [configErrorMsg, setConfigErrorMsg] = useState('');
   const [isSelectingDir, setIsSelectingDir] = useState(false);
-  const [showMigrationModal, setShowMigrationModal] = useState(false);
-  const [migrationPaths, setMigrationPaths] = useState<{ oldPath: string; newPath: string } | null>(null);
-  const [isMigrating, setIsMigrating] = useState(false);
+  const [showMigrationModal, setShowMigrationModal] = useState(true);
+  const [migrationPaths, setMigrationPaths] = useState<{ oldPath: string; newPath: string } | null>({
+    oldPath: 'D:\\Butvan_All_Projects\\butvan_project\\Share Home\\storage',
+    newPath: 'D:\\Resource_Alls\\share-home-data'
+  });
+  const [isMigrating, setIsMigrating] = useState(true);
+  const [migrationProgress, setMigrationProgress] = useState<{
+    total: number;
+    current: number;
+    percentage: number;
+    currentFile: string;
+  } | null>({
+    total: 28,
+    current: 12,
+    percentage: 43,
+    currentFile: 'D:\\Butvan_All_Projects\\butvan_project\\Share Home\\storage\\shared\\极速局域网文件共享核心架构.mp4'
+  });
 
   // 初始化拉取主题设置
   useEffect(() => {
@@ -139,6 +154,17 @@ export default function Home() {
 
   useEffect(() => {
     fetchConfig();
+
+    // 订阅物理文件迁移进度 WebSocket 事件
+    const socket = SocketClient.getInstance();
+    const unsubMigrationProgress = socket.subscribe('migration:progress', (progress: any) => {
+      console.log('[Settings] 物理数据迁移实时进度:', progress);
+      setMigrationProgress(progress);
+    });
+
+    return () => {
+      unsubMigrationProgress();
+    };
   }, []);
 
   const startEditProfile = () => {
@@ -166,6 +192,12 @@ export default function Home() {
     
     if (realMigrate === true) {
       setIsMigrating(true);
+      setMigrationProgress({
+        total: 0,
+        current: 0,
+        percentage: 0,
+        currentFile: '准备建立局域网数据合流信道...'
+      });
     }
     setConfigStatus('saving');
     
@@ -189,6 +221,7 @@ export default function Home() {
         } else {
           // 配置正式应用成功
           setShowMigrationModal(false);
+          setMigrationProgress(null);
           setStoragePath(data.storagePath);
           setAbsolutePath(data.absolutePath);
           setConfigStatus('success');
@@ -204,11 +237,13 @@ export default function Home() {
         }
       } else {
         setShowMigrationModal(false);
+        setMigrationProgress(null);
         setConfigStatus('error');
         setConfigErrorMsg(data.error || '路径无效或系统没有对该路径的写权限');
       }
     } catch (err: any) {
       setShowMigrationModal(false);
+      setMigrationProgress(null);
       setConfigStatus('error');
       setConfigErrorMsg(err.message || '配置提交异常');
     } finally {
@@ -1092,20 +1127,85 @@ export default function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
               {isMigrating ? (
                 <div style={{
-                  background: 'rgba(99, 102, 241, 0.08)',
-                  border: '1px solid rgba(99, 102, 241, 0.15)',
-                  borderRadius: '12px',
-                  padding: '14px',
+                  background: 'rgba(99, 102, 241, 0.04)',
+                  border: '1px solid rgba(99, 102, 241, 0.12)',
+                  borderRadius: '16px',
+                  padding: '20px',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  color: '#818cf8',
-                  fontSize: '0.82rem',
-                  fontWeight: 600
+                  flexDirection: 'column',
+                  gap: '14px',
                 }}>
-                  <RefreshCw size={15} style={{ animation: 'spin 1.2s linear infinite', display: 'inline-block' }} />
-                  <span>正在极速合并迁移历史文件，请勿断开服务...</span>
+                  {/* 第一行：状态标题 + 实时百分比数值 */}
+                  <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#818cf8', fontSize: '0.82rem', fontWeight: 600 }}>
+                      <RefreshCw size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
+                      <span>正在全速合并搬运历史文件...</span>
+                    </div>
+                    <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', fontWeight: 700, color: '#60a5fa', marginLeft: 'auto' }}>
+                      {migrationProgress ? `${migrationProgress.percentage}%` : '0%'}
+                    </span>
+                  </div>
+
+                  {/* 物理进度条轨道 */}
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    borderRadius: '99px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    border: '1px solid rgba(255, 255, 255, 0.02)'
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${migrationProgress ? migrationProgress.percentage : 0}%`,
+                      background: 'linear-gradient(90deg, #4f46e5 0%, #3b82f6 50%, #60a5fa 100%)',
+                      borderRadius: '99px',
+                      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 0 10px rgba(99, 102, 241, 0.4)'
+                    }} />
+                  </div>
+
+                  {/* 底部详细文件名展示 */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    fontSize: '0.72rem',
+                    color: '#a1a1aa'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      width: '100%',
+                      fontFamily: 'monospace'
+                    }}>
+                      <span>文件处理总进度:</span>
+                      <span style={{ marginLeft: 'auto', color: '#e4e4e7' }}>
+                        {migrationProgress ? `${migrationProgress.current} / ${migrationProgress.total}` : '0 / 0'}
+                      </span>
+                    </div>
+                    
+                    <div style={{
+                      background: 'rgba(0, 0, 0, 0.18)',
+                      border: '1px solid rgba(255, 255, 255, 0.03)',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      color: '#d4d4d8',
+                      fontFamily: 'monospace',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      marginTop: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }} title={migrationProgress?.currentFile || '准备迁移...'}>
+                      <span style={{ color: '#818cf8', flexShrink: 0 }}>📂</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {migrationProgress ? migrationProgress.currentFile : '建立安全通道...'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <>
