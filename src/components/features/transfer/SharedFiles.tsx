@@ -552,6 +552,15 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
   const [selectedType, setSelectedType] = useState<'all' | 'image' | 'video' | 'audio' | 'document'>('all');
   const [sortBy, setSortBy] = useState<'time-desc' | 'time-asc' | 'size-desc' | 'size-asc'>('time-desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // 分页相关状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12); // 默认每页展示 12 个
+
+  // 联动自愈重置：当模糊搜索、文件分类、排序方式或单页大小发生改变时，自动秒级重置当前页码为 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedType, sortBy, pageSize]);
   
   // 重构新增：上传测速
   const [uploadSpeed, setUploadSpeed] = useState('');
@@ -793,6 +802,17 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
       if (sortBy === 'size-asc') return a.fileSize - b.fileSize;
       return 0;
     });
+
+  // 分页截取计算
+  const totalItems = filteredFiles.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  
+  // 安全限制：防止当前页数 currentPage 越界
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedFiles = filteredFiles.slice(startIndex, startIndex + pageSize);
 
   return (
     <div 
@@ -1323,7 +1343,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                   gap: '16px',
                   width: '100%'
                 }}>
-                  {filteredFiles.map((file) => {
+                  {paginatedFiles.map((file) => {
                     const dateStr = new Date(file.uploadedAt).toLocaleString('zh-CN', {
                       month: 'numeric',
                       day: 'numeric',
@@ -1552,7 +1572,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                   gap: '8px',
                   width: '100%'
                 }}>
-                  {filteredFiles.map((file) => {
+                  {paginatedFiles.map((file) => {
                     const dateStr = new Date(file.uploadedAt).toLocaleString('zh-CN', {
                       month: 'numeric',
                       day: 'numeric',
@@ -1705,6 +1725,164 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* 智能磨砂玻璃分页控制器 */}
+              {totalItems > 0 && (
+                <div className="hub-pagination-bar" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 18px',
+                  borderRadius: '14px',
+                  marginTop: '16px',
+                  gap: '16px',
+                  flexWrap: 'wrap',
+                  transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}>
+                  {/* 左侧：数据区间统计说明 */}
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    <span>当前展示 </span>
+                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{startIndex + 1}</strong>
+                    <span> - </span>
+                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{endIndex}</strong>
+                    <span> 项，共 </span>
+                    <strong style={{ color: '#6366f1', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{totalItems}</strong>
+                    <span> 项</span>
+                  </div>
+
+                  {/* 中间：页码数字按钮组与上一页/下一页 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={safeCurrentPage === 1}
+                      className="pagination-arrow-btn"
+                      style={{
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: safeCurrentPage === 1 ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                      }}
+                    >
+                      <span>上一页</span>
+                    </button>
+
+                    {/* 页码渲染逻辑 */}
+                    {(() => {
+                      const pages = [];
+                      const maxVisible = 5;
+                      
+                      if (totalPages <= maxVisible) {
+                        for (let i = 1; i <= totalPages; i++) {
+                          pages.push(i);
+                        }
+                      } else {
+                        pages.push(1);
+                        let start = Math.max(2, safeCurrentPage - 1);
+                        let end = Math.min(totalPages - 1, safeCurrentPage + 1);
+                        
+                        if (safeCurrentPage <= 2) {
+                          end = 4;
+                        }
+                        if (safeCurrentPage >= totalPages - 1) {
+                          start = totalPages - 3;
+                        }
+                        
+                        if (start > 2) {
+                          pages.push('ellipsis-start');
+                        }
+                        for (let i = start; i <= end; i++) {
+                          pages.push(i);
+                        }
+                        if (end < totalPages - 1) {
+                          pages.push('ellipsis-end');
+                        }
+                        pages.push(totalPages);
+                      }
+
+                      return pages.map((page, idx) => {
+                        if (typeof page === 'string') {
+                          return (
+                            <span key={`ell-${idx}`} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0 4px' }}>
+                              ...
+                            </span>
+                          );
+                        }
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`pagination-num-btn ${safeCurrentPage === page ? 'active' : ''}`}
+                            style={{
+                              border: 'none',
+                              width: '30px',
+                              height: '30px',
+                              borderRadius: '8px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              fontFamily: 'var(--font-mono)',
+                              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                            }}
+                          >
+                            {page}
+                          </button>
+                        );
+                      });
+                    })()}
+
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={safeCurrentPage === totalPages}
+                      className="pagination-arrow-btn"
+                      style={{
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: safeCurrentPage === totalPages ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                      }}
+                    >
+                      <span>下一页</span>
+                    </button>
+                  </div>
+
+                  {/* 右侧：单页容量 pageSize 调整选择 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>每页显示:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => setPageSize(Number(e.target.value))}
+                      className="pagination-size-select"
+                      style={{
+                        fontSize: '0.75rem',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                      }}
+                    >
+                      <option value={8}>8 项</option>
+                      <option value={12}>12 项</option>
+                      <option value={24}>24 项</option>
+                      <option value={48}>48 项</option>
+                    </select>
+                  </div>
                 </div>
               )}
             </>
@@ -2426,6 +2604,103 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
           .grid-card-thumbnail-wrapper {
             height: 90px !important;
           }
+          .hub-pagination-bar {
+            padding: 8px 10px !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+            align-items: center !important;
+          }
+        }
+
+        /* ================= 8. 高保真磨砂玻璃分页控制器 CSS ================= */
+        .hub-pagination-bar {
+          background: rgba(30, 30, 35, 0.35) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+        }
+        [data-theme='light'] .hub-pagination-bar {
+          background: rgba(255, 255, 255, 0.6) !important;
+          border: 1px solid rgba(0, 0, 0, 0.04) !important;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.02) !important;
+        }
+
+        .pagination-arrow-btn {
+          background: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          color: var(--text-secondary) !important;
+        }
+        .pagination-arrow-btn:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.08) !important;
+          color: var(--text-primary) !important;
+          border-color: rgba(255, 255, 255, 0.12) !important;
+        }
+        .pagination-arrow-btn:disabled {
+          opacity: 0.35 !important;
+          cursor: not-allowed !important;
+        }
+
+        [data-theme='light'] .pagination-arrow-btn {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          color: var(--text-secondary) !important;
+        }
+        [data-theme='light'] .pagination-arrow-btn:hover:not(:disabled) {
+          background: rgba(0, 0, 0, 0.04) !important;
+          color: var(--text-primary) !important;
+          border-color: rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .pagination-num-btn {
+          background: rgba(255, 255, 255, 0.02) !important;
+          border: 1px solid rgba(255, 255, 255, 0.04) !important;
+          color: var(--text-secondary) !important;
+        }
+        .pagination-num-btn:hover {
+          background: rgba(255, 255, 255, 0.06) !important;
+          color: var(--text-primary) !important;
+          transform: scale(1.05);
+        }
+        .pagination-num-btn.active {
+          background: linear-gradient(135deg, #6366f1, #818cf8) !important;
+          border-color: #6366f1 !important;
+          color: #ffffff !important;
+          box-shadow: 0 0 10px rgba(99, 102, 241, 0.3) !important;
+          transform: scale(1.05);
+        }
+
+        [data-theme='light'] .pagination-num-btn {
+          background: rgba(0, 0, 0, 0.015) !important;
+          border: 1px solid rgba(0, 0, 0, 0.04) !important;
+          color: var(--text-secondary) !important;
+        }
+        [data-theme='light'] .pagination-num-btn:hover {
+          background: rgba(0, 0, 0, 0.04) !important;
+          color: var(--text-primary) !important;
+        }
+        [data-theme='light'] .pagination-num-btn.active {
+          background: #6366f1 !important;
+          border-color: #6366f1 !important;
+          color: #ffffff !important;
+          box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2) !important;
+        }
+
+        .pagination-size-select {
+          background: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          color: var(--text-secondary) !important;
+        }
+        .pagination-size-select:hover {
+          background: rgba(255, 255, 255, 0.06) !important;
+          color: var(--text-primary) !important;
+        }
+        [data-theme='light'] .pagination-size-select {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          color: var(--text-secondary) !important;
+        }
+        [data-theme='light'] .pagination-size-select:hover {
+          background: rgba(0, 0, 0, 0.04) !important;
+          color: var(--text-primary) !important;
         }
       `}</style>
     </div>
