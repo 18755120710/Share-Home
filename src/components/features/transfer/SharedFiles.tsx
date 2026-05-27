@@ -5,7 +5,9 @@ import { formatBytes } from '@/lib/format';
 import { SocketClient } from '@/lib/socketClient';
 import { 
   UploadCloud, File, Trash2, Download, Monitor, Laptop, 
-  Smartphone, Cpu, HelpCircle, CheckCircle2, AlertCircle 
+  Smartphone, Cpu, HelpCircle, CheckCircle2, AlertCircle,
+  Eye, FileImage, FileVideo, FileAudio, RotateCw, ZoomIn, 
+  ZoomOut, RefreshCw, X, Music, Play, ExternalLink
 } from 'lucide-react';
 
 interface SharedFile {
@@ -24,6 +26,410 @@ interface SharedFilesProps {
     onProgress?: (progress: number) => void
   ) => Promise<boolean>;
 }
+
+interface FilePreviewModalProps {
+  file: SharedFile;
+  onClose: () => void;
+}
+
+const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) => {
+  const [zoom, setZoom] = useState(1);
+  const [rotate, setRotate] = useState(0);
+  const [isImgLoading, setIsImgLoading] = useState(true);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const ext = file.fileName.toLowerCase().split('.').pop() || '';
+  const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+  const isVideo = ['mp4', 'webm', 'ogg'].includes(ext);
+  const isAudio = ['mp3', 'wav', 'ogg'].includes(ext);
+
+  const previewUrl = `/api/transfer/shared/download?id=${file.id}&preview=true`;
+
+  return (
+    <div 
+      className="preview-overlay"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+        background: 'rgba(9, 9, 11, 0.82)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        animation: 'fade-in 0.25s ease'
+      }}
+    >
+      <div 
+        className="preview-modal-card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: '960px',
+          maxHeight: '85vh',
+          background: 'rgba(30, 30, 36, 0.65)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(30px)',
+          animation: 'preview-scale-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+        }}
+      >
+        {/* 顶部标题与关闭 */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 24px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          background: 'rgba(0, 0, 0, 0.2)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            {isImage && <FileImage size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />}
+            {isVideo && <FileVideo size={18} style={{ color: '#10b981', flexShrink: 0 }} />}
+            {isAudio && <FileAudio size={18} style={{ color: '#ec4899', flexShrink: 0 }} />}
+            <span style={{ 
+              color: '#f4f4f5', 
+              fontWeight: 600, 
+              fontSize: '0.95rem',
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis', 
+              whiteSpace: 'nowrap'
+            }} title={file.fileName}>
+              {file.fileName}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* 顶栏独立外链直达 */}
+            <a 
+              href={previewUrl} 
+              target="_blank" 
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '8px',
+                color: '#d4d4d8',
+                fontSize: '0.75rem',
+                textDecoration: 'none',
+                fontWeight: 500,
+                transition: 'all 0.15s'
+              }}
+              className="preview-ext-link"
+            >
+              <ExternalLink size={12} />
+              <span>新窗口打开</span>
+            </a>
+
+            <button 
+              onClick={onClose}
+              style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.15)',
+                color: '#f87171',
+                width: '30px',
+                height: '30px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              className="preview-close-btn"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* 核心展示区 */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(10, 10, 12, 0.4)',
+          overflow: 'hidden',
+          position: 'relative',
+          minHeight: '380px',
+          padding: '20px'
+        }}>
+          {isImage && (
+            <div style={{ 
+              position: 'relative', 
+              width: '100%', 
+              height: '100%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
+              {isImgLoading && (
+                <div style={{ position: 'absolute', color: '#a1a1aa', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <RefreshCw size={14} className="animate-spin" />
+                  <span>正在极速渲染高解析度图片...</span>
+                </div>
+              )}
+              <img 
+                src={previewUrl} 
+                alt={file.fileName}
+                onLoad={() => setIsImgLoading(false)}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '60vh',
+                  objectFit: 'contain',
+                  borderRadius: '6px',
+                  transform: `scale(${zoom}) rotate(${rotate}deg)`,
+                  transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                  opacity: isImgLoading ? 0 : 1
+                }}
+              />
+            </div>
+          )}
+
+          {isVideo && (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <video 
+                src={previewUrl} 
+                controls 
+                autoPlay 
+                playsInline
+                preload="auto"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '60vh',
+                  borderRadius: '12px',
+                  boxShadow: '0 15px 35px rgba(0,0,0,0.5)',
+                  outline: 'none',
+                  background: '#000000'
+                }}
+              />
+            </div>
+          )}
+
+          {isAudio && (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '24px',
+              padding: '40px',
+              width: '100%',
+              maxWidth: '480px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              borderRadius: '24px',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+            }}>
+              {/* CD 唱盘旋转效果 */}
+              <div 
+                className="audio-disc-container"
+                style={{
+                  width: '120px',
+                  height: '120px',
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, #27272a 30%, #09090b 70%)',
+                  border: '6px solid rgba(255,255,255,0.05)',
+                  boxShadow: '0 0 30px rgba(236, 72, 153, 0.2), inset 0 0 20px rgba(0,0,0,0.8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  animation: 'spin 12s linear infinite'
+                }}
+              >
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: '#ec4899',
+                  border: '4px solid #18181b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Music size={14} style={{ color: '#ffffff' }} />
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ color: '#e4e4e7', fontWeight: 600, fontSize: '0.95rem' }}>{file.fileName}</span>
+                <span style={{ color: '#a1a1aa', fontSize: '0.78rem' }}>{formatBytes(file.fileSize)}</span>
+              </div>
+
+              <audio 
+                src={previewUrl} 
+                controls 
+                autoPlay
+                style={{
+                  width: '100%',
+                  borderRadius: '30px',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          )}
+
+          {/* 如果不是这三种格式，提供直接下载的阻碍指引 */}
+          {!isImage && !isVideo && !isAudio && (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px',
+              color: '#a1a1aa',
+              textAlign: 'center',
+              padding: '40px'
+            }}>
+              <AlertCircle size={40} style={{ color: '#eab308' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ color: '#e4e4e7', fontWeight: 600 }}>暂不支持此格式的在线预览</span>
+                <span style={{ fontSize: '0.8rem' }}>您可以直接通过右侧操作按钮将其流式下载到本地查看。</span>
+              </div>
+              <a 
+                href={`/api/transfer/shared/download?id=${file.id}`}
+                download={file.fileName}
+                style={{ textDecoration: 'none', marginTop: '10px' }}
+              >
+                <button style={{
+                  background: '#eab308',
+                  color: '#000000',
+                  border: 'none',
+                  padding: '8px 20px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}>
+                  立即下载
+                </button>
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* 底部图片控制条 */}
+        {isImage && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '20px',
+            padding: '12px 24px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'rgba(0, 0, 0, 0.15)'
+          }}>
+            <button 
+              onClick={() => setZoom(z => Math.min(z + 0.2, 3))}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#e4e4e7',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+              title="放大"
+            >
+              <ZoomIn size={14} />
+              <span>放大</span>
+            </button>
+
+            <button 
+              onClick={() => setZoom(z => Math.max(z - 0.2, 0.4))}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#e4e4e7',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+              title="缩小"
+            >
+              <ZoomOut size={14} />
+              <span>缩小</span>
+            </button>
+
+            <button 
+              onClick={() => setRotate(r => r + 90)}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#e4e4e7',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+              title="旋转 90°"
+            >
+              <RotateCw size={14} />
+              <span>旋转</span>
+            </button>
+
+            <button 
+              onClick={() => { setZoom(1); setRotate(0); }}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#e4e4e7',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+              title="重置缩放与角度"
+            >
+              <RefreshCw size={14} />
+              <span>重置</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // 客户端设备信息获取
 function getDeviceInfo(): string {
@@ -58,6 +464,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [previewFile, setPreviewFile] = useState<SharedFile | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -142,7 +549,6 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
           setUploadingFile(null);
           setUploadProgress(0);
         }, 2000);
-        // 主动刷新一次 (后端其实也会广播)
         fetchSharedFiles();
       } else {
         setStatus('error');
@@ -164,7 +570,6 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
       });
       const data = await res.json();
       if (data.success) {
-        // 后端会广播更新，这里拉取作为兜底
         fetchSharedFiles();
       } else {
         alert(`删除失败: ${data.error}`);
@@ -172,6 +577,40 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
     } catch (err: any) {
       alert(`删除异常: ${err.message}`);
     }
+  };
+
+  // 获取文件类别小图标
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.toLowerCase().split('.').pop() || '';
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+      return <FileImage size={15} style={{ color: '#3b82f6' }} />;
+    }
+    if (['mp4', 'webm', 'ogg'].includes(ext)) {
+      return <FileVideo size={15} style={{ color: '#10b981' }} />;
+    }
+    if (['mp3', 'wav'].includes(ext)) {
+      return <FileAudio size={15} style={{ color: '#ec4899' }} />;
+    }
+    return <File size={15} style={{ color: 'var(--text-secondary)' }} />;
+  };
+
+  const getFileIconBg = (fileName: string) => {
+    const ext = fileName.toLowerCase().split('.').pop() || '';
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+      return 'rgba(59, 130, 246, 0.08)';
+    }
+    if (['mp4', 'webm', 'ogg'].includes(ext)) {
+      return 'rgba(16, 185, 129, 0.08)';
+    }
+    if (['mp3', 'wav'].includes(ext)) {
+      return 'rgba(236, 72, 153, 0.08)';
+    }
+    return 'rgba(128, 128, 128, 0.08)';
+  };
+
+  const canPreview = (fileName: string) => {
+    const ext = fileName.toLowerCase().split('.').pop() || '';
+    return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg'].includes(ext);
   };
 
   // 根据设备信息渲染不同的专属高端 Badge 图标
@@ -221,15 +660,18 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
         flexDirection: 'column', 
         gap: '20px', 
         minHeight: '400px',
-        border: isDragOver ? '2px dashed var(--accent-color)' : '1px solid var(--border-color)',
-        background: isDragOver ? 'var(--accent-glow)' : 'var(--bg-card)',
+        border: isDragOver ? '2px dashed var(--accent-color)' : '1px solid rgba(255, 255, 255, 0.08)',
+        background: isDragOver ? 'var(--accent-glow)' : 'rgba(30, 30, 35, 0.45)',
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        position: 'relative'
+        position: 'relative',
+        borderRadius: '16px'
       }}
     >
       
       {/* 标题栏 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 0 4px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.025em', color: 'var(--text-primary)' }}>公共共享空间</h2>
           <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
@@ -238,11 +680,19 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            共享文件数: {files.length} 个
+          {/* 高档胶囊 Badge */}
+          <span style={{ 
+            fontSize: '0.75rem', 
+            color: 'var(--text-secondary)',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            padding: '4px 10px',
+            borderRadius: '20px',
+            fontWeight: 500
+          }}>
+            已共享: {files.length} 个文件
           </span>
           
-          {/* 隐藏的物理文件选择器 */}
           <input
             type="file"
             ref={fileInputRef}
@@ -259,15 +709,15 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
               alignItems: 'center',
               gap: '8px',
               padding: '8px 16px',
-              background: 'var(--accent-color)',
+              background: 'linear-gradient(135deg, var(--accent-color), #2563eb)',
               color: '#ffffff',
               border: 'none',
-              borderRadius: 'var(--radius-sm)',
+              borderRadius: '8px',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: status === 'uploading' ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s',
-              boxShadow: '0 2px 4px rgba(59, 130, 246, 0.15)'
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
             }}
             onMouseEnter={(e) => {
               if (status !== 'uploading') e.currentTarget.style.filter = 'brightness(1.1)';
@@ -285,12 +735,12 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
       {/* 极窄、微光大厂科技感状态指示栏 */}
       {status !== 'idle' && (
         <div style={{
-          background: 'var(--bg-item)',
+          background: 'rgba(255, 255, 255, 0.02)',
           border: `1px solid ${
             status === 'uploading' ? 'rgba(59, 130, 246, 0.2)' :
             status === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'
           }`,
-          borderRadius: 'var(--radius-md)',
+          borderRadius: '12px',
           padding: '12px 16px',
           display: 'flex',
           flexDirection: 'column',
@@ -305,7 +755,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                 </span>
                 <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>{uploadProgress}%</span>
               </div>
-              <div style={{ width: '100%', height: '3px', background: 'rgba(128, 128, 128, 0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '3px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '2px', overflow: 'hidden' }}>
                 <div style={{
                   width: `${uploadProgress}%`,
                   height: '100%',
@@ -338,10 +788,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
       <div style={{ 
         flex: 1, 
         overflowY: 'auto', 
-        maxHeight: '320px',
-        border: '1px solid var(--border-color)',
-        borderRadius: 'var(--radius-md)',
-        background: 'var(--bg-item)'
+        maxHeight: '340px',
+        border: '1px solid rgba(255, 255, 255, 0.05)',
+        borderRadius: '12px',
+        background: 'rgba(0, 0, 0, 0.1)'
       }}>
         {files.length === 0 ? (
           <div style={{ 
@@ -349,114 +799,120 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
             flexDirection: 'column', 
             alignItems: 'center', 
             justifyContent: 'center', 
-            padding: '50px 0',
-            opacity: 0.4
+            padding: '60px 0',
+            opacity: 0.35
           }}>
-            <File size={26} style={{ color: 'var(--text-muted)' }} />
-            <p style={{ fontSize: '0.8rem', marginTop: '10px' }}>暂无公共共享文件，拖拽文件即可占领沙发</p>
+            <File size={28} style={{ color: 'var(--text-muted)' }} />
+            <p style={{ fontSize: '0.8rem', marginTop: '12px', color: 'var(--text-secondary)' }}>
+              暂无公共共享文件，拖拽文件即可占领沙发
+            </p>
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>文件名</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>文件大小</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>上传设备</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>上传时间</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500, textAlign: 'center' }}>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((file) => {
-                const dateStr = new Date(file.uploadedAt).toLocaleString('zh-CN', {
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                });
-                
-                return (
-                  <tr 
-                    key={file.id} 
-                    className="shared-file-row"
-                    style={{ 
-                      borderBottom: '1px solid var(--border-color)',
-                    }}
-                  >
-                    {/* 文件名 */}
-                    <td style={{ 
-                      padding: '12px 16px', 
-                      fontWeight: 600, 
-                      maxWidth: '220px', 
-                      overflow: 'hidden', 
-                      textOverflow: 'ellipsis', 
-                      whiteSpace: 'nowrap',
-                      color: 'var(--text-primary)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <File size={13} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
-                        <span title={file.fileName}>{file.fileName}</span>
-                      </div>
-                    </td>
-                    
-                    {/* 大小 */}
-                    <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>
-                      {formatBytes(file.fileSize)}
-                    </td>
-                    
-                    {/* 设备指纹 */}
-                    <td style={{ padding: '12px 16px' }}>
-                      {renderDeviceBadge(file.deviceInfo)}
-                    </td>
-                    
-                    {/* 时间 */}
-                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                      {dateStr}
-                    </td>
-                    
-                    {/* 操作区 */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                        {/* 极速下载链接 */}
-                        <a
-                          href={`/api/transfer/shared/download?id=${file.id}`}
-                          download={file.fileName}
-                          style={{ textDecoration: 'none' }}
-                        >
-                          <button
-                            title="流式下载"
-                            className="action-btn download-btn"
-                            style={{
-                              background: 'var(--bg-item)',
-                              border: '1px solid var(--border-color)',
-                              width: '26px',
-                              height: '26px',
-                              borderRadius: '4px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s'
-                            }}
-                          >
-                            <Download size={12} style={{ color: 'var(--success-color)' }} />
-                          </button>
-                        </a>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px' }}>
+            {files.map((file) => {
+              const dateStr = new Date(file.uploadedAt).toLocaleString('zh-CN', {
+                month: 'numeric',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              const isPreviewable = canPreview(file.fileName);
 
-                        {/* 删除 */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(file.id);
+              return (
+                <div
+                  key={file.id}
+                  className="shared-file-item-row"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    cursor: isPreviewable ? 'pointer' : 'default',
+                    position: 'relative'
+                  }}
+                  onClick={() => {
+                    if (isPreviewable) {
+                      setPreviewFile(file);
+                    }
+                  }}
+                >
+                  {/* 左侧：文件图标与基本信息 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: getFileIconBg(file.fileName),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      {getFileIcon(file.fileName)}
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span 
+                          style={{ 
+                            fontSize: '0.88rem', 
+                            fontWeight: 600, 
+                            color: 'var(--text-primary)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
                           }}
-                          title="物理删除"
-                          className="action-btn delete-btn"
-                          style={{
-                            background: 'var(--bg-item)',
-                            border: '1px solid var(--border-color)',
-                            width: '26px',
-                            height: '26px',
+                          title={file.fileName}
+                        >
+                          {file.fileName}
+                        </span>
+                        {isPreviewable && (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            padding: '1px 6px',
+                            background: 'rgba(59, 130, 246, 0.1)',
+                            border: '1px solid rgba(59, 130, 246, 0.15)',
+                            color: '#60a5fa',
                             borderRadius: '4px',
+                            fontSize: '0.65rem',
+                            fontWeight: 600
+                          }}>
+                            <Eye size={10} />
+                            <span>在线预览</span>
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        <span>{formatBytes(file.fileSize)}</span>
+                        <span>•</span>
+                        <span>{dateStr}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 右侧：设备徽章与操作按钮组 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    {renderDeviceBadge(file.deviceInfo)}
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {isPreviewable && (
+                        <button
+                          onClick={() => setPreviewFile(file)}
+                          title="在线预览"
+                          className="action-btn preview-btn"
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '8px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -464,41 +920,127 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
                             transition: 'all 0.15s'
                           }}
                         >
-                          <Trash2 size={12} style={{ color: 'var(--error-color)' }} />
+                          <Eye size={13} style={{ color: '#60a5fa' }} />
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      )}
+
+                      <a
+                        href={`/api/transfer/shared/download?id=${file.id}`}
+                        download={file.fileName}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <button
+                          title="安全下载"
+                          className="action-btn download-btn"
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          <Download size={13} style={{ color: 'var(--success-color)' }} />
+                        </button>
+                      </a>
+
+                      <button
+                        onClick={() => handleDelete(file.id)}
+                        title="物理删除"
+                        className="action-btn delete-btn"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          width: '30px',
+                          height: '30px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <Trash2 size={13} style={{ color: 'var(--error-color)' }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
+      {/* 在线多媒体预览浮层弹窗 */}
+      {previewFile && (
+        <FilePreviewModal 
+          file={previewFile} 
+          onClose={() => setPreviewFile(null)} 
+        />
+      )}
+
       {/* 亮暗双色主题高精美 Badge 与表格微交互 CSS */}
       <style jsx global>{`
-        .upload-zone:hover {
-          border-color: var(--border-color-hover) !important;
-          background: var(--bg-item-hover) !important;
+        .shared-file-item-row:hover {
+          background: rgba(255, 255, 255, 0.05) !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
+          transform: translateY(-1.5px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
-        .upload-zone.drag-over {
-          border-color: var(--accent-color) !important;
-          background: var(--accent-glow) !important;
+        .action-btn:hover {
+          background: rgba(255, 255, 255, 0.08) !important;
+          border-color: rgba(255, 255, 255, 0.15) !important;
         }
-        .shared-file-row {
-          transition: background-color 0.15s;
-        }
-        .shared-file-row:hover {
-          background-color: var(--bg-item-hover) !important;
+        .preview-btn:hover {
+          box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
         }
         .download-btn:hover {
-          border-color: var(--success-color) !important;
-          background: var(--success-glow) !important;
+          box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
         }
         .delete-btn:hover {
-          border-color: var(--error-color) !important;
+          border-color: rgba(239, 68, 68, 0.25) !important;
           background: rgba(239, 68, 68, 0.08) !important;
+          box-shadow: 0 0 8px rgba(239, 68, 68, 0.15);
+        }
+        
+        .preview-ext-link:hover {
+          background: rgba(255, 255, 255, 0.12) !important;
+          color: #ffffff !important;
+        }
+        .preview-close-btn:hover {
+          background: rgba(239, 68, 68, 0.2) !important;
+          border-color: rgba(239, 68, 68, 0.3) !important;
+          color: #fca5a5 !important;
+        }
+
+        /* 高级大厂平滑动效定义 */
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes preview-scale-up {
+          from {
+            opacity: 0;
+            transform: scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </Card>
