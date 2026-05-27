@@ -266,7 +266,10 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       });
       const data = await res.json();
       if (data.success) {
-        setDocuments(prev => [newFolder, ...prev]);
+        setDocuments(prev => {
+          if (prev.some(d => d.id === folderId)) return prev;
+          return [newFolder, ...prev];
+        });
         // 自动将父级文件夹设为展开状态，方便用户瞬间看到新建项
         if (targetParentId) {
           setExpandedFolderIds(prev => {
@@ -917,7 +920,10 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       });
       const data = await res.json();
       if (data.success) {
-        setDocuments(prev => [newDoc, ...prev]);
+        setDocuments(prev => {
+          if (prev.some(d => d.id === docId)) return prev;
+          return [newDoc, ...prev];
+        });
         // 自动展开父级文件夹
         if (targetParentId) {
           setExpandedFolderIds(prev => {
