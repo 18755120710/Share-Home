@@ -52,7 +52,7 @@ const MarkdownPaste = Extension.create({
 
             // 识别粘贴的文本是否带 Markdown 标志
             const isMarkdown = /^\s*(?:#+\s|-+\s|\*+\s|>+\s|```)/m.test(text) || text.includes('**') || text.includes('`');
-            const parser = this.editor.storage.markdown?.parser;
+            const parser = (this.editor.storage as any).markdown?.parser;
 
             if (isMarkdown && parser) {
               try {
