@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ConfigService } from '@/services/configService';
+import { SocketService } from '@/services/socketService';
 import fs from 'fs';
 import path from 'path';
 
@@ -15,19 +16,45 @@ function hasUserData(dir: string): boolean {
   }
 }
 
-// 物理迁移目录（首选 rename，跨盘符则分步自愈拷贝）
-function migrateDirectory(src: string, dest: string) {
+// 优雅呼吸感微延时函数（非阻塞）
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// 物理迁移目录（首选 rename，跨盘符则分步自愈拷贝并基于 WebSocket 推送进度，带优雅呼吸时序）
+async function migrateDirectory(src: string, dest: string) {
   if (!fs.existsSync(src)) return;
   if (!fs.existsSync(dest)) {
     fs.mkdirSync(dest, { recursive: true });
   }
 
-  const items = fs.readdirSync(src);
-  for (const item of items) {
-    if (item.startsWith('.')) continue; // 忽略隐藏系统文件
+  const rawItems = fs.readdirSync(src);
+  const items = rawItems.filter(item => !item.startsWith('.') && item !== 'config-settings.json');
+  const total = items.length;
+  let current = 0;
 
+  const socketService = SocketService.getInstance();
+  // 1. 发送初始进度 0%
+  socketService.broadcast('migration:progress', {
+    total,
+    current: 0,
+    percentage: 0,
+    currentFile: '正在初始化目录合并...'
+  });
+  
+  // 给予 0% 状态一个 250ms 的初始舒适缓冲
+  await delay(250);
+
+  for (const item of items) {
     const srcPath = path.join(src, item);
     const destPath = path.join(dest, item);
+
+    current++;
+    // 2. 发送当前正在搬运的文件的百分比进度
+    socketService.broadcast('migration:progress', {
+      total,
+      current,
+      percentage: Math.round((current / total) * 100),
+      currentFile: item
+    });
 
     try {
       // 尝试同逻辑分区瞬间移动
@@ -40,7 +67,22 @@ function migrateDirectory(src: string, dest: string) {
         throw err;
       }
     }
+    
+    // 每一个文件完成物理搬运后，加入 180ms 的平滑呼吸缓冲
+    // 即使在高速 rename 场景下，也能呈现出起伏有序的跃动拉伸进度
+    await delay(180);
   }
+
+  // 3. 发送终期 100% 完成信号
+  socketService.broadcast('migration:progress', {
+    total,
+    current: total,
+    percentage: 100,
+    currentFile: '所有历史大文件及云文档已安全合流重组！'
+  });
+  
+  // 终期 100% 成功状态停留半秒，让用户从容阅毕，极具安全仪式感
+  await delay(600);
 }
 
 // 跨盘移动递归处理，支持子目录和文件
@@ -132,7 +174,7 @@ export async function POST(request: Request) {
     if (!isSamePath && migrate === true) {
       try {
         console.log(`[ConfigAPI] 正在执行数据迁移: 从 ${oldAbsPath} 到 ${newAbsPath}`);
-        migrateDirectory(oldAbsPath, newAbsPath);
+        await migrateDirectory(oldAbsPath, newAbsPath);
         console.log(`[ConfigAPI] 数据迁移合并成功！`);
       } catch (err: any) {
         console.error('[ConfigAPI] 数据迁移失败:', err);
