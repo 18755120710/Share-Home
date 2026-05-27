@@ -63,7 +63,6 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
         right: 0,
         bottom: 0,
         zIndex: 9999,
-        background: 'rgba(9, 9, 11, 0.82)',
         backdropFilter: 'blur(20px) saturate(180%)',
         display: 'flex',
         alignItems: 'center',
@@ -80,32 +79,25 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
           width: '100%',
           maxWidth: '960px',
           maxHeight: '85vh',
-          background: 'rgba(30, 30, 36, 0.65)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(30px)',
           animation: 'preview-scale-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
         }}
       >
         {/* 顶部标题与关闭 */}
-        <div style={{
+        <div className="preview-header-bar" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '16px 24px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-          background: 'rgba(0, 0, 0, 0.2)'
+          padding: '16px 24px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             {isImage && <FileImage size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />}
             {isVideo && <FileVideo size={18} style={{ color: '#10b981', flexShrink: 0 }} />}
             {isAudio && <FileAudio size={18} style={{ color: '#ec4899', flexShrink: 0 }} />}
-            <span style={{ 
-              color: '#f4f4f5', 
+            <span className="preview-header-title" style={{ 
               fontWeight: 600, 
               fontSize: '0.95rem',
               overflow: 'hidden', 
@@ -122,21 +114,18 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
               href={previewUrl} 
               target="_blank" 
               rel="noreferrer"
+              className="preview-header-action-btn"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '6px 12px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '8px',
-                color: '#d4d4d8',
                 fontSize: '0.75rem',
                 textDecoration: 'none',
                 fontWeight: 500,
                 transition: 'all 0.15s'
               }}
-              className="preview-ext-link"
             >
               <ExternalLink size={12} />
               <span>新窗口打开</span>
@@ -144,10 +133,8 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
             <button 
               onClick={onClose}
+              className="preview-header-action-btn"
               style={{
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.15)',
-                color: '#f87171',
                 width: '30px',
                 height: '30px',
                 borderRadius: '8px',
@@ -157,7 +144,6 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                 cursor: 'pointer',
                 transition: 'all 0.15s'
               }}
-              className="preview-close-btn"
             >
               <X size={16} />
             </button>
@@ -165,12 +151,11 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
         </div>
 
         {/* 核心展示区 */}
-        <div style={{
+        <div className="preview-content-area" style={{
           flex: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(10, 10, 12, 0.4)',
           overflow: 'hidden',
           position: 'relative',
           minHeight: '380px',
@@ -187,7 +172,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
               overflow: 'hidden'
             }}>
               {isImgLoading && (
-                <div style={{ position: 'absolute', color: '#a1a1aa', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ position: 'absolute', color: '#a1a1aa', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 1 }}>
                   <RefreshCw size={14} className="animate-spin" />
                   <span>正在极速渲染高解析度图片...</span>
                 </div>
@@ -196,6 +181,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                 src={previewUrl} 
                 alt={file.fileName}
                 onLoad={() => setIsImgLoading(false)}
+                className="preview-img-element"
                 style={{
                   maxWidth: '100%',
                   maxHeight: '60vh',
@@ -203,7 +189,6 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                   borderRadius: '6px',
                   transform: `scale(${zoom}) rotate(${rotate}deg)`,
                   transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
                   opacity: isImgLoading ? 0 : 1
                 }}
               />
@@ -222,7 +207,6 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                   maxWidth: '100%',
                   maxHeight: '60vh',
                   borderRadius: '12px',
-                  boxShadow: '0 15px 35px rgba(0,0,0,0.5)',
                   outline: 'none',
                   background: '#000000'
                 }}
@@ -231,7 +215,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
           )}
 
           {isAudio && (
-            <div style={{
+            <div className="preview-audio-container" style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -240,11 +224,9 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
               padding: '40px',
               width: '100%',
               maxWidth: '480px',
-              background: 'rgba(255, 255, 255, 0.03)',
               border: '1px solid rgba(255, 255, 255, 0.05)',
               borderRadius: '24px',
-              backdropFilter: 'blur(20px)',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
             }}>
               {/* CD 唱盘旋转效果 */}
               <div 
@@ -253,9 +235,6 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                   width: '120px',
                   height: '120px',
                   borderRadius: '50%',
-                  background: 'radial-gradient(circle, #27272a 30%, #09090b 70%)',
-                  border: '6px solid rgba(255,255,255,0.05)',
-                  boxShadow: '0 0 30px rgba(236, 72, 153, 0.2), inset 0 0 20px rgba(0,0,0,0.8)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -267,18 +246,16 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
-                  background: '#ec4899',
-                  border: '4px solid #18181b',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Music size={14} style={{ color: '#ffffff' }} />
+                  <Music size={14} />
                 </div>
               </div>
 
               <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ color: '#e4e4e7', fontWeight: 600, fontSize: '0.95rem' }}>{file.fileName}</span>
+                <span className="preview-audio-name" style={{ fontWeight: 600, fontSize: '0.95rem' }}>{file.fileName}</span>
                 <span style={{ color: '#a1a1aa', fontSize: '0.78rem' }}>{formatBytes(file.fileSize)}</span>
               </div>
 
@@ -306,9 +283,9 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
               textAlign: 'center',
               padding: '40px'
             }}>
-              <AlertCircle size={40} style={{ color: '#eab308' }} />
+              <AlertCircle size={40} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ color: '#e4e4e7', fontWeight: 600 }}>暂不支持此格式的在线预览</span>
+                <span>暂不支持此格式的在线预览</span>
                 <span style={{ fontSize: '0.8rem' }}>您可以直接通过右侧操作按钮将其流式下载到本地查看。</span>
               </div>
               <a 
@@ -317,8 +294,6 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                 style={{ textDecoration: 'none', marginTop: '10px' }}
               >
                 <button style={{
-                  background: '#eab308',
-                  color: '#000000',
                   border: 'none',
                   padding: '8px 20px',
                   borderRadius: '8px',
@@ -336,28 +311,25 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
         {/* 底部图片控制条 */}
         {isImage && (
-          <div style={{
+          <div className="preview-bottom-toolbar" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '20px',
-            padding: '12px 24px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-            background: 'rgba(0, 0, 0, 0.15)'
+            padding: '12px 24px'
           }}>
             <button 
               onClick={() => setZoom(z => Math.min(z + 0.2, 3))}
+              className="preview-toolbar-btn"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#e4e4e7',
                 padding: '6px 12px',
                 borderRadius: '8px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.8rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'all 0.15s'
               }}
               title="放大"
             >
@@ -367,17 +339,16 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
             <button 
               onClick={() => setZoom(z => Math.max(z - 0.2, 0.4))}
+              className="preview-toolbar-btn"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#e4e4e7',
                 padding: '6px 12px',
                 borderRadius: '8px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.8rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'all 0.15s'
               }}
               title="缩小"
             >
@@ -387,17 +358,16 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
             <button 
               onClick={() => setRotate(r => r + 90)}
+              className="preview-toolbar-btn"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#e4e4e7',
                 padding: '6px 12px',
                 borderRadius: '8px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.8rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'all 0.15s'
               }}
               title="旋转 90°"
             >
@@ -407,17 +377,16 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
 
             <button 
               onClick={() => { setZoom(1); setRotate(0); }}
+              className="preview-toolbar-btn"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#e4e4e7',
                 padding: '6px 12px',
                 borderRadius: '8px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.8rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'all 0.15s'
               }}
               title="重置缩放与角度"
             >
@@ -654,16 +623,14 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      className={`shared-files-card-container ${isDragOver ? 'drag-over' : ''}`}
       style={{ 
         flex: 1.3, 
         display: 'flex', 
         flexDirection: 'column', 
         gap: '20px', 
         minHeight: '400px',
-        border: isDragOver ? '2px dashed var(--accent-color)' : '1px solid rgba(255, 255, 255, 0.08)',
-        background: isDragOver ? 'var(--accent-glow)' : 'rgba(30, 30, 35, 0.45)',
         backdropFilter: 'blur(20px)',
-        boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
         borderRadius: '16px'
@@ -987,16 +954,58 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
 
       {/* 亮暗双色主题高精美 Badge 与表格微交互 CSS */}
       <style jsx global>{`
+        /* ================= 共享中心主 Card 容器自适应 ================= */
+        .shared-files-card-container {
+          background: rgba(30, 30, 35, 0.45) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15) !important;
+        }
+        
+        [data-theme='light'] .shared-files-card-container {
+          background: rgba(255, 255, 255, 0.75) !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          box-shadow: 0 20px 25px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        .shared-files-card-container.drag-over {
+          border: 2px dashed var(--accent-color) !important;
+          background: var(--accent-glow) !important;
+        }
+
+        /* ================= 共享中心列表项自适应 ================= */
+        .shared-file-item-row {
+          background: rgba(255, 255, 255, 0.02) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+        
         .shared-file-item-row:hover {
           background: rgba(255, 255, 255, 0.05) !important;
           border-color: rgba(255, 255, 255, 0.1) !important;
           transform: translateY(-1.5px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
+
+        [data-theme='light'] .shared-file-item-row {
+          background: rgba(0, 0, 0, 0.015) !important;
+          border: 1px solid rgba(0, 0, 0, 0.04) !important;
+        }
+        
+        [data-theme='light'] .shared-file-item-row:hover {
+          background: rgba(0, 0, 0, 0.035) !important;
+          border-color: rgba(0, 0, 0, 0.08) !important;
+          transform: translateY(-1.5px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
         .action-btn:hover {
           background: rgba(255, 255, 255, 0.08) !important;
           border-color: rgba(255, 255, 255, 0.15) !important;
         }
+        [data-theme='light'] .action-btn:hover {
+          background: rgba(0, 0, 0, 0.05) !important;
+          border-color: rgba(0, 0, 0, 0.1) !important;
+        }
+
         .preview-btn:hover {
           box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
         }
@@ -1008,18 +1017,157 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
           background: rgba(239, 68, 68, 0.08) !important;
           box-shadow: 0 0 8px rgba(239, 68, 68, 0.15);
         }
+        [data-theme='light'] .delete-btn:hover {
+          border-color: rgba(239, 68, 68, 0.3) !important;
+          background: rgba(239, 68, 68, 0.05) !important;
+        }
+
+        /* ================= 预览 Modal 遮罩与卡片自适应 ================= */
+        .preview-overlay {
+          background: rgba(9, 9, 11, 0.85) !important;
+        }
+        [data-theme='light'] .preview-overlay {
+          background: rgba(15, 23, 42, 0.55) !important;
+          backdrop-filter: blur(16px) saturate(140%) !important;
+        }
+
+        .preview-modal-card {
+          background: rgba(30, 30, 36, 0.75) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+          backdrop-filter: blur(30px) !important;
+        }
+
+        [data-theme='light'] .preview-modal-card {
+          background: rgba(255, 255, 255, 0.88) !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12) !important;
+          backdrop-filter: blur(30px) !important;
+        }
+
+        /* ================= 预览顶栏与标题自适应 ================= */
+        .preview-header-bar {
+          background: rgba(0, 0, 0, 0.2) !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        }
         
-        .preview-ext-link:hover {
+        .preview-header-title {
+          color: #f4f4f5 !important;
+        }
+
+        [data-theme='light'] .preview-header-bar {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        [data-theme='light'] .preview-header-title {
+          color: #18181b !important;
+        }
+
+        /* ================= 预览按钮及关闭按钮自适应 ================= */
+        .preview-header-action-btn {
+          background: rgba(255, 255, 255, 0.06) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          color: #d4d4d8 !important;
+        }
+        
+        .preview-header-action-btn:hover {
           background: rgba(255, 255, 255, 0.12) !important;
           color: #ffffff !important;
         }
+
+        [data-theme='light'] .preview-header-action-btn {
+          background: rgba(0, 0, 0, 0.03) !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          color: #4b5563 !important;
+        }
+        
+        [data-theme='light'] .preview-header-action-btn:hover {
+          background: rgba(0, 0, 0, 0.06) !important;
+          color: #09090b !important;
+        }
+
         .preview-close-btn:hover {
           background: rgba(239, 68, 68, 0.2) !important;
           border-color: rgba(239, 68, 68, 0.3) !important;
           color: #fca5a5 !important;
         }
 
-        /* 高级大厂平滑动效定义 */
+        /* ================= 预览内容展示区 - 黑白/浅灰高阶棋盘格自适应 ================= */
+        .preview-content-area {
+          background-color: #121214 !important;
+          background-image: linear-gradient(45deg, #18181b 25%, transparent 25%, transparent 75%, #18181b 75%, #18181b), 
+                            linear-gradient(45deg, #18181b 25%, transparent 25%, transparent 75%, #18181b 75%, #18181b) !important;
+          background-size: 20px 20px !important;
+          background-position: 0 0, 10px 10px !important;
+        }
+
+        [data-theme='light'] .preview-content-area {
+          background-color: #fcfcfd !important;
+          background-image: linear-gradient(45deg, #f0f0f3 25%, transparent 25%, transparent 75%, #f0f0f3 75%, #f0f0f3), 
+                            linear-gradient(45deg, #f0f0f3 25%, transparent 25%, transparent 75%, #f0f0f3 75%, #f0f0f3) !important;
+        }
+
+        .preview-img-element {
+          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        [data-theme='light'] .preview-img-element {
+          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        /* ================= 预览音频播放卡片自适应 ================= */
+        .preview-audio-container {
+          background: rgba(255, 255, 255, 0.03) !important;
+        }
+        
+        .preview-audio-name {
+          color: #e4e4e7 !important;
+        }
+
+        [data-theme='light'] .preview-audio-container {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border-color: rgba(0, 0, 0, 0.06) !important;
+        }
+        
+        [data-theme='light'] .preview-audio-name {
+          color: #18181b !important;
+        }
+
+        /* ================= 预览底栏与控制按钮自适应 ================= */
+        .preview-bottom-toolbar {
+          border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+          background: rgba(0, 0, 0, 0.15) !important;
+        }
+
+        [data-theme='light'] .preview-bottom-toolbar {
+          border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
+          background: rgba(0, 0, 0, 0.02) !important;
+        }
+
+        .preview-toolbar-btn {
+          background: rgba(255, 255, 255, 0.06) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          color: #e4e4e7 !important;
+        }
+        
+        .preview-toolbar-btn:hover {
+          background: rgba(255, 255, 255, 0.12) !important;
+          color: #ffffff !important;
+        }
+
+        [data-theme='light'] .preview-toolbar-btn {
+          background: rgba(0, 0, 0, 0.03) !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          color: #4b5563 !important;
+        }
+        
+        [data-theme='light'] .preview-toolbar-btn:hover {
+          background: rgba(0, 0, 0, 0.06) !important;
+          color: #09090b !important;
+        }
+
+        /* ================= 高级大厂平滑动效定义 ================= */
         @keyframes fade-in {
           from { opacity: 0; }
           to { opacity: 1; }
