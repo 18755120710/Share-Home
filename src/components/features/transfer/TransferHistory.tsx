@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TransferTask } from '@/types/transfer';
 import Card from '@/components/ui/Card';
 import { 
   Search, Trash2, Laptop, Monitor, Smartphone, 
   CheckCircle2, XCircle, Ban, History, ShieldAlert, 
-  ArrowRightLeft, Check, Sparkles, AlertCircle
+  ArrowRightLeft, Check, Sparkles, AlertCircle,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 interface TransferHistoryProps {
@@ -28,6 +29,15 @@ export default function TransferHistory({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  // 当搜索词或过滤条件改变时，重置页码为第一页
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeFilter]);
 
   // 格式化时间
   const formatDateTime = (timestamp: number) => {
@@ -79,6 +89,11 @@ export default function TransferHistory({
     // 降序排序
     .sort((a, b) => b.startedAt - a.startedAt);
 
+  // 分页后的任务列表
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / ITEMS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedTasks = filteredTasks.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
   // 获取 OS 图标和类型类名
   const getOsInfo = (os: string) => {
     const lower = os.toLowerCase();
@@ -111,7 +126,39 @@ export default function TransferHistory({
   };
 
   // 渲染简写文字圆徽章头像
-  const renderAvatar = (name: string) => {
+  const renderAvatar = (name: string, avatar?: string) => {
+    // 如果存在自定义头像或 Emoji，则渲染精美的头像背景及符号
+    if (avatar && avatar.trim()) {
+      const isLaptop = avatar === 'avatar-1' || avatar === '💻';
+      const isMonitor = avatar === 'avatar-2' || avatar === '🖥️';
+      const isSmartphone = avatar === 'avatar-3' || avatar === '📱';
+      
+      if (isLaptop || isMonitor || isSmartphone || (!avatar.startsWith('avatar-') && avatar.length <= 4)) {
+        return (
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            background: 'rgba(128, 128, 128, 0.05)',
+            color: 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+            flexShrink: 0
+          }}>
+            {isLaptop && <Laptop size={18} />}
+            {isMonitor && <Monitor size={18} />}
+            {isSmartphone && <Smartphone size={18} />}
+            {!isLaptop && !isMonitor && !isSmartphone && (
+              <span style={{ fontSize: '18px', lineHeight: 1 }}>{avatar}</span>
+            )}
+          </div>
+        );
+      }
+    }
+
     const initial = name.trim().charAt(0).toUpperCase() || 'P';
     const colorHash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 5;
     
@@ -144,6 +191,97 @@ export default function TransferHistory({
         {initial}
       </div>
     );
+  };
+
+  const renderPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show page 1
+      pages.push(1);
+      
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      
+      if (currentPage <= 2) {
+        end = 4;
+      } else if (currentPage >= totalPages - 1) {
+        start = totalPages - 3;
+      }
+      
+      if (start > 2) {
+        pages.push('ellipsis-start');
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (end < totalPages - 1) {
+        pages.push('ellipsis-end');
+      }
+      
+      // Always show last page
+      pages.push(totalPages);
+    }
+    
+    return pages.map((p, idx) => {
+      if (typeof p === 'string') {
+        return (
+          <span key={`ellipsis-${idx}`} style={{ 
+            padding: '0 8px', 
+            color: 'var(--text-muted)',
+            fontSize: '0.8rem',
+            userSelect: 'none'
+          }}>
+            ...
+          </span>
+        );
+      }
+      
+      const isSelected = p === currentPage;
+      return (
+        <button
+          key={`page-${p}`}
+          onClick={() => setCurrentPage(p)}
+          style={{
+            background: isSelected ? 'var(--accent-color)' : 'rgba(128, 128, 128, 0.04)',
+            border: isSelected ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+            color: isSelected ? '#ffffff' : 'var(--text-primary)',
+            borderRadius: '6px',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontWeight: isSelected ? 700 : 500,
+            fontSize: '0.8rem',
+            transition: 'all 0.2s',
+            boxShadow: isSelected ? '0 2px 6px var(--accent-glow)' : 'none'
+          }}
+          onMouseEnter={(e) => {
+            if (!isSelected) {
+              e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+              e.currentTarget.style.borderColor = 'var(--border-color-hover)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isSelected) {
+              e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+              e.currentTarget.style.borderColor = 'var(--border-color)';
+            }
+          }}
+        >
+          {p}
+        </button>
+      );
+    });
   };
 
   return (
@@ -489,7 +627,7 @@ export default function TransferHistory({
               </p>
             </div>
           ) : (
-            filteredTasks.map(task => {
+            paginatedTasks.map(task => {
               const isCompleted = task.status === 'completed';
               const isRejected = task.status === 'rejected';
               
@@ -547,7 +685,7 @@ export default function TransferHistory({
                   }}>
                     {/* 左侧：发送端 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '170px', flex: 1 }}>
-                      {renderAvatar(senderName)}
+                      {renderAvatar(senderName, task.senderAvatar)}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{senderName}</span>
@@ -648,7 +786,7 @@ export default function TransferHistory({
                         </div>
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>IP: {receiverIp}</span>
                       </div>
-                      {renderAvatar(receiverName)}
+                      {renderAvatar(receiverName, task.receiverAvatar)}
                     </div>
                   </div>
 
@@ -715,6 +853,97 @@ export default function TransferHistory({
             })
           )}
         </div>
+
+        {/* 4. 精美分页导航组件 */}
+        {filteredTasks.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: '20px',
+            paddingTop: '16px',
+            borderTop: '1px solid var(--border-color)',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            {/* 左侧：分页状态 */}
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              显示第 <strong style={{ color: 'var(--text-primary)' }}>{startIndex + 1}</strong> 至 <strong style={{ color: 'var(--text-primary)' }}>{Math.min(startIndex + ITEMS_PER_PAGE, filteredTasks.length)}</strong> 项，共 <strong style={{ color: 'var(--text-primary)' }}>{filteredTasks.length}</strong> 项记录
+            </span>
+
+            {/* 右侧：页码及前/后页按钮 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                style={{
+                  background: 'rgba(128, 128, 128, 0.04)',
+                  border: '1px solid var(--border-color)',
+                  color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                  borderRadius: '6px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: currentPage === 1 ? 0.5 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (currentPage !== 1) {
+                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+                    e.currentTarget.style.borderColor = 'var(--border-color-hover)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentPage !== 1) {
+                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                  }
+                }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {/* 渲染数字页码 */}
+              {renderPageNumbers()}
+
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                style={{
+                  background: 'rgba(128, 128, 128, 0.04)',
+                  border: '1px solid var(--border-color)',
+                  color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                  borderRadius: '6px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: currentPage === totalPages ? 0.5 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (currentPage !== totalPages) {
+                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
+                    e.currentTarget.style.borderColor = 'var(--border-color-hover)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentPage !== totalPages) {
+                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                  }
+                }}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* SVG 动画 CSS 注入 */}
