@@ -45,6 +45,10 @@ export function useMdnsPeers() {
       const res = await fetch(`/api/init?clientId=${cid}&nickname=${encodeURIComponent(nickname)}&avatar=${avatar}&os=${os}`);
       const data = await res.json();
       if (data.status === 'ready') {
+        // 同步存储后端权威派生的唯一 clientId
+        if (data.clientId && typeof window !== 'undefined') {
+          localStorage.setItem('share_home_client_id', data.clientId);
+        }
         const selfData = {
           ...data.self,
           isSelf: true,
