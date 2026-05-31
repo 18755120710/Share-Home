@@ -77,7 +77,6 @@ export const Button: React.FC<ButtonProps> = ({
         e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.boxShadow = 'none';
         if (variant === 'primary') {
-          e.currentTarget.style.background = 'var(--btn-primary-bg, #ffffff)';
           e.currentTarget.style.opacity = '1';
         } else if (variant === 'secondary') {
           e.currentTarget.style.background = 'var(--btn-secondary-bg)';
