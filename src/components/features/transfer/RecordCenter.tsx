@@ -233,18 +233,18 @@ export default function RecordCenter({
           onClearHistory={onClearHistory}
         />
       ) : (
-        // 共享记录 & 云文档记录：渲染大厂高科技集中列表面板 (无重复 Header Tabs)
-        <div className="flex flex-col gap-5">
+        // 共享记录 & 云文档记录：渲染大厂高科技集中列表面板 (完全去卡片化平铺直行)
+        <div className="flex flex-col gap-4">
           
-          {/* 高级极简搜索及清空工具条 */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border border-border/30 rounded-xl p-3 px-[18px] bg-card/10 backdrop-blur-sm shadow-sm">
+          {/* 高级极简搜索及清空工具条 (彻底去除包裹容器，仅做无框裸露工具行) */}
+          <div className="flex flex-wrap items-center justify-between gap-4 py-2 mt-1">
             <div className="relative w-60">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={subTab === 'share' ? "搜索共享文件名 / 上传者..." : "搜索云文档名称 / 新建者..."}
-                className="w-full bg-muted/40 border border-border/80 rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-border-hover focus:ring-2 focus:ring-zinc-500/10 transition-all duration-200"
+                className="w-full bg-muted/30 border border-border/80 rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-border-hover focus:ring-2 focus:ring-zinc-500/10 transition-all duration-200"
               />
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
@@ -274,7 +274,7 @@ export default function RecordCenter({
                 ) : (
                   <button
                     onClick={() => setShowClearConfirm(true)}
-                    className="flex items-center gap-1.5 border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200"
+                    className="flex items-center gap-1.5 text-muted-foreground hover:text-destructive transition-colors text-xs font-medium"
                   >
                     <Trash2 size={13} />
                     清空此类记录
@@ -284,10 +284,10 @@ export default function RecordCenter({
             )}
           </div>
 
-          {/* 列表陈列容器 (无Card大包装，一体化平铺设计) */}
-          <div className="border border-border/30 rounded-xl bg-card/25 backdrop-blur-sm overflow-hidden shadow-sm flex flex-col">
-            <div className="flex items-center justify-between border-b border-border/30 py-4 px-6 bg-muted/10">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {/* 列表陈列容器 (无任何Card大包装，一体化平铺直行) */}
+          <div className="flex flex-col mt-2">
+            <div className="flex items-center justify-between border-b border-border/20 pb-3 mb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 {subTab === 'share' ? '公共共享空间文件投递日志' : '局域网去中心协作审计日志'}
               </h3>
               <span className="text-xs font-semibold text-muted-foreground/80">
@@ -304,7 +304,7 @@ export default function RecordCenter({
               ) : filteredLogs.length === 0 ? (
                 <div className="py-12 text-center opacity-70 flex flex-col items-center justify-center">
                   <AlertCircle size={26} className="text-muted-foreground mb-3 opacity-40" />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground font-semibold">
                     当前尚无匹配的操作活动记录
                   </p>
                 </div>
@@ -322,7 +322,7 @@ export default function RecordCenter({
                           onNavigateToDoc(docId);
                         }
                       }}
-                      className={`group p-5 hover:bg-muted/15 border-b border-border/20 last:border-b-0 flex items-center justify-between gap-4 transition-colors duration-150 ${
+                      className={`group py-5 px-1 hover:px-4 hover:bg-muted/10 border-b border-border/15 last:border-b-0 flex items-center justify-between gap-4 transition-all duration-150 rounded-lg ${
                         subTab === 'document' && docId ? 'cursor-pointer' : 'cursor-default'
                       }`}
                     >
@@ -387,7 +387,7 @@ export default function RecordCenter({
 
             {/* 分页控制 */}
             {filteredLogs.length > 0 && (
-              <div className="border-t border-border/30 py-3.5 px-6 bg-muted/10">
+              <div className="py-5 flex items-center justify-center gap-2 mt-4 border-t border-border/10">
                 {renderPagination()}
               </div>
             )}

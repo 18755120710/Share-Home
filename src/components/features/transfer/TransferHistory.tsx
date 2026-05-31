@@ -232,21 +232,21 @@ export default function TransferHistory({
   return (
     <div className="flex flex-col gap-6">
       
-      {/* 1. 大厂风范精细统计仪表盘 (无框横向平铺设计) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 border border-border/40 rounded-xl bg-card/25 backdrop-blur-sm divide-y md:divide-y-0 md:divide-x divide-border/30 overflow-hidden shadow-sm">
+      {/* 1. 大厂风范精细统计仪表盘 (完全裸露、无背景无投影极简平铺设计) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 md:gap-y-0 py-6 border-b border-border/20 mb-2">
         {/* 指标 1：累计互传 */}
-        <div className="p-6 flex flex-col gap-2.5">
+        <div className="md:px-6 flex flex-col gap-2 border-r border-border/15 last:border-r-0">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">累计物理互传</span>
-            <History size={15} className="text-muted-foreground opacity-60" />
+            <span className="text-[11px] font-bold text-muted-foreground tracking-wider uppercase">累计物理互传</span>
+            <History size={14} className="text-muted-foreground opacity-50" />
           </div>
-          <div className="flex items-baseline gap-1">
+          <div className="flex items-baseline gap-1 mt-1">
             <span className="text-3xl font-extrabold text-foreground tracking-tight">
               {totalCount}
             </span>
             <span className="text-[10px] text-muted-foreground font-semibold">次</span>
           </div>
-          <div className="flex gap-4 text-xs text-muted-foreground pt-1">
+          <div className="flex gap-4 text-xs text-muted-foreground mt-0.5">
             <span className="flex items-center gap-1">
               成功: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{successCount}</strong>
             </span>
@@ -257,12 +257,12 @@ export default function TransferHistory({
         </div>
 
         {/* 指标 2：物理收发结构 */}
-        <div className="p-6 flex flex-col gap-2.5">
+        <div className="md:px-6 flex flex-col gap-2 border-r border-border/15 last:border-r-0">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">网络物理流向</span>
-            <ArrowRightLeft size={15} className="text-muted-foreground opacity-60" />
+            <span className="text-[11px] font-bold text-muted-foreground tracking-wider uppercase">网络物理流向</span>
+            <ArrowRightLeft size={14} className="text-muted-foreground opacity-50" />
           </div>
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-baseline gap-2 mt-1">
             <div className="flex items-baseline gap-0.5">
               <span className="text-3xl font-extrabold text-foreground tracking-tight">{sendCount}</span>
               <span className="text-[10px] text-muted-foreground font-semibold">发</span>
@@ -273,27 +273,27 @@ export default function TransferHistory({
               <span className="text-[10px] text-muted-foreground font-semibold">收</span>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground pt-1 flex items-center gap-1.5">
+          <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
             <Sparkles size={12} className="text-emerald-500 animate-pulse" />
-            <span>极速高频互传信道就绪</span>
+            <span>极速高频信道就绪</span>
           </div>
         </div>
 
         {/* 指标 3：信道质量健康度 */}
-        <div className="p-6 flex flex-col gap-2.5">
+        <div className="md:px-6 flex flex-col gap-2 border-r border-border/15 last:border-r-0">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">物理传输信道质量</span>
+            <span className="text-[11px] font-bold text-muted-foreground tracking-wider uppercase">物理传输信道质量</span>
             <span className={`w-2 h-2 rounded-full ${
               successRate >= 90 ? 'bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.3)]' : 'bg-amber-500/80 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
             }`} />
           </div>
-          <div className="flex items-baseline gap-0.5">
+          <div className="flex items-baseline gap-0.5 mt-1">
             <span className={`text-3xl font-extrabold tracking-tight ${
               successRate >= 90 ? 'text-emerald-500' : successRate >= 70 ? 'text-amber-500' : 'text-destructive'
             }`}>{successRate}%</span>
             <span className="text-[10px] text-muted-foreground font-semibold">成功率</span>
           </div>
-          <div className="text-xs text-muted-foreground pt-1">
+          <div className="text-xs text-muted-foreground mt-0.5">
             <span>信道评级: <strong className={successRate >= 90 ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
               {successRate >= 90 ? '极佳 (Excellent)' : '良好 (Fair)'}
             </strong></span>
@@ -301,8 +301,8 @@ export default function TransferHistory({
         </div>
       </div>
 
-      {/* 2. 极简精致搜索与多维过滤工具栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border border-border/30 rounded-xl p-3 px-[18px] bg-card/10 backdrop-blur-sm shadow-sm">
+      {/* 2. 极简精致搜索与多维过滤工具栏 (彻底去除包裹容器，仅做无框裸露工具行) */}
+      <div className="flex flex-wrap items-center justify-between gap-4 py-2 mt-1">
         {/* 左侧：搜索与 Tab 过滤器 */}
         <div className="flex flex-wrap items-center gap-4 flex-1 min-w-[280px]">
           
@@ -313,13 +313,13 @@ export default function TransferHistory({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索文件名 / 对等伙伴..."
-              className="w-full bg-muted/40 border border-border/80 rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-border-hover focus:ring-2 focus:ring-zinc-500/10 transition-all duration-200"
+              className="w-full bg-muted/30 border border-border/80 rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-border-hover focus:ring-2 focus:ring-zinc-500/10 transition-all duration-200"
             />
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           </div>
 
           {/* 分类药丸 Tab */}
-          <div className="flex bg-muted/30 border border-border/60 rounded-lg p-0.5">
+          <div className="flex bg-muted/20 border border-border/60 rounded-lg p-0.5">
             {(['all', 'send', 'receive', 'completed', 'failed'] as const).map((filter) => {
               const label = {
                 all: '全部',
@@ -385,10 +385,10 @@ export default function TransferHistory({
         )}
       </div>
 
-      {/* 3. 物理互传记录陈列大列表 (无Card大包装，直接一体扁平平铺列表) */}
-      <div className="border border-border/30 rounded-xl bg-card/25 backdrop-blur-sm overflow-hidden shadow-sm flex flex-col">
-        <div className="flex items-center justify-between border-b border-border/30 py-4 px-6 bg-muted/10">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      {/* 3. 物理互传记录陈列大列表 (无任何Card外层盒子包裹，纯扁平表格行流) */}
+      <div className="flex flex-col mt-2">
+        <div className="flex items-center justify-between border-b border-border/20 pb-3 mb-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             局域网对等体互传历史归档
           </h3>
           <span className="text-xs font-semibold text-muted-foreground/80">
@@ -423,7 +423,7 @@ export default function TransferHistory({
               return (
                 <div
                   key={task.id}
-                  className="group p-5 hover:bg-muted/15 border-b border-border/20 last:border-b-0 flex flex-col gap-4 transition-colors duration-150 relative overflow-hidden"
+                  className="group py-5 px-1 hover:px-4 hover:bg-muted/10 border-b border-border/15 last:border-b-0 flex flex-col gap-4 transition-all duration-150 rounded-lg relative overflow-hidden"
                 >
                   {/* 对等互传核心：左中右大厂双翼布局 */}
                   <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -530,9 +530,9 @@ export default function TransferHistory({
           )}
         </div>
 
-        {/* 4. 精美分页导航组件 */}
+        {/* 4. 精美分页导航组件 (完全扁平无大框分页条) */}
         {filteredTasks.length > 0 && (
-          <div className="border-t border-border/30 py-3.5 px-6 flex items-center justify-between flex-wrap gap-3 bg-muted/10">
+          <div className="py-5 flex items-center justify-between flex-wrap gap-3 mt-4 border-t border-border/10">
             {/* 左侧：分页状态 */}
             <span className="text-xs text-muted-foreground font-medium">
               显示第 <strong className="text-foreground">{startIndex + 1}</strong> 至 <strong className="text-foreground">{Math.min(startIndex + ITEMS_PER_PAGE, filteredTasks.length)}</strong> 项，共 <strong className="text-foreground">{filteredTasks.length}</strong> 项记录
