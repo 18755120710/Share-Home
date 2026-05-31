@@ -817,7 +817,7 @@ export default function Home() {
                               value={storagePath}
                               onChange={(e) => setStoragePath(e.target.value)}
                               placeholder="例如: ./storage"
-                              className="w-full bg-background/30 border-border/80 pr-10 focus-visible:ring-2 focus-visible:ring-zinc-500/10 focus-visible:border-border-hover transition-all duration-200"
+                              className="w-full border-border/80 pr-10 focus-visible:ring-2 focus-visible:ring-zinc-500/10 focus-visible:border-border-hover transition-all duration-200"
                             />
                             <button
                               onClick={handleSelectDirectory}
@@ -918,7 +918,7 @@ export default function Home() {
                             onChange={(e) => setNewNickname(e.target.value)}
                             placeholder="输入您的专属极客昵称"
                             maxLength={16}
-                            className="flex-1 bg-background/30 border-border/80 focus-visible:ring-2 focus-visible:ring-zinc-500/10 focus-visible:border-border-hover transition-all duration-200"
+                            className="flex-1 border-border/80 focus-visible:ring-2 focus-visible:ring-zinc-500/10 focus-visible:border-border-hover transition-all duration-200"
                           />
                           <ShadcnButton 
                             onClick={saveProfile} 
