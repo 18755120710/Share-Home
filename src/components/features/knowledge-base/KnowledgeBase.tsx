@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Peer } from '@/types/peer';
 import { KBDocument } from '@/types/document';
 import Card from '../../ui/LegacyCard';
@@ -2698,8 +2699,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         )}
       </div>
 
-      {/* 新建文件/文件夹的纯平 Modal 弹窗 */}
-      {isCreateModalOpen && (
+      {/* 新建文件/文件夹的纯平 Modal 弹窗 (通过 Portal 挂载到 body 下，逃逸父元素 transform，解决全屏蒙版问题) */}
+      {isCreateModalOpen && typeof window !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           top: 0,
@@ -2801,11 +2802,12 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* 创建成功的全局 Toast 通知通道 */}
-      {toastText && (
+      {/* 创建成功的全局 Toast 通知通道 (通过 Portal 挂载到 body 下，解决覆盖与裁剪问题) */}
+      {toastText && typeof window !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           top: '24px',
@@ -2832,7 +2834,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
           <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>
             {toastText}
           </span>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`
