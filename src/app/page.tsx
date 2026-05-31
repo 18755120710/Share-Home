@@ -9,16 +9,25 @@ import Transfer from '@/components/features/transfer/Transfer';
 import SharedFiles from '@/components/features/transfer/SharedFiles';
 import RecordCenter from '@/components/features/transfer/RecordCenter';
 import KnowledgeBase from '@/components/features/knowledge-base/KnowledgeBase';
-import Button from '@/components/ui/LegacyButton';
-import Card from '@/components/ui/LegacyCard';
-import { Button as ShadcnButton } from '@/components/ui/button';
-import { Card as ShadcnCard, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input as ShadcnInput } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Radio, RefreshCw, Laptop, Monitor, Smartphone, Edit3, Check, 
   Files, FileText, Settings, ShieldAlert, FolderOpen,
-  Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X,
-  History, ArrowRight, CheckCircle2, XCircle, Ban,
+  Info, Cpu, Sun, Moon, ArrowUpDown,
+  History,
   ChevronLeft, ChevronRight, ChevronDown
 } from 'lucide-react';
 
@@ -331,8 +340,6 @@ export default function Home() {
   const activeTasksCount = Object.values(tasks).filter(
     t => t.status === 'transferring' || t.status === 'pending'
   ).length;
-  const totalTasksCount = Object.values(tasks).length;
-
   return (
     <div className="app-container">
       
@@ -498,7 +505,7 @@ export default function Home() {
               <div className="flex-1 min-w-0">
                 {isEditingProfile ? (
                   <div className="flex flex-col gap-2 p-2.5 bg-muted/30 border border-border/40 rounded-lg animate-in fade-in duration-200">
-                    <ShadcnInput
+                    <Input
                       type="text"
                       value={newNickname}
                       onChange={(e) => setNewNickname(e.target.value)}
@@ -523,14 +530,14 @@ export default function Home() {
                         <option value="🎨">🎨 调色板</option>
                         <option value="⚡">⚡ 闪电</option>
                       </select>
-                      <ShadcnButton 
+                      <Button
                         onClick={saveProfile} 
                         size="sm"
                         className="h-8 px-2 text-[11px] bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1"
                       >
                         <Check size={11} />
                         存
-                      </ShadcnButton>
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -571,22 +578,16 @@ export default function Home() {
       <main className="workspace-container fade-in">
         
         {/* 顶部自发现网络拉取与刷新状态栏 */}
-        <header style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid var(--border-color)',
-          paddingBottom: '16px'
-        }}>
-          <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+        <header className="flex flex-col gap-4 border-b border-border/70 pb-4 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
               {activeTab === 'transfer' && '文件传输工作台'}
               {activeTab === 'share' && '公共共享中心'}
               {activeTab === 'knowledge' && '知识协作云文档'}
               {activeTab.startsWith('history-') && '操作与协作记录中心'}
               {activeTab === 'settings' && '全局系统配置'}
             </h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            <p className="mt-1 text-xs text-muted-foreground">
               {activeTab === 'transfer' && '安全、无压缩的局域网零阻碍点对点极速传输'}
               {activeTab === 'share' && '长效、大文件零压缩合并存储的局域网公共共享空间'}
               {activeTab === 'knowledge' && '支持富文本与代码的局域网去中心化物理落盘云文档'}
@@ -595,87 +596,35 @@ export default function Home() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{
-              fontSize: '0.7rem',
-              color: isConnected ? 'var(--success-color)' : 'var(--text-muted)',
-              background: isConnected ? 'var(--success-glow)' : 'transparent',
-              border: `1px solid ${isConnected ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-color)'}`,
-              padding: '4px 10px',
-              borderRadius: '20px',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <span style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                background: isConnected ? 'var(--success-color)' : 'var(--text-muted)',
-                display: 'inline-block'
-              }} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className={isConnected
+                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                : 'border-border text-muted-foreground'}
+            >
+              <span className={`size-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
               {isConnected ? '局域网信道在线' : '离线状态'}
-            </span>
+            </Badge>
 
             {/* 传输任务触发按钮 */}
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setIsTransferDrawerOpen(!isTransferDrawerOpen)}
-              style={{
-                position: 'relative',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 14px',
-                background: 'rgba(128, 128, 128, 0.04)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-primary)',
-                fontSize: '0.82rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: activeTasksCount > 0 ? '0 0 12px var(--accent-glow)' : 'none'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
-                e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-                e.currentTarget.style.borderColor = 'var(--border-color)';
-              }}
+              className={activeTasksCount > 0 ? 'shadow-[0_0_12px_var(--accent-glow)]' : ''}
             >
-              <ArrowUpDown 
-                size={14} 
-                style={{ 
-                  color: activeTasksCount > 0 ? 'var(--accent-color)' : 'var(--text-secondary)',
-                }} 
-              />
+              <ArrowUpDown className={activeTasksCount > 0 ? 'text-primary' : 'text-muted-foreground'} />
               <span>传输任务</span>
-              
-              {/* 任务徽标 (Badge) */}
               {activeTasksCount > 0 && (
-                <span style={{
-                  minWidth: '18px',
-                  height: '18px',
-                  borderRadius: '9px',
-                  background: 'var(--accent-color)',
-                  color: '#ffffff',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0 5px'
-                }}>
+                <Badge className="h-5 min-w-5 rounded-full px-1.5 text-[11px]">
                   {activeTasksCount}
-                </span>
+                </Badge>
               )}
-            </button>
+            </Button>
 
-            <Button variant="secondary" onClick={refreshPeers} style={{ padding: '8px 12px' }}>
-              <RefreshCw size={14} />
+            <Button variant="secondary" size="sm" onClick={refreshPeers}>
+              <RefreshCw />
               刷新雷达
             </Button>
           </div>
@@ -751,9 +700,18 @@ export default function Home() {
           {activeTab === 'settings' && (
             <div className="flex flex-col md:flex-row gap-8 w-full items-start fade-in mt-2">
               
-              {/* 左侧：极简二级配置导航 (Inner Borderless Settings Nav) */}
-              <div className="flex flex-row md:flex-col gap-1 w-full md:w-[180px] shrink-0 border-b md:border-b-0 md:border-r border-border/10 pb-4 md:pb-0 md:pr-4">
-                {(['storage', 'profile', 'network', 'guidelines'] as const).map((sub) => {
+              {/* 左侧：shadcn Tabs 二级配置导航 */}
+              <Tabs
+                value={settingsSubTab}
+                onValueChange={(value) => setSettingsSubTab(value as typeof settingsSubTab)}
+                orientation="vertical"
+                className="w-full shrink-0 border-b border-border/10 pb-4 md:w-[180px] md:border-b-0 md:border-r md:pb-0 md:pr-4"
+              >
+                <TabsList
+                  variant="line"
+                  className="flex w-full flex-row justify-start gap-1 md:flex-col md:items-stretch"
+                >
+                  {(['storage', 'profile', 'network', 'guidelines'] as const).map((sub) => {
                   const label = {
                     storage: '基础存储',
                     profile: '极客头像',
@@ -766,23 +724,19 @@ export default function Home() {
                     network: <Cpu size={13} />,
                     guidelines: <Info size={13} />
                   }[sub];
-                  const isActive = settingsSubTab === sub;
                   return (
-                    <button
+                    <TabsTrigger
                       key={sub}
-                      onClick={() => setSettingsSubTab(sub)}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150 border-none ${
-                        isActive 
-                          ? 'bg-muted/30 text-foreground font-bold' 
-                          : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/10'
-                      }`}
+                      value={sub}
+                      className="h-8 justify-start rounded-lg px-3 text-xs data-active:bg-muted/60"
                     >
                       {icon}
                       {label}
-                    </button>
+                    </TabsTrigger>
                   );
                 })}
-              </div>
+                </TabsList>
+              </Tabs>
 
               {/* 右侧：扁平去卡片化流式配置项面板 */}
               <div className="flex-1 w-full flex flex-col gap-6">
@@ -795,10 +749,10 @@ export default function Home() {
                         <h3 className="text-sm font-bold text-foreground">默认文件及文档存储目录</h3>
                         <p className="text-[11px] text-muted-foreground">收到的文件及创建的同步云文档，均存放在本端此物理目录中</p>
                       </div>
-                      <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-sm">
+                      <Badge variant="outline" className="border-emerald-500/15 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
                         就绪
-                      </span>
+                      </Badge>
                     </div>
 
                     <div className="flex flex-col gap-4 py-2">
@@ -812,7 +766,7 @@ export default function Home() {
                         
                         <div className="flex gap-2.5 w-full md:w-auto shrink-0 min-w-[320px]">
                           <div className="relative flex-1 flex items-center">
-                            <ShadcnInput
+                            <Input
                               type="text"
                               value={storagePath}
                               onChange={(e) => setStoragePath(e.target.value)}
@@ -832,13 +786,13 @@ export default function Home() {
                               )}
                             </button>
                           </div>
-                          <ShadcnButton 
+                          <Button
                             onClick={() => handleSaveConfig()} 
                             disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}
                             className="bg-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-700 hover:dark:bg-zinc-200 shadow-sm"
                           >
                             {configStatus === 'saving' ? '验证中...' : '保存'}
-                          </ShadcnButton>
+                          </Button>
                         </div>
                       </div>
 
@@ -912,7 +866,7 @@ export default function Home() {
                           </p>
                         </div>
                         <div className="flex gap-2.5 w-full md:w-auto shrink-0 min-w-[320px]">
-                          <ShadcnInput
+                          <Input
                             type="text"
                             value={newNickname}
                             onChange={(e) => setNewNickname(e.target.value)}
@@ -920,13 +874,13 @@ export default function Home() {
                             maxLength={16}
                             className="flex-1 border-border/80 focus-visible:ring-2 focus-visible:ring-zinc-500/10 focus-visible:border-border-hover transition-all duration-200"
                           />
-                          <ShadcnButton 
+                          <Button
                             onClick={saveProfile} 
                             disabled={!newNickname.trim() || !!(self && self.nickname === newNickname && self.avatar === newAvatar)}
                             className="bg-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-700 hover:dark:bg-zinc-200 shadow-sm"
                           >
                             同步修改
-                          </ShadcnButton>
+                          </Button>
                         </div>
                       </div>
 
@@ -1045,278 +999,106 @@ export default function Home() {
         onClose={() => setIsTransferDrawerOpen(false)}
       />
 
-      {/* 4. 高端数据安全合并迁移确认弹窗 */}
-      {showMigrationModal && migrationPaths && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 10000,
-          background: theme === 'dark' ? 'rgba(9, 9, 11, 0.75)' : 'rgba(255, 255, 255, 0.65)',
-          backdropFilter: 'blur(20px) saturate(190%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px',
-          transition: 'all 0.3s ease'
-        }}>
-          <div style={{
-            background: 'var(--card-bg, #ffffff)',
-            border: '1px solid var(--border-color, rgba(128, 128, 128, 0.15))',
-            borderRadius: '24px',
-            width: '100%',
-            maxWidth: '540px',
-            boxShadow: theme === 'dark' 
-              ? '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 30px rgba(99, 102, 241, 0.08)' 
-              : '0 20px 40px -10px rgba(0, 0, 0, 0.08), 0 0 20px rgba(99, 102, 241, 0.04)',
-            padding: '28px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-            position: 'relative',
-          }}>
-            {/* 头部区域 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
-                background: 'rgba(245, 158, 11, 0.08)',
-                border: '1px solid rgba(245, 158, 11, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <FolderOpen size={20} style={{ color: '#f59e0b' }} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', margin: 0 }}>发现历史存储数据</h3>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>检测到您的原有目录中存有数据文件</p>
-              </div>
-            </div>
+      {/* 4. 存储目录迁移确认弹窗 */}
+      <Dialog
+        open={showMigrationModal && !!migrationPaths}
+        onOpenChange={(open) => {
+          if (!open && !isMigrating) {
+            setShowMigrationModal(false);
+            setMigrationPaths(null);
+            fetchConfig();
+          }
+        }}
+      >
+        <DialogContent
+          className="max-w-[540px]"
+          showCloseButton={!isMigrating}
+          onEscapeKeyDown={(event) => isMigrating && event.preventDefault()}
+          onInteractOutside={(event) => isMigrating && event.preventDefault()}
+        >
+          {migrationPaths && (
+            <>
+              <DialogHeader>
+                <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10">
+                  <FolderOpen className="size-5 text-amber-500" />
+                </div>
+                <DialogTitle>发现历史存储数据</DialogTitle>
+                <DialogDescription>
+                  检测到原目录中已有共享文件或协作云文档，请选择是否迁移到新目录。
+                </DialogDescription>
+              </DialogHeader>
 
-            {/* 警示说明框 */}
-            <div style={{
-              background: 'rgba(128, 128, 128, 0.03)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '16px',
-              padding: '16px',
-              fontSize: '0.8rem',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.6,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px'
-            }}>
-              <div>
-                您即将将默认存储路径更换为：
-                <div style={{
-                  background: 'rgba(99, 102, 241, 0.05)',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  marginTop: '6px',
-                  fontSize: '0.75rem',
-                  fontFamily: 'monospace',
-                  color: 'var(--accent-color)',
-                  wordBreak: 'break-all',
-                  border: '1px solid rgba(99, 102, 241, 0.15)'
-                }}>
-                  {migrationPaths.newPath}
+              <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 text-sm">
+                <div className="space-y-2">
+                  <p className="text-muted-foreground">新默认存储路径</p>
+                  <div className="break-all rounded-lg border border-primary/15 bg-primary/5 px-3 py-2 font-mono text-xs text-primary">
+                    {migrationPaths.newPath}
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <p className="text-muted-foreground">原物理存储目录</p>
+                  <div className="break-all rounded-lg border border-border bg-background/60 px-3 py-2 font-mono text-xs text-muted-foreground">
+                    {migrationPaths.oldPath}
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 rounded-lg border border-amber-500/15 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                  <ShieldAlert className="mt-0.5 size-3.5 shrink-0" />
+                  <span>推荐执行一键自动迁移，确保历史共享与云文档在新目录中完整可用。</span>
                 </div>
               </div>
 
-              <div>
-                原物理存储目录中存有共享文件及协作云文档：
-                <div style={{
-                  background: 'rgba(128, 128, 128, 0.05)',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  marginTop: '6px',
-                  fontSize: '0.75rem',
-                  fontFamily: 'monospace',
-                  color: 'var(--text-muted)',
-                  wordBreak: 'break-all',
-                  border: '1px solid var(--border-color)'
-                }}>
-                  {migrationPaths.oldPath}
-                </div>
-              </div>
-
-              <div style={{ color: '#fbbf24', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', marginTop: '4px' }}>
-                <ShieldAlert size={13} style={{ flexShrink: 0, color: '#fbbf24' }} />
-                <span>推荐执行“一键自动迁移”，确保历史共享与云文档在新目录中无缝重现。</span>
-              </div>
-            </div>
-
-            {/* 行为决策按钮区 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
               {isMigrating ? (
-                <div style={{
-                  background: 'rgba(99, 102, 241, 0.03)',
-                  border: '1px solid rgba(99, 102, 241, 0.1)',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '14px',
-                }}>
-                  {/* 第一行：状态标题 + 实时百分比数值 */}
-                  <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-color)', fontSize: '0.82rem', fontWeight: 600 }}>
-                      <RefreshCw size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
-                      <span>正在全速合并搬运历史文件...</span>
-                    </div>
-                    <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-color)', marginLeft: 'auto' }}>
+                <div className="space-y-4 rounded-xl border border-primary/15 bg-primary/5 p-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                    <RefreshCw className="size-4 animate-spin" />
+                    <span>正在合并搬运历史文件</span>
+                    <span className="ml-auto font-mono">
                       {migrationProgress ? `${migrationProgress.percentage}%` : '0%'}
                     </span>
                   </div>
-
-                  {/* 物理进度条轨道 */}
-                  <div style={{
-                    width: '100%',
-                    height: '8px',
-                    background: 'rgba(128, 128, 128, 0.08)',
-                    borderRadius: '99px',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${migrationProgress ? migrationProgress.percentage : 0}%`,
-                      background: 'linear-gradient(90deg, var(--accent-color, #2563eb) 0%, rgba(99, 102, 241, 0.8) 100%)',
-                      borderRadius: '99px',
-                      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: '0 0 10px rgba(99, 102, 241, 0.2)'
-                    }} />
-                  </div>
-
-                  {/* 底部详细文件名展示 */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    fontSize: '0.72rem',
-                    color: 'var(--text-secondary)'
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      width: '100%',
-                      fontFamily: 'monospace'
-                    }}>
-                      <span>文件处理总进度:</span>
-                      <span style={{ marginLeft: 'auto', color: 'var(--text-primary)' }}>
+                  <Progress value={migrationProgress ? migrationProgress.percentage : 0} className="h-2" />
+                  <div className="space-y-2 text-xs text-muted-foreground">
+                    <div className="flex font-mono">
+                      <span>文件处理总进度</span>
+                      <span className="ml-auto text-foreground">
                         {migrationProgress ? `${migrationProgress.current} / ${migrationProgress.total}` : '0 / 0'}
                       </span>
                     </div>
-                    
-                    <div style={{
-                      background: 'rgba(128, 128, 128, 0.05)',
-                      border: '1px solid var(--border-color)',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      color: 'var(--text-primary)',
-                      fontFamily: 'monospace',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                      marginTop: '2px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }} title={migrationProgress?.currentFile || '准备迁移...'}>
-                      <span style={{ color: 'var(--accent-color)', flexShrink: 0 }}>📂</span>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {migrationProgress ? migrationProgress.currentFile : '建立安全通道...'}
-                      </span>
+                    <div
+                      className="truncate rounded-lg border border-border bg-background/70 px-3 py-2 font-mono text-foreground"
+                      title={migrationProgress?.currentFile || '准备迁移...'}
+                    >
+                      {migrationProgress ? migrationProgress.currentFile : '建立安全通道...'}
                     </div>
                   </div>
                 </div>
               ) : (
-                <>
-                  <button
-                    onClick={() => handleSaveConfig(true)}
-                    style={{
-                      background: 'var(--accent-color, #2563eb)',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '12px 20px',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
+                <DialogFooter className="gap-2 sm:justify-stretch">
+                  <Button className="flex-1" onClick={() => handleSaveConfig(true)}>
+                    <Check />
+                    自动迁移并应用
+                  </Button>
+                  <Button className="flex-1" variant="outline" onClick={() => handleSaveConfig(false)}>
+                    仅切换路径
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowMigrationModal(false);
+                      setMigrationPaths(null);
+                      fetchConfig();
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.15)'}
-                    onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
                   >
-                    <Check size={15} />
-                    一键自动迁移并应用
-                  </button>
-
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                      onClick={() => handleSaveConfig(false)}
-                      style={{
-                        flex: 1,
-                        background: 'transparent',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '12px',
-                        padding: '10px 16px',
-                        fontSize: '0.82rem',
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(128, 128, 128, 0.06)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                      }}
-                    >
-                      仅切换路径 (保留现状)
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMigrationModal(false);
-                        setMigrationPaths(null);
-                        // 恢复为原配置路径
-                        fetchConfig();
-                      }}
-                      style={{
-                        flex: 1,
-                        background: 'transparent',
-                        color: 'var(--text-muted)',
-                        border: '1px solid transparent',
-                        borderRadius: '12px',
-                        padding: '10px 16px',
-                        fontSize: '0.82rem',
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-                    >
-                      取消修改
-                    </button>
-                  </div>
-                </>
+                    取消修改
+                  </Button>
+                </DialogFooter>
               )}
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
