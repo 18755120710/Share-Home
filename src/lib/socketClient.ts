@@ -58,6 +58,13 @@ export class SocketClient {
       if (initData.wsPort) {
         wsPort = String(initData.wsPort);
       }
+      // 强制同步使用由后端 IP 强派生的权威 clientId，保障全局及多浏览器 ID 强一致
+      if (initData.clientId) {
+        clientId = initData.clientId;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('share_home_client_id', clientId);
+        }
+      }
     } catch (err) {
       console.warn('[SocketClient] 初始化宿主服务失败，仍将尝试连接 WebSocket:', err);
     }
