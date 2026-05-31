@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Peer } from '@/types/peer';
 import { KBDocument } from '@/types/document';
-import Card from '../../ui/Card';
-import Button from '../../ui/Button';
+import Card from '../../ui/LegacyCard';
+import Button from '../../ui/LegacyButton';
 import { Extension } from '@tiptap/core';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';

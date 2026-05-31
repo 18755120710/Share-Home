@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Peer } from '@/types/peer';
 import { BoardMessage, BoardMessageType } from '@/types/board';
-import Card from '../../ui/Card';
-import Button from '../../ui/Button';
+import Card from '../../ui/LegacyCard';
+import Button from '../../ui/LegacyButton';
 import { Clipboard, Code, Send, ClipboardCopy, Check } from 'lucide-react';
 import { generateUUID } from '@/lib/utils';
 import Prism from 'prismjs';

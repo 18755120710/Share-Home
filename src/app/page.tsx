@@ -9,8 +9,8 @@ import Transfer from '@/components/features/transfer/Transfer';
 import SharedFiles from '@/components/features/transfer/SharedFiles';
 import RecordCenter from '@/components/features/transfer/RecordCenter';
 import KnowledgeBase from '@/components/features/knowledge-base/KnowledgeBase';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
+import Button from '@/components/ui/LegacyButton';
+import Card from '@/components/ui/LegacyCard';
 import { 
   Radio, RefreshCw, Laptop, Monitor, Smartphone, Edit3, Check, 
   Files, FileText, Settings, ShieldAlert, FolderOpen,

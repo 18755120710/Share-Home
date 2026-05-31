@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import os from 'os';
 
-export async function POST() {
-  return new Promise((resolve) => {
+export async function POST(): Promise<Response> {
+  return new Promise<Response>((resolve) => {
     const platform = os.platform();
     let cmd = '';
 

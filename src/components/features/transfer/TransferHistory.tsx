@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { TransferTask } from '@/types/transfer';
-import Card from '@/components/ui/Card';
+import Card from '@/components/ui/LegacyCard';
 import { 
   Search, Trash2, Laptop, Monitor, Smartphone, 
   CheckCircle2, XCircle, Ban, History, ShieldAlert, 

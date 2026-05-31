@@ -3,23 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import { TransferTask } from '@/types/transfer';
 import TransferHistory from './TransferHistory';
-import Card from '@/components/ui/Card';
+import Card from '@/components/ui/LegacyCard';
 import { 
   Search, Trash2, Laptop, Monitor, Smartphone, 
   History, FolderOpen, FileText, RefreshCw, 
-  AlertCircle, ExternalLink, User, Clock, HardDrive
+  AlertCircle, ExternalLink, User, Clock
 } from 'lucide-react';
 
 interface RecordCenterProps {
   tasks: Record<string, TransferTask>;
   self: any;
+  subTab: 'transfer' | 'share' | 'document'; // 受控属性，指示当前要显示的日志子分类
   onDeleteTask?: (taskId: string) => void;
   onClearHistory?: () => void;
   onNavigateToDoc?: (docId: string) => void; // 点击文档日志时的智能跳转回调
 }
-
-type TabType = 'transfer' | 'share' | 'document';
-type FilterType = 'all' | 'upload' | 'create_doc' | 'create_folder';
 
 interface ActivityLog {
   id: string;
@@ -41,11 +39,11 @@ interface ActivityLog {
 export default function RecordCenter({
   tasks,
   self,
+  subTab,
   onDeleteTask,
   onClearHistory,
   onNavigateToDoc
 }: RecordCenterProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('transfer');
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,7 +52,7 @@ export default function RecordCenter({
   
   const ITEMS_PER_PAGE = 10;
 
-  // 定期或在切换选项卡时从后端拉取操作日志
+  // 定期或在受控子页签改变时从后端拉取操作日志
   const fetchLogs = async () => {
     setIsLoading(true);
     try {
@@ -71,12 +69,12 @@ export default function RecordCenter({
   };
 
   useEffect(() => {
-    if (activeTab === 'share' || activeTab === 'document') {
+    if (subTab === 'share' || subTab === 'document') {
       fetchLogs();
     }
     setSearchTerm('');
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [subTab]);
 
   // 当搜索内容改变时重置页码为首页
   useEffect(() => {
@@ -106,12 +104,12 @@ export default function RecordCenter({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'clear',
-          type: activeTab // 仅清空当前处于激活态的大类 ('share' 或 'document')
+          type: subTab // 仅清空当前处于激活态的大类 ('share' 或 'document')
         })
       });
       const data = await res.json();
       if (data.success) {
-        setLogs(prev => prev.filter(l => l.type !== activeTab));
+        setLogs(prev => prev.filter(l => l.type !== subTab));
         setShowClearConfirm(false);
       }
     } catch (e) {
@@ -214,7 +212,7 @@ export default function RecordCenter({
   const filteredLogs = logs
     .filter(log => {
       // 1. 类型大类过滤
-      if (log.type !== activeTab) return false;
+      if (log.type !== subTab) return false;
       // 2. 搜索框内容过滤
       if (searchTerm.trim() !== '') {
         const query = searchTerm.toLowerCase();
@@ -272,81 +270,8 @@ export default function RecordCenter({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* 1. 极致审美：横向磨砂一体化三大分类 Tab */}
-      <div style={{
-        display: 'flex',
-        background: 'var(--bg-card)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 'var(--radius-md)',
-        padding: '4px',
-        width: 'fit-content',
-        gap: '2px'
-      }}>
-        <button
-          onClick={() => setActiveTab('transfer')}
-          style={{
-            border: 'none',
-            background: activeTab === 'transfer' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-            color: activeTab === 'transfer' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            fontWeight: activeTab === 'transfer' ? 600 : 500,
-            fontSize: '0.82rem',
-            padding: '8px 18px',
-            borderRadius: 'var(--radius-sm)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
-        >
-          <History size={14} style={{ color: activeTab === 'transfer' ? 'var(--accent-color)' : 'var(--text-muted)' }} />
-          设备互传历史
-        </button>
-        <button
-          onClick={() => setActiveTab('share')}
-          style={{
-            border: 'none',
-            background: activeTab === 'share' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-            color: activeTab === 'share' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            fontWeight: activeTab === 'share' ? 600 : 500,
-            fontSize: '0.82rem',
-            padding: '8px 18px',
-            borderRadius: 'var(--radius-sm)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
-        >
-          <HardDrive size={14} style={{ color: activeTab === 'share' ? 'var(--accent-color)' : 'var(--text-muted)' }} />
-          共享上传记录
-        </button>
-        <button
-          onClick={() => setActiveTab('document')}
-          style={{
-            border: 'none',
-            background: activeTab === 'document' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-            color: activeTab === 'document' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            fontWeight: activeTab === 'document' ? 600 : 500,
-            fontSize: '0.82rem',
-            padding: '8px 18px',
-            borderRadius: 'var(--radius-sm)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
-        >
-          <FileText size={14} style={{ color: activeTab === 'document' ? 'var(--accent-color)' : 'var(--text-muted)' }} />
-          云文档活动日志
-        </button>
-      </div>
-
-      {/* 2. 动态内容分发渲染 */}
-      {activeTab === 'transfer' ? (
+      {/* 受控渲染分发 */}
+      {subTab === 'transfer' ? (
         // 互传记录：直接嵌套渲染原本精巧炫酷的 TransferHistory 物理记录面板，保留大厂风范
         <TransferHistory 
           tasks={tasks}
@@ -355,7 +280,7 @@ export default function RecordCenter({
           onClearHistory={onClearHistory}
         />
       ) : (
-        // 共享记录 & 云文档记录：渲染新写的大厂高科技集中列表面板
+        // 共享记录 & 云文档记录：渲染大厂高科技集中列表面板 (无重复 Header Tabs)
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* 高级极简搜索及清空工具条 */}
@@ -375,7 +300,7 @@ export default function RecordCenter({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={activeTab === 'share' ? "搜索共享文件名 / 上传者..." : "搜索云文档名称 / 新建者..."}
+                placeholder={subTab === 'share' ? "搜索共享文件名 / 上传者..." : "搜索云文档名称 / 新建者..."}
                 style={{
                   width: '100%',
                   background: 'var(--bg-item)',
@@ -491,7 +416,7 @@ export default function RecordCenter({
               alignItems: 'center'
             }}>
               <span>
-                {activeTab === 'share' ? '公共共享空间文件投递日志' : '局域网去中心协作审计日志'}
+                {subTab === 'share' ? '公共共享空间文件投递日志' : '局域网去中心协作审计日志'}
               </span>
               <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>
                 {isLoading ? '加载日志中...' : `已过滤出 ${filteredLogs.length} 条记录`}
@@ -521,7 +446,7 @@ export default function RecordCenter({
                       key={log.id}
                       onClick={() => {
                         // 🌟 云协作日志的高能智能跳转机制
-                        if (activeTab === 'document' && docId && onNavigateToDoc) {
+                        if (subTab === 'document' && docId && onNavigateToDoc) {
                           onNavigateToDoc(docId);
                         }
                       }}
@@ -535,20 +460,20 @@ export default function RecordCenter({
                         justifyContent: 'space-between',
                         gap: '16px',
                         transition: 'all 0.2s ease',
-                        cursor: (activeTab === 'document' && docId) ? 'pointer' : 'default',
+                        cursor: (subTab === 'document' && docId) ? 'pointer' : 'default',
                         position: 'relative'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = 'var(--border-color-hover)';
                         e.currentTarget.style.background = 'rgba(128, 128, 128, 0.02)';
-                        if (activeTab === 'document' && docId) {
+                        if (subTab === 'document' && docId) {
                           e.currentTarget.style.transform = 'translateX(2px)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.borderColor = 'var(--border-color)';
                         e.currentTarget.style.background = 'rgba(0, 0, 0, 0.01)';
-                        if (activeTab === 'document' && docId) {
+                        if (subTab === 'document' && docId) {
                           e.currentTarget.style.transform = 'none';
                         }
                       }}
@@ -614,7 +539,7 @@ export default function RecordCenter({
                           {formatDateTime(log.timestamp)}
                         </span>
                         
-                        {activeTab === 'document' && docId && (
+                        {subTab === 'document' && docId && (
                           <span style={{
                             fontSize: '0.65rem',
                             color: 'var(--accent-color)',

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Peer } from '@/types/peer';
-import Card from '../../ui/Card';
+import Card from '../../ui/LegacyCard';
 import { Monitor, Smartphone, Laptop, Radio, Send, RefreshCw, Layers, ShieldCheck, Wifi } from 'lucide-react';
 
 interface PeerListProps {

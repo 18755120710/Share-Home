@@ -1,8 +1,8 @@
 import React from 'react';
 import { TransferTask } from '@/types/transfer';
 import { IncomingRequest } from '@/hooks/useFileTransfer';
-import Button from '../../ui/Button';
-import Card from '../../ui/Card';
+import Button from '../../ui/LegacyButton';
+import Card from '../../ui/LegacyCard';
 import { formatBytes, formatSpeed, formatTime } from '@/lib/format';
 import { Download, Upload, Clock, CheckCircle2, XCircle, AlertCircle, X, HelpCircle } from 'lucide-react';
 

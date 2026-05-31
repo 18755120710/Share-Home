@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
       asyncWebAssembly: true,
       layers: true,
     };
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      encoding: false,
+    };
     return config;
   },
 };
