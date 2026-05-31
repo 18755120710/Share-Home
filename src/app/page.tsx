@@ -16,10 +16,10 @@ import {
   Files, FileText, Settings, ShieldAlert, FolderOpen,
   Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X,
   History, ArrowRight, CheckCircle2, XCircle, Ban,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, ChevronDown
 } from 'lucide-react';
 
-type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history';
+type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history-transfer' | 'history-share' | 'history-document';
 
 export default function Home() {
   // 1. 初始化局域网在线节点发现逻辑
@@ -27,6 +27,7 @@ export default function Home() {
 
   // 侧边导航栏折叠显隐状态 (持久化缓存)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isRecordMenuExpanded, setIsRecordMenuExpanded] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -168,6 +169,13 @@ export default function Home() {
       isProfileInitialized.current = true;
     }
   }, [self]);
+
+  // 智能状态同步：当激活路由为记录中心的子分类时，自动展开二级导航菜单
+  useEffect(() => {
+    if (activeTab.startsWith('history-') && !isSidebarCollapsed) {
+      setIsRecordMenuExpanded(true);
+    }
+  }, [activeTab, isSidebarCollapsed]);
 
   const renderSelfAvatar = (avatar: string, size = 13) => {
     switch (avatar) {
@@ -474,35 +482,170 @@ export default function Home() {
               <span className="sidebar-nav-text">云文档</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('history')}
-              className="sidebar-nav-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '10px 14px',
-                background: activeTab === 'history' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
-                border: activeTab === 'history' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
-                color: activeTab === 'history' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.85rem',
-                fontWeight: activeTab === 'history' ? 600 : 500,
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== 'history') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== 'history') e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              <History size={15} style={{ color: activeTab === 'history' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
-              <span className="sidebar-nav-text">记录中心</span>
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+              <button
+                onClick={() => {
+                  setIsRecordMenuExpanded(!isRecordMenuExpanded);
+                  if (!activeTab.startsWith('history-')) {
+                    setActiveTab('history-transfer'); // 点击大类默认切换到第一个子菜单
+                  }
+                }}
+                className="sidebar-nav-btn"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: activeTab.startsWith('history-') ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
+                  border: activeTab.startsWith('history-') ? '1px solid var(--border-color-hover)' : '1px solid transparent',
+                  color: activeTab.startsWith('history-') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  fontWeight: activeTab.startsWith('history-') ? 600 : 500,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s'
+                }}
+                onMouseEnter={(e) => {
+                  if (!activeTab.startsWith('history-')) e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!activeTab.startsWith('history-')) e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <History size={15} style={{ color: activeTab.startsWith('history-') ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+                <span className="sidebar-nav-text">记录中心</span>
+                {!isSidebarCollapsed && (
+                  <ChevronDown 
+                    size={12} 
+                    style={{ 
+                      marginLeft: 'auto', 
+                      opacity: 0.6,
+                      transform: isRecordMenuExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }} 
+                  />
+                )}
+              </button>
+
+              {/* 二级侧边导航子菜单 (大厂级莫兰迪缩进美学) */}
+              {isRecordMenuExpanded && !isSidebarCollapsed && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                  paddingLeft: '22px',
+                  marginTop: '4px',
+                  animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+                }}>
+                  <button
+                    onClick={() => setActiveTab('history-transfer')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: activeTab === 'history-transfer' ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
+                      border: 'none',
+                      color: activeTab === 'history-transfer' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                      borderRadius: '4px',
+                      fontSize: '0.78rem',
+                      fontWeight: activeTab === 'history-transfer' ? 600 : 500,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (activeTab !== 'history-transfer') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activeTab !== 'history-transfer') e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <span style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      background: activeTab === 'history-transfer' ? 'var(--accent-color)' : 'var(--text-muted)',
+                      display: 'inline-block'
+                    }} />
+                    设备互传历史
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('history-share')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: activeTab === 'history-share' ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
+                      border: 'none',
+                      color: activeTab === 'history-share' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                      borderRadius: '4px',
+                      fontSize: '0.78rem',
+                      fontWeight: activeTab === 'history-share' ? 600 : 500,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (activeTab !== 'history-share') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activeTab !== 'history-share') e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <span style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      background: activeTab === 'history-share' ? 'var(--accent-color)' : 'var(--text-muted)',
+                      display: 'inline-block'
+                    }} />
+                    共享上传记录
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('history-document')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: activeTab === 'history-document' ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
+                      border: 'none',
+                      color: activeTab === 'history-document' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                      borderRadius: '4px',
+                      fontSize: '0.78rem',
+                      fontWeight: activeTab === 'history-document' ? 600 : 500,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (activeTab !== 'history-document') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activeTab !== 'history-document') e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <span style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      background: activeTab === 'history-document' ? 'var(--accent-color)' : 'var(--text-muted)',
+                      display: 'inline-block'
+                    }} />
+                    云文档活动日志
+                  </button>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => setActiveTab('settings')}
@@ -696,14 +839,14 @@ export default function Home() {
               {activeTab === 'transfer' && '文件传输工作台'}
               {activeTab === 'share' && '公共共享中心'}
               {activeTab === 'knowledge' && '知识协作云文档'}
-              {activeTab === 'history' && '操作与协作记录中心'}
+              {activeTab.startsWith('history-') && '操作与协作记录中心'}
               {activeTab === 'settings' && '全局系统配置'}
             </h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
               {activeTab === 'transfer' && '安全、无压缩的局域网零阻碍点对点极速传输'}
               {activeTab === 'share' && '长效、大文件零压缩合并存储的局域网公共共享空间'}
               {activeTab === 'knowledge' && '支持富文本与代码的局域网去中心化物理落盘云文档'}
-              {activeTab === 'history' && '局域网互传历史、共享上传审计以及云协作审计日志'}
+              {activeTab.startsWith('history-') && '局域网互传历史、共享上传审计以及云协作审计日志'}
               {activeTab === 'settings' && '修改默认存储路径以及查看本端硬件和网络特征'}
             </p>
           </div>
@@ -832,12 +975,19 @@ export default function Home() {
             </div>
           )}
 
-          {/* TAB 4: 局域网物理传输与审计操作记录中心 (大统一 Activity Center) */}
-          {activeTab === 'history' && (
+          {/* TAB 4: 大统一记录中心 (Activity Hub) */}
+          {activeTab.startsWith('history-') && (
             <div className="fade-in">
               <RecordCenter 
                 tasks={tasks} 
                 self={self} 
+                subTab={
+                  activeTab === 'history-share' 
+                    ? 'share' 
+                    : activeTab === 'history-document' 
+                      ? 'document' 
+                      : 'transfer'
+                }
                 onDeleteTask={deleteTask}
                 onClearHistory={clearHistory}
                 onNavigateToDoc={(docId) => {
