@@ -108,6 +108,11 @@ export default function Home() {
       const savedTheme = (localStorage.getItem('theme') as 'dark' | 'light') || 'dark';
       setTheme(savedTheme);
       document.documentElement.setAttribute('data-theme', savedTheme);
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   }, []);
 
@@ -136,6 +141,11 @@ export default function Home() {
     setTheme(nextTheme);
     localStorage.setItem('theme', nextTheme);
     document.documentElement.setAttribute('data-theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   };
 
   // 初始化拉取系统配置
