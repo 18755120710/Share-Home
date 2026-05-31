@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
 
   const mdns = MdnsService.getInstance();
   const { searchParams } = new URL(request.url);
-  const clientId = searchParams.get('clientId') || `peer_web_${Math.random().toString(36).substring(2, 11)}`;
   
   // 优先获取客户端透传的本地个性化属性
   const nickname = searchParams.get('nickname') || '局域网伙伴';
@@ -63,6 +62,9 @@ export async function GET(request: NextRequest) {
     clientIp = mdns.getLocalIp();
   }
 
+  // 统一基于客户端局域网真实IP生成全局唯一的 clientId，实现“一IP一设备”
+  const clientId = `peer_${clientIp.replace(/\./g, '_')}`;
+
   // 只要不是本机的 Host 进程 ID，就将其注册为 Web 浏览器虚拟在线终端
   if (clientId !== mdns.getSelfId()) {
       mdns.registerWebPeer(clientId, clientIp, nickname, avatar, webPort, os);
@@ -86,26 +88,34 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const webPort = getRuntimePort(process.env.SHARE_HOME_WEB_PORT || process.env.PORT, 3000);
-    const { nickname, avatar, clientId, os } = await request.json();
+    const { nickname, avatar, os } = await request.json();
     if (!nickname || !avatar) {
       return NextResponse.json({ success: false, error: '昵称和头像不能为空' }, { status: 400 });
     }
     
     const mdns = MdnsService.getInstance();
     
-    if (clientId && clientId !== mdns.getSelfId()) {
-      // 客户端在线修改资料：解析当前 IP 并更新虚拟端注册
-      let clientIp = '127.0.0.1';
-      const forwardedFor = request.headers.get('x-forwarded-for');
-      if (forwardedFor) {
-        clientIp = forwardedFor.split(',')[0].trim();
-      }
-      if (clientIp.startsWith('::ffff:')) {
-        clientIp = clientIp.substring(7);
-      } else if (clientIp === '::1') {
-        clientIp = '127.0.0.1';
-      }
-      mdns.registerWebPeer(clientId, clientIp, nickname, avatar, webPort, os || 'Windows');
+    // 解析 IP 并重新计算出此 IP 强绑定的物理 ID
+    let clientIp = '127.0.0.1';
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    if (forwardedFor) {
+      clientIp = forwardedFor.split(',')[0].trim();
+    }
+    if (clientIp.startsWith('::ffff:')) {
+      clientIp = clientIp.substring(7);
+    } else if (clientIp === '::1') {
+      clientIp = '127.0.0.1';
+    }
+    // 智能修正
+    if (clientIp === '127.0.0.1' || clientIp === 'localhost') {
+      clientIp = mdns.getLocalIp();
+    }
+
+    const calculatedClientId = `peer_${clientIp.replace(/\./g, '_')}`;
+    
+    if (calculatedClientId !== mdns.getSelfId()) {
+      // 客户端在线修改资料：更新此 IP 强绑定的虚拟端注册
+      mdns.registerWebPeer(calculatedClientId, clientIp, nickname, avatar, webPort, os || 'Windows');
     } else {
       // 远端浏览器访问的是这台主机的控制台，因此资料更新应作用于主机广播身份。
       mdns.updateBroadcast(nickname, avatar);
