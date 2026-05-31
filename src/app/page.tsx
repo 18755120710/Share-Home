@@ -61,6 +61,9 @@ export default function Home() {
   // 页面当前激活的大 Tab
   const [activeTab, setActiveTab] = useState<ActiveTab>('transfer');
 
+  // 系统设置局部二级 Tab 导航状态
+  const [settingsSubTab, setSettingsSubTab] = useState<'storage' | 'profile' | 'network' | 'guidelines'>('storage');
+
   // 主题颜色状态
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
@@ -734,214 +737,284 @@ export default function Home() {
             </div>
           )}
 
-          {/* TAB 3: 系统配置控制台仪表盘 */}
+          {/* TAB 3: 系统配置控制台仪表盘 (完全去卡片化，带二级 Inner Tab 导航与平铺配置直行设计) */}
           {activeTab === 'settings' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start fade-in">
+            <div className="flex flex-col md:flex-row gap-8 w-full items-start fade-in mt-2">
               
-              {/* ===================== 左侧分栏：核心存储与网络服务控制器 ===================== */}
-              <div className="flex flex-col gap-6">
+              {/* 左侧：极简二级配置导航 (Inner Borderless Settings Nav) */}
+              <div className="flex flex-row md:flex-col gap-1 w-full md:w-[180px] shrink-0 border-b md:border-b-0 md:border-r border-border/10 pb-4 md:pb-0 md:pr-4">
+                {(['storage', 'profile', 'network', 'guidelines'] as const).map((sub) => {
+                  const label = {
+                    storage: '基础存储',
+                    profile: '极客头像',
+                    network: '网络参数',
+                    guidelines: '安全指引'
+                  }[sub];
+                  const icon = {
+                    storage: <FolderOpen size={13} />,
+                    profile: <Edit3 size={13} />,
+                    network: <Cpu size={13} />,
+                    guidelines: <Info size={13} />
+                  }[sub];
+                  const isActive = settingsSubTab === sub;
+                  return (
+                    <button
+                      key={sub}
+                      onClick={() => setSettingsSubTab(sub)}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150 border-none ${
+                        isActive 
+                          ? 'bg-muted/30 text-foreground font-bold' 
+                          : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/10'
+                      }`}
+                    >
+                      {icon}
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 右侧：扁平去卡片化流式配置项面板 */}
+              <div className="flex-1 w-full flex flex-col gap-6">
                 
-                {/* 核心配置：动态存储路径修改 */}
-                <ShadcnCard className="border border-border/40 bg-card/60 backdrop-blur-md shadow-lg rounded-xl overflow-hidden hover:border-border/80 hover:shadow-xl transition-all duration-300">
-                  <CardContent className="p-6 flex flex-col gap-4">
-                    
-                    {/* 头部标题与存储徽章 */}
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <FolderOpen size={15} className="text-primary" />
-                        </div>
-                        <h3 className="text-sm font-semibold text-foreground">默认文件及文档存储目录</h3>
+                {/* SUB TAB 1: 基础存储目录配置 */}
+                {settingsSubTab === 'storage' && (
+                  <div className="flex flex-col gap-5 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between border-b border-border/20 pb-3">
+                      <div className="flex flex-col gap-0.5">
+                        <h3 className="text-sm font-bold text-foreground">默认文件及文档存储目录</h3>
+                        <p className="text-[11px] text-muted-foreground">收到的文件及创建的同步云文档，均存放在本端此物理目录中</p>
                       </div>
-                      
-                      {/* 物理路径健康微光指示灯 */}
-                      <span className="text-[11px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse shadow-[0_0_8px_#10b981]" />
-                        存储就绪
+                      <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                        就绪
                       </span>
                     </div>
 
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      收到的局域网传输文件，以及您创建同步的云文档，均会实时存放于此物理目录中。支持绝对路径或以 `./` 开头的根相对路径。
-                    </p>
-
-                    <div className="flex gap-3 mt-1">
-                      <div className="relative flex-1 flex items-center">
-                        <ShadcnInput
-                          type="text"
-                          value={storagePath}
-                          onChange={(e) => setStoragePath(e.target.value)}
-                          placeholder="例如: ./storage"
-                          className="w-full bg-background/50 border-border/50 pr-12 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200"
-                        />
-                        <button
-                          onClick={handleSelectDirectory}
-                          disabled={isSelectingDir}
-                          title="弹出系统文件浏览器选择物理存储路径"
-                          className="absolute right-2 text-muted-foreground hover:text-primary hover:bg-muted p-1.5 rounded-md transition-all duration-200"
-                        >
-                          {isSelectingDir ? (
-                            <RefreshCw size={15} className="animate-spin text-primary" />
-                          ) : (
-                            <FolderOpen size={15} />
-                          )}
-                        </button>
-                      </div>
-                      <ShadcnButton 
-                        onClick={() => handleSaveConfig()} 
-                        disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                      >
-                        {configStatus === 'saving' ? '正在校验保存...' : '应用修改'}
-                      </ShadcnButton>
-                    </div>
-
-                    {/* 状态反馈 */}
-                    {configStatus === 'success' && (
-                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-lg text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <Check size={14} />
-                        存储路径校验通过，修改已成功持久化保存！
-                      </div>
-                    )}
-
-                    {configStatus === 'error' && (
-                      <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive/90 rounded-lg text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <ShieldAlert size={14} />
-                        修改失败：{configErrorMsg}
-                      </div>
-                    )}
-
-                    {absolutePath && (
-                      <div className="text-[11px] text-muted-foreground bg-muted/40 p-3 rounded-lg border border-border/40 border-dashed word-break font-mono leading-relaxed">
-                        <strong className="text-foreground">当前服务器绝对落盘路径：</strong> {absolutePath}
-                      </div>
-                    )}
-                  </CardContent>
-                </ShadcnCard>
-
-                {/* 局域网协同办公安全指引 */}
-                <ShadcnCard className="border border-border/40 bg-gradient-to-br from-primary/5 to-transparent shadow-md rounded-xl overflow-hidden hover:border-border/60 transition-all duration-300">
-                  <CardContent className="p-6 flex gap-3.5 items-start">
-                    <Info size={16} className="text-primary flex-shrink-0 mt-0.5" />
-                    <div className="flex flex-col gap-1.5">
-                      <h4 className="text-xs font-semibold text-foreground">去中心化局域网多播提醒</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Share Home 依赖 mDNS 多播及去中心化 P2P 网络工作。请确保所有协作节点设备均连入同一局域网（或 Wi-Fi），且本端防火墙已开放相应的 WebSocket 及 HTTP 端口信道，即可获得最佳体验。
-                      </p>
-                    </div>
-                  </CardContent>
-                </ShadcnCard>
-              </div>
-
-              {/* ===================== 右侧分栏：本端极客身份个性化与网络探测 ===================== */}
-              <div className="flex flex-col gap-6">
-                
-                {/* 新增：设备身份档案舱卡片 */}
-                <ShadcnCard className="border border-border/40 bg-card/60 backdrop-blur-md shadow-lg rounded-xl overflow-hidden hover:border-border/80 hover:shadow-xl transition-all duration-300">
-                  <CardContent className="p-6 flex flex-col gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Edit3 size={15} className="text-primary" />
-                      </div>
-                      <h3 className="text-sm font-semibold text-foreground">本端设备身份名片</h3>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      个性化您在局域网中的展现身份，设置后邻居节点将立即看到您的更改。
-                    </p>
-
-                    {/* 头像展示与拟物化键盘选择 */}
-                    <div className="flex flex-col gap-2.5">
-                      <label className="text-xs text-muted-foreground font-medium">快速选择专属极客头像</label>
-                      <div className="grid grid-cols-8 gap-2">
-                        {['💻', '🚀', '🐱', '🦊', '🤖', '🍎', '🎨', '⚡'].map((emoji) => {
-                          const isSelected = newAvatar === emoji;
-                          return (
+                    <div className="flex flex-col gap-4 py-2">
+                      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between py-4 border-b border-border/10">
+                        <div className="flex-1 min-w-[200px] pr-4">
+                          <h4 className="text-xs font-bold text-foreground">物理落盘绝对路径</h4>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                            支持设定绝对路径或以 `./` 开头的根相对路径，请确保系统对其拥有完整的写权限
+                          </p>
+                        </div>
+                        
+                        <div className="flex gap-2.5 w-full md:w-auto shrink-0 min-w-[320px]">
+                          <div className="relative flex-1 flex items-center">
+                            <ShadcnInput
+                              type="text"
+                              value={storagePath}
+                              onChange={(e) => setStoragePath(e.target.value)}
+                              placeholder="例如: ./storage"
+                              className="w-full bg-background/30 border-border/80 pr-10 focus-visible:ring-2 focus-visible:ring-zinc-500/10 focus-visible:border-border-hover transition-all duration-200"
+                            />
                             <button
-                              key={emoji}
-                              onClick={() => setNewAvatar(emoji)}
-                              className={`text-lg py-2.5 bg-background/50 hover:bg-muted border rounded-xl cursor-pointer transition-all duration-300 flex items-center justify-center ${
-                                isSelected ? 'bg-primary/10 border-primary shadow-md shadow-primary/15 scale-105 font-bold' : 'border-border/50'
-                              }`}
+                              onClick={handleSelectDirectory}
+                              disabled={isSelectingDir}
+                              title="弹出系统文件浏览器选择物理存储路径"
+                              className="absolute right-2 text-muted-foreground hover:text-primary hover:bg-muted p-1.5 rounded-md transition-all duration-200"
                             >
-                              {emoji}
+                              {isSelectingDir ? (
+                                <RefreshCw size={14} className="animate-spin text-primary" />
+                              ) : (
+                                <FolderOpen size={14} />
+                              )}
                             </button>
-                          );
-                        })}
+                          </div>
+                          <ShadcnButton 
+                            onClick={() => handleSaveConfig()} 
+                            disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}
+                            className="bg-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-700 hover:dark:bg-zinc-200 shadow-sm"
+                          >
+                            {configStatus === 'saving' ? '验证中...' : '保存'}
+                          </ShadcnButton>
+                        </div>
                       </div>
+
+                      {/* 状态反馈提示 */}
+                      {configStatus === 'success' && (
+                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                          <Check size={14} />
+                          存储路径校验通过，修改已成功持久化保存！
+                        </div>
+                      )}
+                      {configStatus === 'error' && (
+                        <div className="p-3 bg-destructive/10 border border-destructive/15 text-destructive rounded-lg text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                          <ShieldAlert size={14} />
+                          修改失败：{configErrorMsg}
+                        </div>
+                      )}
+
+                      {absolutePath && (
+                        <div className="text-[10px] text-muted-foreground bg-muted/20 p-3 rounded-lg border border-border/10 border-dashed word-break font-mono leading-relaxed mt-2">
+                          <strong className="text-foreground">当前服务器绝对落盘路径：</strong> {absolutePath}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* SUB TAB 2: 极客头像与本端身份 */}
+                {settingsSubTab === 'profile' && (
+                  <div className="flex flex-col gap-5 animate-in fade-in duration-200">
+                    <div className="flex flex-col gap-0.5 border-b border-border/20 pb-3">
+                      <h3 className="text-sm font-bold text-foreground">本端设备身份名片</h3>
+                      <p className="text-[11px] text-muted-foreground">自定义你在局域网群组中展示给对等体的个人极客档案</p>
                     </div>
 
-                    {/* 昵称编辑输入框及一键同步按钮 */}
-                    <div className="flex flex-col gap-2 mt-1">
-                      <label className="text-xs text-muted-foreground font-medium">自定义设备昵称</label>
-                      <div className="flex gap-3">
-                        <ShadcnInput
-                          type="text"
-                          value={newNickname}
-                          onChange={(e) => setNewNickname(e.target.value)}
-                          placeholder="输入您的专属极客昵称"
-                          maxLength={16}
-                          className="flex-1 bg-background/50 border-border/50 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200"
-                        />
-                        <ShadcnButton 
-                          onClick={saveProfile} 
-                          disabled={!newNickname.trim() || !!(self && self.nickname === newNickname && self.avatar === newAvatar)}
-                          className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                        >
-                          同步修改档案
-                        </ShadcnButton>
+                    <div className="flex flex-col gap-5 py-2">
+                      
+                      {/* 头像选择行 */}
+                      <div className="flex flex-col md:flex-row gap-4 items-start justify-between py-4 border-b border-border/10">
+                        <div className="flex-1 pr-4">
+                          <h4 className="text-xs font-bold text-foreground">快速选择专属极客头像</h4>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                            选择一个最贴近您硬件设备特征或个性的拟物化标志
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-8 gap-1.5 shrink-0 min-w-[280px]">
+                          {['💻', '🚀', '🐱', '🦊', '🤖', '🍎', '🎨', '⚡'].map((emoji) => {
+                            const isSelected = newAvatar === emoji;
+                            return (
+                              <button
+                                key={emoji}
+                                onClick={() => setNewAvatar(emoji)}
+                                className={`text-sm py-2 bg-muted/20 hover:bg-muted border rounded-lg cursor-pointer transition-all duration-200 flex items-center justify-center ${
+                                  isSelected 
+                                    ? 'bg-zinc-800 border-zinc-800 text-zinc-50 dark:bg-zinc-100 dark:border-zinc-100 dark:text-zinc-900 shadow-sm font-bold' 
+                                    : 'border-border/60'
+                                }`}
+                              >
+                                {emoji}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </ShadcnCard>
 
-                {/* 本端设备的高端硬件及网络参数 */}
-                <ShadcnCard className="border border-border/40 bg-card/60 backdrop-blur-md shadow-lg rounded-xl overflow-hidden hover:border-border/80 hover:shadow-xl transition-all duration-300">
-                  <CardContent className="p-6 flex flex-col gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Cpu size={15} className="text-primary" />
+                      {/* 昵称编辑行 */}
+                      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between py-4 border-b border-border/10">
+                        <div className="flex-1 pr-4">
+                          <h4 className="text-xs font-bold text-foreground">自定义设备昵称</h4>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                            设置好昵称后，同一局域网内的邻居节点将立即看到您的设备档案
+                          </p>
+                        </div>
+                        <div className="flex gap-2.5 w-full md:w-auto shrink-0 min-w-[320px]">
+                          <ShadcnInput
+                            type="text"
+                            value={newNickname}
+                            onChange={(e) => setNewNickname(e.target.value)}
+                            placeholder="输入您的专属极客昵称"
+                            maxLength={16}
+                            className="flex-1 bg-background/30 border-border/80 focus-visible:ring-2 focus-visible:ring-zinc-500/10 focus-visible:border-border-hover transition-all duration-200"
+                          />
+                          <ShadcnButton 
+                            onClick={saveProfile} 
+                            disabled={!newNickname.trim() || !!(self && self.nickname === newNickname && self.avatar === newAvatar)}
+                            className="bg-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-700 hover:dark:bg-zinc-200 shadow-sm"
+                          >
+                            同步修改
+                          </ShadcnButton>
+                        </div>
                       </div>
-                      <h3 className="text-sm font-semibold text-foreground">本端局域网硬件参数</h3>
+
+                    </div>
+                  </div>
+                )}
+
+                {/* SUB TAB 3: 本端极客网络及端口参数 */}
+                {settingsSubTab === 'network' && (
+                  <div className="flex flex-col gap-5 animate-in fade-in duration-200">
+                    <div className="flex flex-col gap-0.5 border-b border-border/20 pb-3">
+                      <h3 className="text-sm font-bold text-foreground">本端局域网硬件与网络参数</h3>
+                      <p className="text-[11px] text-muted-foreground">底层去中心化 P2P 协作通信信道的本地运行物理状态</p>
                     </div>
 
                     {self && (
-                      <div className="flex flex-col gap-3.5">
-                        <div className="flex text-xs border-b border-border/40 pb-3 items-center justify-between">
-                          <span className="text-muted-foreground font-medium">设备唯一标识</span>
-                          <span className="text-foreground font-mono bg-muted/50 px-2.5 py-1 rounded-md text-[10.5px] border border-border/30 max-w-[240px] truncate" title={self.id}>
+                      <div className="flex flex-col gap-2.5 py-2 font-mono">
+                        {/* 节点唯一 ID */}
+                        <div className="flex text-xs border-b border-border/10 py-3.5 items-center justify-between">
+                          <div className="flex flex-col gap-0.5 font-sans">
+                            <span className="text-xs font-bold text-foreground">设备唯一标识</span>
+                            <span className="text-[10px] text-muted-foreground">群组识别特征符</span>
+                          </div>
+                          <span className="text-foreground bg-muted/30 px-2 py-0.5 rounded border border-border/40 text-[10px] max-w-[200px] truncate" title={self.id}>
                             {self.id}
                           </span>
                         </div>
-                        <div className="flex text-xs border-b border-border/40 pb-3 items-center justify-between">
-                          <span className="text-muted-foreground font-medium">本端网络 IP 地址</span>
-                          <span className="text-foreground font-mono bg-muted/50 px-2.5 py-1 rounded-md text-[10.5px] border border-border/30">
+
+                        {/* 网络 IP 地址 */}
+                        <div className="flex text-xs border-b border-border/10 py-3.5 items-center justify-between">
+                          <div className="flex flex-col gap-0.5 font-sans">
+                            <span className="text-xs font-bold text-foreground">本端网络 IP 地址</span>
+                            <span className="text-[10px] text-muted-foreground">局域网物理信道端点</span>
+                          </div>
+                          <span className="text-foreground bg-muted/30 px-2 py-0.5 rounded border border-border/40 text-[10px]">
                             {self.ip}
                           </span>
                         </div>
-                        <div className="flex text-xs border-b border-border/40 pb-3 items-center justify-between">
-                          <span className="text-muted-foreground font-medium">节点侦听端口</span>
-                          <span className="text-foreground font-mono bg-muted/50 px-2.5 py-1 rounded-md text-[10.5px] border border-border/30">
+
+                        {/* 侦听端口 */}
+                        <div className="flex text-xs border-b border-border/10 py-3.5 items-center justify-between">
+                          <div className="flex flex-col gap-0.5 font-sans">
+                            <span className="text-xs font-bold text-foreground">节点侦听端口</span>
+                            <span className="text-[10px] text-muted-foreground">数据流套接字物理通道</span>
+                          </div>
+                          <span className="text-foreground bg-muted/30 px-2 py-0.5 rounded border border-border/40 text-[10px]">
                             {self.port}
                           </span>
                         </div>
-                        <div className="flex flex-col gap-2 text-xs mt-1">
-                          <span className="text-muted-foreground font-medium">去中心化服务信道状态</span>
-                          <div className="flex flex-wrap gap-4 mt-1">
-                            <span className="flex items-center gap-2 text-emerald-500 font-semibold bg-emerald-500/5 px-2.5 py-1.5 rounded-lg border border-emerald-500/10">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse shadow-[0_0_8px_#10b981]" />
-                              WebSocket 信道 (Active)
+
+                        {/* 去中心化状态 */}
+                        <div className="flex flex-col gap-2 py-3.5">
+                          <span className="text-xs font-bold text-foreground font-sans">去中心化服务信道物理状态</span>
+                          <div className="flex flex-wrap gap-3 mt-1 font-sans">
+                            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/5 px-2 py-1 rounded border border-emerald-500/10 text-[10px]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                              WebSocket 信道
                             </span>
-                            <span className="flex items-center gap-2 text-emerald-500 font-semibold bg-emerald-500/5 px-2.5 py-1.5 rounded-lg border border-emerald-500/10">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse shadow-[0_0_8px_#10b981]" />
-                              mDNS 发现 (Active)
+                            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/5 px-2 py-1 rounded border border-emerald-500/10 text-[10px]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                              mDNS 服务自组网
                             </span>
                           </div>
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                </ShadcnCard>
+                  </div>
+                )}
+
+                {/* SUB TAB 4: 协同指引与多播提醒 */}
+                {settingsSubTab === 'guidelines' && (
+                  <div className="flex flex-col gap-5 animate-in fade-in duration-200">
+                    <div className="flex flex-col gap-0.5 border-b border-border/20 pb-3">
+                      <h3 className="text-sm font-bold text-foreground">局域网去中心多播提醒</h3>
+                      <p className="text-[11px] text-muted-foreground">快速理解 P2P 协作网络的底层保障机制与常见故障排查</p>
+                    </div>
+
+                    <div className="flex gap-4 items-start py-4 border-b border-border/10">
+                      <Info size={16} className="text-zinc-500 shrink-0 mt-0.5" />
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-xs font-bold text-foreground">去中心化多播发现机制</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Share Home 依赖 mDNS（多播 DNS）广播在局域网内自动寻找其他的协作对等体节点，实现零配置自愈合入网。这需要底层网络支持 IGMP / Multicast，如果您的路由器关闭了这一机制，将无法发现节点。
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 items-start py-4 border-b border-border/10">
+                      <Cpu size={16} className="text-zinc-500 shrink-0 mt-0.5" />
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-xs font-bold text-foreground">防火墙与套接字信道</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          文件极速直传基于本地套接字数据流信道。请确保本端系统防火墙已开放相应的 WebSocket 侦听端口（默认为 3000 及随机高端口），并在防病毒软件中将 Share Home 标记为受信任的应用。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               </div>
 
