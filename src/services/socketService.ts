@@ -110,7 +110,16 @@ export class SocketService {
           if (clientId) {
             const mdns = MdnsService.getInstance();
             if (clientId !== mdns.getSelfId()) {
-              mdns.unregisterWebPeer(clientId);
+              // 遍历所有连接中的活跃客户端，判定是否还有该 clientId 的其他活跃连接
+              const hasOtherActiveClients = Array.from(this.clients).some(
+                (c: any) => c.clientId === clientId && c.readyState === WebSocket.OPEN
+              );
+              if (!hasOtherActiveClients) {
+                console.log(`[WebSocket] 客户端 ${clientId} 所有活跃连接已全部断开，执行设备下线注销。`);
+                mdns.unregisterWebPeer(clientId);
+              } else {
+                console.log(`[WebSocket] 客户端 ${clientId} 仍有其他活跃连接，保持设备在线状态。`);
+              }
             }
           }
         });
