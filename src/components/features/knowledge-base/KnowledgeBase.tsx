@@ -1642,56 +1642,19 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         </div>
 
         {/* 极致审美：横向并排的 50-50 大胶囊新建按钮 */}
-        <div style={{ display: 'flex', gap: '8px', padding: '0 16px 12px 16px', borderBottom: '1px solid var(--border-color)' }}>
-          <Button 
-            variant="primary" 
+        <div className="flex gap-2 px-4 pb-3 border-b border-border">
+          <button 
             onClick={() => handleCreateDocument(null)} 
-            style={{ 
-              flex: 1, 
-              height: '30px', 
-              fontSize: '0.75rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              gap: '6px',
-              background: 'linear-gradient(135deg, var(--accent-color), #2563EB)',
-              boxShadow: '0 2px 6px rgba(59, 130, 246, 0.2)',
-              border: 'none',
-              color: '#FFF',
-              cursor: 'pointer'
-            }}
+            className="flex-1 h-[32px] rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-sm hover:shadow-md hover:shadow-blue-500/10 active:scale-95 transition-all duration-200 cursor-pointer"
           >
-            <Plus size={12} />
+            <Plus size={13} className="text-white" />
             新建文档
-          </Button>
+          </button>
           <button
             onClick={(e) => handleCreateFolder(null, e)}
-            style={{
-              flex: 1,
-              height: '30px',
-              fontSize: '0.75rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              background: 'rgba(234, 179, 8, 0.08)',
-              border: '1px solid rgba(234, 179, 8, 0.2)',
-              color: '#EAB308',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              fontWeight: 600,
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(234, 179, 8, 0.14)';
-              e.currentTarget.style.borderColor = 'rgba(234, 179, 8, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(234, 179, 8, 0.08)';
-              e.currentTarget.style.borderColor = 'rgba(234, 179, 8, 0.2)';
-            }}
+            className="flex-1 h-[32px] rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 hover:border-amber-500/50 hover:shadow-sm hover:shadow-amber-500/5 active:scale-95 transition-all duration-200 cursor-pointer"
           >
-            <FolderPlus size={12} />
+            <FolderPlus size={13} />
             新建文件夹
           </button>
         </div>
