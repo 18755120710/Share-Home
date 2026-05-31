@@ -3,9 +3,44 @@ import fs from 'fs';
 import path from 'path';
 import { FileService } from '@/services/fileService';
 import { ConfigService } from '@/services/configService';
+import { AuthService } from '@/services/authService';
+import { MdnsService } from '@/services/mdnsService';
 
 export async function POST(request: NextRequest) {
   try {
+    const mdns = MdnsService.getInstance();
+    const authService = AuthService.getInstance();
+
+    // 1. 获取客户端的局域网物理 IP (回环地址映射为物理局域网 IP)
+    let clientIp = '127.0.0.1';
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const realIp = request.headers.get('x-real-ip');
+    if (forwardedFor) {
+      clientIp = forwardedFor.split(',')[0].trim();
+    } else if (realIp) {
+      clientIp = realIp.trim();
+    } else if ((request as any).ip) {
+      clientIp = (request as any).ip;
+    }
+    if (clientIp.startsWith('::ffff:')) {
+      clientIp = clientIp.substring(7);
+    }
+    if (clientIp === '::1' || clientIp === '127.0.0.1' || clientIp === 'localhost') {
+      clientIp = mdns.getLocalIp();
+    }
+
+    const clientId = `peer_${clientIp.replace(/\./g, '_')}`;
+    
+    // 2. 校验文件上传权限防火墙
+    const perms = authService.getDevicePermission(clientId);
+    if (!perms.allowUpload) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'forbidden_upload', 
+        message: '您的局域网共享上传与互传文件权限已被超级管理员禁用。' 
+      }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('taskId');
     const chunkIndex = parseInt(searchParams.get('chunkIndex') || '0', 10);
