@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { TransferTask } from '@/types/transfer';
 import TransferHistory from './TransferHistory';
-import Card from '@/components/ui/LegacyCard';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { 
   Search, Trash2, Laptop, Monitor, Smartphone, 
-  History, FolderOpen, FileText, RefreshCw, 
-  AlertCircle, ExternalLink, User, Clock
+  RefreshCw, AlertCircle, ExternalLink, User, Clock
 } from 'lucide-react';
 
 interface RecordCenterProps {
@@ -73,7 +72,7 @@ export default function RecordCenter({
       fetchLogs();
     }
     setSearchTerm('');
-    setCurrentPage(1);
+    currentPage !== 1 && setCurrentPage(1);
   }, [subTab]);
 
   // 当搜索内容改变时重置页码为首页
@@ -121,19 +120,8 @@ export default function RecordCenter({
   const renderAvatar = (name: string, avatarEmoji?: string) => {
     if (avatarEmoji && !avatarEmoji.startsWith('avatar-') && avatarEmoji.length <= 4) {
       return (
-        <div style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '50%',
-          background: 'rgba(128, 128, 128, 0.05)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: '1px solid var(--border-color)',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-          flexShrink: 0
-        }}>
-          <span style={{ fontSize: '16px', lineHeight: 1 }}>{avatarEmoji}</span>
+        <div className="w-9 h-9 rounded-full bg-muted/40 flex items-center justify-center border border-border shadow-sm flex-shrink-0">
+          <span className="text-base leading-none">{avatarEmoji}</span>
         </div>
       );
     }
@@ -141,29 +129,15 @@ export default function RecordCenter({
     const initial = name.trim().charAt(0).toUpperCase() || 'P';
     const colorHash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 5;
     const gradients = [
-      'linear-gradient(135deg, #6366f1, #4f46e5)',
-      'linear-gradient(135deg, #10b981, #059669)',
-      'linear-gradient(135deg, #f59e0b, #d97706)',
-      'linear-gradient(135deg, #ec4899, #db2777)',
-      'linear-gradient(135deg, #06b6d4, #0891b2)'
+      'from-indigo-500 to-indigo-600',
+      'from-emerald-500 to-emerald-600',
+      'from-amber-500 to-amber-600',
+      'from-pink-500 to-pink-600',
+      'from-cyan-500 to-cyan-600'
     ];
 
     return (
-      <div style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '50%',
-        background: gradients[colorHash],
-        color: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 600,
-        fontSize: '0.85rem',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
-        flexShrink: 0
-      }}>
+      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradients[colorHash]} text-white flex items-center justify-center font-semibold text-xs border border-white/10 shadow-sm flex-shrink-0`}>
         {initial}
       </div>
     );
@@ -175,33 +149,25 @@ export default function RecordCenter({
     const lower = deviceText.toLowerCase();
     
     let label = deviceText;
-    let className = 'device-badge general';
+    let className = 'bg-zinc-100 text-zinc-800 dark:bg-zinc-850 dark:text-zinc-200 border border-zinc-200/50 dark:border-zinc-700/50';
     let icon = <Laptop size={11} />;
 
     if (lower.includes('win')) {
       label = 'Windows';
-      className = 'device-badge windows';
+      className = 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-100 dark:border-blue-900/30';
       icon = <Monitor size={11} />;
     } else if (lower.includes('mac') || lower.includes('ios') || lower.includes('apple')) {
       label = 'macOS';
-      className = 'device-badge macos';
+      className = 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800/80 dark:text-neutral-200 border border-neutral-200/50 dark:border-neutral-700/50';
       icon = <Laptop size={11} />;
     } else if (lower.includes('android')) {
       label = 'Android';
-      className = 'device-badge android';
+      className = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30';
       icon = <Smartphone size={11} />;
     }
 
     return (
-      <span className={className} style={{
-        fontSize: '0.62rem',
-        fontWeight: 600,
-        padding: '2px 6px',
-        borderRadius: '4px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '3px'
-      }}>
+      <span className={`${className} text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1`}>
         {icon}
         {label}
       </span>
@@ -223,7 +189,7 @@ export default function RecordCenter({
       return true;
     });
 
-  // 日志列表分页逻辑
+  // 日志列表分页 logic
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedLogs = filteredLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -232,13 +198,7 @@ export default function RecordCenter({
   const renderPagination = () => {
     if (totalPages <= 1) return null;
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-        marginTop: '20px'
-      }}>
+      <div className="flex items-center justify-center gap-2 mt-2">
         {Array.from({ length: totalPages }).map((_, idx) => {
           const p = idx + 1;
           const isSelected = p === currentPage;
@@ -246,18 +206,11 @@ export default function RecordCenter({
             <button
               key={p}
               onClick={() => setCurrentPage(p)}
-              style={{
-                background: isSelected ? 'var(--accent-color)' : 'rgba(128, 128, 128, 0.04)',
-                border: isSelected ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
-                color: isSelected ? '#ffffff' : 'var(--text-primary)',
-                borderRadius: '6px',
-                width: '30px',
-                height: '30px',
-                cursor: 'pointer',
-                fontWeight: isSelected ? 700 : 500,
-                fontSize: '0.78rem',
-                transition: 'all 0.2s'
-              }}
+              className={`w-[30px] h-[30px] rounded-md text-xs font-semibold border transition-all duration-200 ${
+                isSelected 
+                  ? 'bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20' 
+                  : 'bg-muted/30 border-border text-foreground hover:bg-muted/80'
+              }`}
             >
               {p}
             </button>
@@ -268,7 +221,7 @@ export default function RecordCenter({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="flex flex-col gap-6">
       
       {/* 受控渲染分发 */}
       {subTab === 'transfer' ? (
@@ -281,90 +234,39 @@ export default function RecordCenter({
         />
       ) : (
         // 共享记录 & 云文档记录：渲染大厂高科技集中列表面板 (无重复 Header Tabs)
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="flex flex-col gap-5">
           
           {/* 高级极简搜索及清空工具条 */}
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-md)',
-            padding: '12px 18px'
-          }}>
-            <div style={{ position: 'relative', width: '240px' }}>
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-card border border-border rounded-xl p-3 px-[18px] shadow-sm">
+            <div className="relative w-60">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={subTab === 'share' ? "搜索共享文件名 / 上传者..." : "搜索云文档名称 / 新建者..."}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg-item)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                  padding: '8px 12px 8px 34px',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.82rem',
-                  outline: 'none',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--accent-color)';
-                  e.target.style.boxShadow = '0 0 0 2px var(--accent-glow)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--border-color)';
-                  e.target.style.boxShadow = 'none';
-                }}
+                className="w-full bg-muted/40 border border-border rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
               />
-              <Search size={14} style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--text-muted)'
-              }} />
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
 
             {/* 清空按钮逻辑 */}
             {filteredLogs.length > 0 && (
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
                 {showClearConfirm ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--error-color)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-md p-1 px-2">
+                    <span className="text-[11px] text-destructive flex items-center gap-1 font-medium">
                       <AlertCircle size={12} />
-                      清空此类全部记录？
+                      确认清空此类全部记录？
                     </span>
                     <button
                       onClick={handleClearLogs}
-                      style={{
-                        background: 'var(--error-color)',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontSize: '0.72rem',
-                        padding: '4px 8px',
-                        cursor: 'pointer',
-                        fontWeight: 600
-                      }}
+                      className="bg-destructive text-destructive-foreground rounded px-2 py-0.5 text-[10px] font-semibold hover:bg-destructive/90 transition-colors"
                     >
                       确认
                     </button>
                     <button
                       onClick={() => setShowClearConfirm(false)}
-                      style={{
-                        background: 'rgba(128, 128, 128, 0.08)',
-                        color: 'var(--text-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '4px',
-                        fontSize: '0.72rem',
-                        padding: '4px 8px',
-                        cursor: 'pointer'
-                      }}
+                      className="bg-muted text-muted-foreground border border-border rounded px-2 py-0.5 text-[10px] hover:bg-muted/80 transition-colors"
                     >
                       取消
                     </button>
@@ -372,28 +274,7 @@ export default function RecordCenter({
                 ) : (
                   <button
                     onClick={() => setShowClearConfirm(true)}
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-secondary)',
-                      borderRadius: '6px',
-                      padding: '8px 12px',
-                      fontSize: '0.78rem',
-                      fontWeight: 500,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--error-color)';
-                      e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-secondary)';
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                    }}
+                    className="flex items-center gap-1.5 border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200"
                   >
                     <Trash2 size={13} />
                     清空此类记录
@@ -404,35 +285,26 @@ export default function RecordCenter({
           </div>
 
           {/* 列表陈列容器 */}
-          <Card style={{ padding: '24px' }}>
-            <h3 style={{
-              fontSize: '0.92rem',
-              fontWeight: 700,
-              borderBottom: '1px solid var(--border-color)',
-              paddingBottom: '14px',
-              color: 'var(--text-primary)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <span>
+          <Card className="border border-border/85 shadow-sm bg-card overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-3 px-6">
+              <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
                 {subTab === 'share' ? '公共共享空间文件投递日志' : '局域网去中心协作审计日志'}
-              </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>
+              </CardTitle>
+              <span className="text-xs font-medium text-muted-foreground">
                 {isLoading ? '加载日志中...' : `已过滤出 ${filteredLogs.length} 条记录`}
               </span>
-            </h3>
+            </CardHeader>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
+            <CardContent className="p-6 flex flex-col gap-2.5">
               {isLoading ? (
-                <div style={{ padding: '60px 0', textAlign: 'center' }}>
-                  <RefreshCw size={24} style={{ color: 'var(--text-muted)', animation: 'spin 1.2s linear infinite', margin: '0 auto 12px auto' }} />
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>正在同步局域网日志数据库...</p>
+                <div className="py-12 text-center flex flex-col items-center justify-center">
+                  <RefreshCw size={22} className="text-muted-foreground animate-spin mb-3" />
+                  <p className="text-xs text-muted-foreground">正在同步局域网日志数据库...</p>
                 </div>
               ) : filteredLogs.length === 0 ? (
-                <div style={{ padding: '60px 0', textAlign: 'center', opacity: 0.7 }}>
-                  <AlertCircle size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 12px auto', opacity: 0.5 }} />
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                <div className="py-12 text-center opacity-70 flex flex-col items-center justify-center">
+                  <AlertCircle size={26} className="text-muted-foreground mb-3 opacity-50" />
+                  <p className="text-xs text-muted-foreground">
                     当前尚无匹配的操作活动记录
                   </p>
                 </div>
@@ -450,75 +322,41 @@ export default function RecordCenter({
                           onNavigateToDoc(docId);
                         }
                       }}
-                      style={{
-                        padding: '12px 18px',
-                        background: 'rgba(0, 0, 0, 0.01)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '16px',
-                        transition: 'all 0.2s ease',
-                        cursor: (subTab === 'document' && docId) ? 'pointer' : 'default',
-                        position: 'relative'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-                        e.currentTarget.style.background = 'rgba(128, 128, 128, 0.02)';
-                        if (subTab === 'document' && docId) {
-                          e.currentTarget.style.transform = 'translateX(2px)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--border-color)';
-                        e.currentTarget.style.background = 'rgba(0, 0, 0, 0.01)';
-                        if (subTab === 'document' && docId) {
-                          e.currentTarget.style.transform = 'none';
-                        }
-                      }}
+                      className={`group p-3 px-4.5 bg-muted/10 hover:bg-muted/30 border border-border/50 hover:border-border rounded-lg flex items-center justify-between gap-4 transition-all duration-200 ${
+                        subTab === 'document' && docId ? 'cursor-pointer hover:translate-x-0.5' : 'cursor-default'
+                      }`}
                     >
                       {/* 左侧：详细信息 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                      <div className="flex items-center gap-3.5 flex-1 min-w-0">
                         {renderAvatar(log.operator, log.avatar)}
                         
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-semibold text-foreground truncate max-w-[280px]">
                               {log.title}
                             </span>
                             {/* 仅在共享文件上传显示文件大小 */}
                             {log.type === 'share' && log.details?.fileSize && (
-                              <span style={{
-                                fontSize: '0.72rem',
-                                color: 'var(--text-muted)',
-                                background: 'rgba(128, 128, 128, 0.06)',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontWeight: 500
-                              }}>
+                              <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded font-medium">
                                 {formatBytes(log.details.fileSize)}
                               </span>
                             )}
                           </div>
                           
                           {/* 底部副元信息 */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 500 }}>
-                              <User size={11} style={{ opacity: 0.6 }} />
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+                            <span className="flex items-center gap-1 font-medium">
+                              <User size={10} className="opacity-70" />
                               操作人: {log.operator}
                             </span>
                             <span>•</span>
                             {renderDeviceBadge(log.details?.deviceInfo)}
                             {log.type === 'document' && (
-                              <span style={{
-                                fontSize: '0.62rem',
-                                background: isFolder ? 'rgba(234, 179, 8, 0.08)' : 'rgba(59, 130, 246, 0.08)',
-                                color: isFolder ? '#EAB308' : 'var(--accent-color)',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontWeight: 600
-                              }}>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                isFolder 
+                                  ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' 
+                                  : 'bg-primary/10 text-primary'
+                              }`}>
                                 {isFolder ? '文件夹' : '富文本文档'}
                               </span>
                             )}
@@ -527,30 +365,16 @@ export default function RecordCenter({
                       </div>
 
                       {/* 右侧：操作时间戳及高能跳转提示 */}
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        gap: '4px',
-                        flexShrink: 0
-                      }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={11} style={{ opacity: 0.6 }} />
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Clock size={10} className="opacity-70" />
                           {formatDateTime(log.timestamp)}
                         </span>
                         
                         {subTab === 'document' && docId && (
-                          <span style={{
-                            fontSize: '0.65rem',
-                            color: 'var(--accent-color)',
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            opacity: 0.8
-                          }}>
+                          <span className="text-[9px] text-primary font-bold flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition-opacity">
                             立即前往
-                            <ExternalLink size={10} />
+                            <ExternalLink size={9} />
                           </span>
                         )}
                       </div>
@@ -559,10 +383,14 @@ export default function RecordCenter({
                   );
                 })
               )}
-            </div>
+            </CardContent>
 
             {/* 分页控制 */}
-            {renderPagination()}
+            {filteredLogs.length > 0 && (
+              <div className="border-t border-border/50 py-3.5 px-6">
+                {renderPagination()}
+              </div>
+            )}
           </Card>
         </div>
       )}

@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { TransferTask } from '@/types/transfer';
-import Card from '@/components/ui/LegacyCard';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { 
   Search, Trash2, Laptop, Monitor, Smartphone, 
-  CheckCircle2, XCircle, Ban, History, ShieldAlert, 
-  ArrowRightLeft, Check, Sparkles, AlertCircle,
+  CheckCircle2, XCircle, Ban, History, 
+  ArrowRightLeft, Sparkles, AlertCircle,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 
@@ -101,27 +101,27 @@ export default function TransferHistory({
       return { 
         icon: <Monitor size={12} />, 
         label: 'Windows', 
-        className: 'device-badge windows'
+        className: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-100 dark:border-blue-900/30'
       };
     }
     if (lower.includes('mac') || lower.includes('ios') || lower.includes('apple')) {
       return { 
         icon: <Laptop size={12} />, 
         label: 'macOS', 
-        className: 'device-badge macos'
+        className: 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800/80 dark:text-neutral-200 border border-neutral-200/50 dark:border-neutral-700/50'
       };
     }
     if (lower.includes('android') || lower.includes('phone') || lower.includes('mobile')) {
       return { 
         icon: <Smartphone size={12} />, 
         label: 'Android', 
-        className: 'device-badge android'
+        className: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30'
       };
     }
     return { 
       icon: <Laptop size={12} />, 
       label: '未知设备', 
-      className: 'device-badge general'
+      className: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-850 dark:text-zinc-200 border border-zinc-200/50 dark:border-zinc-700/50'
     };
   };
 
@@ -135,24 +135,12 @@ export default function TransferHistory({
       
       if (isLaptop || isMonitor || isSmartphone || (!avatar.startsWith('avatar-') && avatar.length <= 4)) {
         return (
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '50%',
-            background: 'rgba(128, 128, 128, 0.05)',
-            color: 'var(--text-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-            flexShrink: 0
-          }}>
+          <div className="w-[38px] h-[38px] rounded-full bg-muted/40 text-muted-foreground flex items-center justify-center border border-border shadow-sm flex-shrink-0">
             {isLaptop && <Laptop size={18} />}
             {isMonitor && <Monitor size={18} />}
             {isSmartphone && <Smartphone size={18} />}
             {!isLaptop && !isMonitor && !isSmartphone && (
-              <span style={{ fontSize: '18px', lineHeight: 1 }}>{avatar}</span>
+              <span className="text-[18px] leading-none">{avatar}</span>
             )}
           </div>
         );
@@ -164,30 +152,15 @@ export default function TransferHistory({
     
     // 采用高级柔和莫兰迪色系渐变
     const gradients = [
-      'linear-gradient(135deg, #6366f1, #4f46e5)', // 蓝紫
-      'linear-gradient(135deg, #10b981, #059669)', // 翠绿
-      'linear-gradient(135deg, #f59e0b, #d97706)', // 暖金
-      'linear-gradient(135deg, #ec4899, #db2777)', // 柔粉
-      'linear-gradient(135deg, #06b6d4, #0891b2)'  // 青碧
+      'from-indigo-500 to-indigo-600', // 蓝紫
+      'from-emerald-500 to-emerald-600', // 翠绿
+      'from-amber-500 to-amber-600', // 暖金
+      'from-pink-500 to-pink-600', // 柔粉
+      'from-cyan-500 to-cyan-600'  // 青碧
     ];
 
     return (
-      <div style={{
-        width: '38px',
-        height: '38px',
-        borderRadius: '50%',
-        background: gradients[colorHash],
-        color: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 600,
-        fontSize: '0.9rem',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-        flexShrink: 0,
-        letterSpacing: '0.02em'
-      }}>
+      <div className={`w-[38px] h-[38px] rounded-full bg-gradient-to-br ${gradients[colorHash]} text-white flex items-center justify-center font-bold text-sm border border-white/10 shadow-sm flex-shrink-0 tracking-wider`}>
         {initial}
       </div>
     );
@@ -233,12 +206,7 @@ export default function TransferHistory({
     return pages.map((p, idx) => {
       if (typeof p === 'string') {
         return (
-          <span key={`ellipsis-${idx}`} style={{ 
-            padding: '0 8px', 
-            color: 'var(--text-muted)',
-            fontSize: '0.8rem',
-            userSelect: 'none'
-          }}>
+          <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground text-xs select-none">
             ...
           </span>
         );
@@ -249,34 +217,11 @@ export default function TransferHistory({
         <button
           key={`page-${p}`}
           onClick={() => setCurrentPage(p)}
-          style={{
-            background: isSelected ? 'var(--accent-color)' : 'rgba(128, 128, 128, 0.04)',
-            border: isSelected ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
-            color: isSelected ? '#ffffff' : 'var(--text-primary)',
-            borderRadius: '6px',
-            width: '32px',
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontWeight: isSelected ? 700 : 500,
-            fontSize: '0.8rem',
-            transition: 'all 0.2s',
-            boxShadow: isSelected ? '0 2px 6px var(--accent-glow)' : 'none'
-          }}
-          onMouseEnter={(e) => {
-            if (!isSelected) {
-              e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
-              e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isSelected) {
-              e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-              e.currentTarget.style.borderColor = 'var(--border-color)';
-            }
-          }}
+          className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-semibold border transition-all duration-200 ${
+            isSelected 
+              ? 'bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20' 
+              : 'bg-muted/30 border-border text-foreground hover:bg-muted/80'
+          }`}
         >
           {p}
         </button>
@@ -285,135 +230,71 @@ export default function TransferHistory({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="flex flex-col gap-6">
       
       {/* 1. 大厂风范精细统计仪表盘 */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-        gap: '20px'
-      }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* 卡片 1：累计互传 */}
-        <Card style={{ 
-          padding: '20px 24px', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '12px',
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-md)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>累计物理互传</span>
-            <History size={16} style={{ color: 'var(--text-muted)' }} />
+        <Card className="p-5 flex flex-col gap-3 border border-border/80 bg-card shadow-sm relative overflow-hidden">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-medium text-muted-foreground">累计物理互传</span>
+            <History size={16} className="text-muted-foreground opacity-80" />
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-foreground tracking-tight">
               {totalCount}
             </span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>次</span>
+            <span className="text-[10px] text-muted-foreground font-medium">次</span>
           </div>
-          <div style={{ 
-            display: 'flex', 
-            gap: '16px', 
-            fontSize: '0.75rem', 
-            color: 'var(--text-secondary)', 
-            borderTop: '1px solid var(--border-color)', 
-            paddingTop: '10px', 
-            marginTop: '4px' 
-          }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              成功: <strong style={{ color: 'var(--success-color)', fontWeight: 600 }}>{successCount}</strong>
+          <div className="flex gap-4 text-xs text-muted-foreground border-t border-border/50 pt-2.5 mt-1">
+            <span className="flex items-center gap-1">
+              成功: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{successCount}</strong>
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              异常/拒绝: <strong style={{ color: 'var(--error-color)', fontWeight: 600 }}>{failCount}</strong>
+            <span className="flex items-center gap-1">
+              异常/拒绝: <strong className="text-destructive font-semibold">{failCount}</strong>
             </span>
           </div>
         </Card>
 
         {/* 卡片 2：物理收发结构 */}
-        <Card style={{ 
-          padding: '20px 24px', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '12px',
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-md)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>网络物理流向</span>
-            <ArrowRightLeft size={16} style={{ color: 'var(--text-muted)' }} />
+        <Card className="p-5 flex flex-col gap-3 border border-border/80 bg-card shadow-sm relative overflow-hidden">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-medium text-muted-foreground">网络物理流向</span>
+            <ArrowRightLeft size={16} className="text-muted-foreground opacity-80" />
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-color)', letterSpacing: '-0.02em' }}>{sendCount}</span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>发</span>
+          <div className="flex items-baseline gap-2.5">
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-extrabold text-primary tracking-tight">{sendCount}</span>
+              <span className="text-[10px] text-muted-foreground font-medium">发</span>
             </div>
-            <span style={{ color: 'var(--border-color)', fontSize: '1.2rem', fontWeight: 300 }}>/</span>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <span style={{ fontSize: '2rem', fontWeight: 800, color: '#a855f7', letterSpacing: '-0.02em' }}>{receiveCount}</span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>收</span>
+            <span className="text-border text-lg font-light">/</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-extrabold text-purple-500 tracking-tight">{receiveCount}</span>
+              <span className="text-[10px] text-muted-foreground font-medium">收</span>
             </div>
           </div>
-          <div style={{ 
-            fontSize: '0.75rem', 
-            color: 'var(--text-secondary)', 
-            borderTop: '1px solid var(--border-color)', 
-            paddingTop: '10px', 
-            marginTop: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}>
-            <Sparkles size={12} style={{ color: 'var(--accent-color)' }} />
+          <div className="text-xs text-muted-foreground border-t border-border/50 pt-2.5 mt-1 flex items-center gap-1.5">
+            <Sparkles size={12} className="text-primary animate-pulse" />
             <span>点对等极速高频互传信道已连接</span>
           </div>
         </Card>
 
         {/* 卡片 3：信道质量健康度 */}
-        <Card style={{ 
-          padding: '20px 24px', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '12px',
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-md)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>物理传输信道质量</span>
-            <span style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: successRate >= 90 ? 'var(--success-color)' : 'var(--warning-color)',
-              boxShadow: `0 0 8px ${successRate >= 90 ? 'var(--success-color)' : 'var(--warning-color)'}`
-            }} />
+        <Card className="p-5 flex flex-col gap-3 border border-border/80 bg-card shadow-sm relative overflow-hidden">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-medium text-muted-foreground">物理传输信道质量</span>
+            <span className={`w-2 h-2 rounded-full shadow-sm ${
+              successRate >= 90 ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-amber-500 shadow-amber-500/50'
+            }`} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span style={{ 
-              fontSize: '2rem', 
-              fontWeight: 800, 
-              color: successRate >= 90 ? 'var(--success-color)' : successRate >= 70 ? 'var(--warning-color)' : 'var(--error-color)',
-              letterSpacing: '-0.02em' 
-            }}>{successRate}%</span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>传输成功率</span>
+          <div className="flex items-baseline gap-1">
+            <span className={`text-3xl font-extrabold tracking-tight ${
+              successRate >= 90 ? 'text-emerald-500' : successRate >= 70 ? 'text-amber-500' : 'text-destructive'
+            }`}>{successRate}%</span>
+            <span className="text-[10px] text-muted-foreground font-medium">传输成功率</span>
           </div>
-          <div style={{ 
-            fontSize: '0.75rem', 
-            color: 'var(--text-secondary)', 
-            borderTop: '1px solid var(--border-color)', 
-            paddingTop: '10px', 
-            marginTop: '4px' 
-          }}>
-            <span>信道评级: <strong style={{ color: successRate >= 90 ? 'var(--success-color)' : 'var(--warning-color)' }}>
+          <div className="text-xs text-muted-foreground border-t border-border/50 pt-2.5 mt-1">
+            <span>信道评级: <strong className={successRate >= 90 ? 'text-emerald-500' : 'text-amber-500'}>
               {successRate >= 90 ? '极佳 (Excellent)' : '良好 (Fair)'}
             </strong></span>
           </div>
@@ -421,67 +302,24 @@ export default function TransferHistory({
       </div>
 
       {/* 2. 极简精致搜索与多维过滤工具栏 */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '16px',
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 'var(--radius-md)',
-        padding: '12px 18px'
-      }}>
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-card border border-border rounded-xl p-3 px-[18px] shadow-sm">
         {/* 左侧：搜索与 Tab 过滤器 */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px', flex: 1, minWidth: '280px' }}>
+        <div className="flex flex-wrap items-center gap-4 flex-1 min-w-[280px]">
           
           {/* 大厂极简搜索框 */}
-          <div style={{ position: 'relative', width: '220px' }}>
+          <div className="relative w-[220px]">
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索文件名 / 对等伙伴..."
-              style={{
-                width: '100%',
-                background: 'var(--bg-item)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                padding: '8px 12px 8px 34px',
-                color: 'var(--text-primary)',
-                fontSize: '0.82rem',
-                outline: 'none',
-                transition: 'all 0.2s',
-                fontFamily: 'inherit'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'var(--accent-color)';
-                e.target.style.boxShadow = '0 0 0 2px var(--accent-glow)';
-                e.target.style.background = 'var(--bg-sidebar)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border-color)';
-                e.target.style.boxShadow = 'none';
-                e.target.style.background = 'var(--bg-item)';
-              }}
+              className="w-full bg-muted/40 border border-border rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
             />
-            <Search size={14} style={{
-              position: 'absolute',
-              left: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--text-muted)'
-            }} />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           </div>
 
           {/* 分类药丸 Tab */}
-          <div style={{
-            display: 'flex',
-            background: 'rgba(0, 0, 0, 0.03)',
-            borderRadius: '6px',
-            padding: '2px',
-            border: '1px solid var(--border-color)'
-          }}>
+          <div className="flex bg-muted/30 border border-border/80 rounded-lg p-0.5">
             {(['all', 'send', 'receive', 'completed', 'failed'] as const).map((filter) => {
               const label = {
                 all: '全部',
@@ -496,18 +334,11 @@ export default function TransferHistory({
                 <button
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
-                  style={{
-                    border: 'none',
-                    background: isActive ? 'var(--bg-app)' : 'transparent',
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    fontWeight: isActive ? 600 : 500,
-                    fontSize: '0.78rem',
-                    padding: '6px 12px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    boxShadow: isActive ? '0 1px 3px rgba(0, 0, 0, 0.05)' : 'none',
-                    transition: 'all 0.15s'
-                  }}
+                  className={`border-none text-[11px] font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    isActive 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'bg-transparent text-muted-foreground hover:text-foreground'
+                  }`}
                 >
                   {label}
                 </button>
@@ -518,10 +349,10 @@ export default function TransferHistory({
 
         {/* 右侧：一键清空机制 */}
         {onClearHistory && historyTasks.length > 0 && (
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             {showClearConfirm ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--error-color)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-md p-1 px-2">
+                <span className="text-[11px] text-destructive flex items-center gap-1 font-medium">
                   <AlertCircle size={12} />
                   物理抹除全部？
                 </span>
@@ -530,30 +361,13 @@ export default function TransferHistory({
                     onClearHistory();
                     setShowClearConfirm(false);
                   }}
-                  style={{
-                    background: 'var(--error-color)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '0.72rem',
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                    fontWeight: 600
-                  }}
+                  className="bg-destructive text-destructive-foreground rounded px-2 py-0.5 text-[10px] font-semibold hover:bg-destructive/90 transition-colors"
                 >
                   确认
                 </button>
                 <button
                   onClick={() => setShowClearConfirm(false)}
-                  style={{
-                    background: 'rgba(128, 128, 128, 0.08)',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '4px',
-                    fontSize: '0.72rem',
-                    padding: '4px 8px',
-                    cursor: 'pointer'
-                  }}
+                  className="bg-muted text-muted-foreground border border-border rounded px-2 py-0.5 text-[10px] hover:bg-muted/80 transition-colors"
                 >
                   取消
                 </button>
@@ -561,30 +375,7 @@ export default function TransferHistory({
             ) : (
               <button
                 onClick={() => setShowClearConfirm(true)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-secondary)',
-                  borderRadius: '6px',
-                  padding: '8px 12px',
-                  fontSize: '0.78rem',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'var(--error-color)';
-                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.02)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-secondary)';
-                  e.currentTarget.style.borderColor = 'var(--border-color)';
-                  e.currentTarget.style.background = 'transparent';
-                }}
+                className="flex items-center gap-1.5 border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200"
               >
                 <Trash2 size={13} />
                 清空物理记录
@@ -595,34 +386,21 @@ export default function TransferHistory({
       </div>
 
       {/* 3. 物理互传记录陈列大列表 */}
-      <Card style={{ 
-        padding: '24px', 
-        background: 'var(--bg-card)', 
-        border: '1px solid var(--border-color)', 
-        borderRadius: 'var(--radius-md)' 
-      }}>
-        <h3 style={{ 
-          fontSize: '0.92rem', 
-          fontWeight: 700, 
-          borderBottom: '1px solid var(--border-color)', 
-          paddingBottom: '14px', 
-          color: 'var(--text-primary)',
-          letterSpacing: '-0.01em',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <span>局域网对等体互传历史归档</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>
+      <Card className="border border-border/80 shadow-sm bg-card overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-3 px-6">
+          <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
+            局域网对等体互传历史归档
+          </CardTitle>
+          <span className="text-xs font-medium text-muted-foreground">
             已过滤出 {filteredTasks.length} 项记录
           </span>
-        </h3>
+        </CardHeader>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+        <CardContent className="p-6 flex flex-col gap-3">
           {filteredTasks.length === 0 ? (
-            <div style={{ padding: '80px 0', textAlign: 'center', opacity: 0.7 }}>
-              <History size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 12px auto', opacity: 0.5 }} />
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            <div className="py-16 text-center opacity-70 flex flex-col items-center justify-center">
+              <History size={30} className="text-muted-foreground mb-3 opacity-50" />
+              <p className="text-xs text-muted-foreground font-medium">
                 {searchTerm.trim() !== '' ? '未搜索到匹配的历史物理传输记录' : '当前尚无任何物理传输历史记录'}
               </p>
             </div>
@@ -645,108 +423,48 @@ export default function TransferHistory({
               return (
                 <div
                   key={task.id}
-                  style={{
-                    padding: '16px 20px',
-                    background: 'rgba(0, 0, 0, 0.01)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '14px',
-                    transition: 'all 0.2s ease-in-out',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                  className="history-row"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.03)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                    // 渐显右侧删除按钮
-                    const delBtn = e.currentTarget.querySelector('.delete-btn') as HTMLElement;
-                    if (delBtn) delBtn.style.opacity = '1';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'none';
-                    // 隐去右侧删除按钮
-                    const delBtn = e.currentTarget.querySelector('.delete-btn') as HTMLElement;
-                    if (delBtn) delBtn.style.opacity = '0';
-                  }}
+                  className="group p-4 bg-muted/10 hover:bg-muted/20 border border-border/50 hover:border-border rounded-lg flex flex-col gap-3.5 transition-all duration-250 relative overflow-hidden"
                 >
                   {/* 对等互传核心：左中右大厂双翼布局 */}
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    gap: '16px',
-                    flexWrap: 'wrap'
-                  }}>
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
                     {/* 左侧：发送端 */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '170px', flex: 1 }}>
+                    <div className="flex items-center gap-3 min-w-[170px] flex-1">
                       {renderAvatar(senderName, task.senderAvatar)}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{senderName}</span>
-                          <span className={sOs.className} style={{
-                            fontSize: '0.62rem',
-                            fontWeight: 600,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '3px'
-                          }}>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-foreground">{senderName}</span>
+                          <span className={`${sOs.className} text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1`}>
                             {sOs.icon}
                             {sOs.label}
                           </span>
                         </div>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>IP: {senderIp}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">IP: {senderIp}</span>
                       </div>
                     </div>
 
                     {/* 中间：SVG 高科技管道流动线 */}
-                    <div style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'center', 
-                      gap: '4px',
-                      flex: 2,
-                      minWidth: '150px',
-                      position: 'relative'
-                    }}>
+                    <div className="flex flex-col items-center gap-1 flex-2 min-w-[150px] relative">
                       {/* SVG 精细虚线流动管道 */}
-                      <svg width="100%" height="8" viewBox="0 0 200 8" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible' }}>
+                      <svg width="100%" height="8" viewBox="0 0 200 8" fill="none" xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
                         <path 
                           d="M0 4H200" 
                           stroke={isCompleted ? 'var(--success-color)' : isRejected ? 'var(--warning-color)' : 'var(--error-color)'} 
                           strokeWidth="1.5" 
                           strokeDasharray="6 4"
-                          style={{
-                            opacity: 0.6,
-                            animation: 'dash 15s linear infinite'
-                          }}
+                          className="opacity-60 animate-[dash_15s_linear_infinite]"
                         />
                         {/* 状态波纹 */}
-                        <circle cx={isCompleted ? "180" : "100"} cy="4" r="2.5" fill={isCompleted ? 'var(--success-color)' : isRejected ? 'var(--warning-color)' : 'var(--error-color)'} style={{
-                          animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite'
-                        }} />
+                        <circle cx={isCompleted ? "180" : "100"} cy="4" r="2.5" fill={isCompleted ? 'var(--success-color)' : isRejected ? 'var(--warning-color)' : 'var(--error-color)'} className="animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
                       </svg>
 
                       {/* 中间药丸徽章 */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '3px 8px',
-                        borderRadius: '20px',
-                        fontSize: '0.68rem',
-                        fontWeight: 600,
-                        background: isCompleted ? 'var(--success-glow)' : isRejected ? 'rgba(245, 158, 11, 0.08)' : 'var(--error-glow)',
-                        border: `1px solid ${isCompleted ? 'rgba(16, 185, 129, 0.2)' : isRejected ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-                        color: isCompleted ? 'var(--success-color)' : isRejected ? 'var(--warning-color)' : 'var(--error-color)'
-                      }}>
+                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        isCompleted 
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+                          : isRejected 
+                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' 
+                            : 'bg-destructive/10 border-destructive/20 text-destructive'
+                      }`}>
                         {isCompleted ? (
                           <>
                             <CheckCircle2 size={10} />
@@ -767,83 +485,44 @@ export default function TransferHistory({
                     </div>
 
                     {/* 右侧：接收端 */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '170px', flex: 1, justifyContent: 'flex-end', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-end' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span className={rOs.className} style={{
-                            fontSize: '0.62rem',
-                            fontWeight: 600,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '3px'
-                          }}>
+                    <div className="flex items-center gap-3 min-w-[170px] flex-1 justify-end text-right">
+                      <div className="flex flex-col gap-0.5 items-end">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`${rOs.className} text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1`}>
                             {rOs.icon}
                             {rOs.label}
                           </span>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{receiverName}</span>
+                          <span className="text-xs font-bold text-foreground">{receiverName}</span>
                         </div>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>IP: {receiverIp}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">IP: {receiverIp}</span>
                       </div>
                       {renderAvatar(receiverName, task.receiverAvatar)}
                     </div>
                   </div>
 
                   {/* 物理分隔极细实线 */}
-                  <div style={{ borderTop: '1px solid var(--border-color)', margin: '2px 0' }} />
+                  <div className="border-t border-border/50 my-0.5" />
 
                   {/* 底部：文件描述元数据与具体时间戳，附带物理抹除动作 */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-secondary)',
-                    flexWrap: 'wrap',
-                    gap: '12px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{task.fileName}</span>
-                      <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>({formatBytesLocal(task.fileSize)})</span>
+                  <div className="flex justify-between items-center text-[11px] text-muted-foreground flex-wrap gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-foreground">{task.fileName}</span>
+                      <span className="text-muted-foreground font-mono">({formatBytesLocal(task.fileSize)})</span>
                     </div>
                     
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ color: 'var(--text-muted)' }}>
+                    <div className="flex items-center gap-3">
+                      <div className="text-[10px] text-muted-foreground">
                         {formatDateTime(task.startedAt)}
                       </div>
 
                       {/* 物理单条抹除按钮 */}
                       {onDeleteTask && (
                         <button
-                          className="delete-btn"
                           onClick={() => onDeleteTask(task.id)}
                           title="从本地数据库中彻底抹除此记录"
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            opacity: 0, // 默认不显示，仅在 row hover 时渐显
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.stopPropagation();
-                            e.currentTarget.style.color = 'var(--error-color)';
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.stopPropagation();
-                            e.currentTarget.style.color = 'var(--text-muted)';
-                            e.currentTarget.style.background = 'transparent';
-                          }}
+                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1 rounded transition-all duration-200"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={12} />
                         </button>
                       )}
                     </div>
@@ -852,58 +531,28 @@ export default function TransferHistory({
               );
             })
           )}
-        </div>
+        </CardContent>
 
         {/* 4. 精美分页导航组件 */}
         {filteredTasks.length > 0 && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: '20px',
-            paddingTop: '16px',
-            borderTop: '1px solid var(--border-color)',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
+          <div className="border-t border-border/50 py-3.5 px-6 flex items-center justify-between flex-wrap gap-3">
             {/* 左侧：分页状态 */}
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              显示第 <strong style={{ color: 'var(--text-primary)' }}>{startIndex + 1}</strong> 至 <strong style={{ color: 'var(--text-primary)' }}>{Math.min(startIndex + ITEMS_PER_PAGE, filteredTasks.length)}</strong> 项，共 <strong style={{ color: 'var(--text-primary)' }}>{filteredTasks.length}</strong> 项记录
+            <span className="text-xs text-muted-foreground">
+              显示第 <strong className="text-foreground">{startIndex + 1}</strong> 至 <strong className="text-foreground">{Math.min(startIndex + ITEMS_PER_PAGE, filteredTasks.length)}</strong> 项，共 <strong className="text-foreground">{filteredTasks.length}</strong> 项记录
             </span>
 
             {/* 右侧：页码及前/后页按钮 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div className="flex items-center gap-1.5">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                style={{
-                  background: 'rgba(128, 128, 128, 0.04)',
-                  border: '1px solid var(--border-color)',
-                  color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-                  borderRadius: '6px',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  opacity: currentPage === 1 ? 0.5 : 1
-                }}
-                onMouseEnter={(e) => {
-                  if (currentPage !== 1) {
-                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
-                    e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (currentPage !== 1) {
-                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                  }
-                }}
+                className={`border border-border rounded-md w-8 h-8 flex items-center justify-center transition-all duration-200 ${
+                  currentPage === 1 
+                    ? 'opacity-40 cursor-not-allowed text-muted-foreground' 
+                    : 'bg-muted/30 text-foreground hover:bg-muted/80'
+                }`}
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={15} />
               </button>
 
               {/* 渲染数字页码 */}
@@ -912,34 +561,13 @@ export default function TransferHistory({
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                style={{
-                  background: 'rgba(128, 128, 128, 0.04)',
-                  border: '1px solid var(--border-color)',
-                  color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
-                  borderRadius: '6px',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  opacity: currentPage === totalPages ? 0.5 : 1
-                }}
-                onMouseEnter={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
-                    e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                  }
-                }}
+                className={`border border-border rounded-md w-8 h-8 flex items-center justify-center transition-all duration-200 ${
+                  currentPage === totalPages 
+                    ? 'opacity-40 cursor-not-allowed text-muted-foreground' 
+                    : 'bg-muted/30 text-foreground hover:bg-muted/80'
+                }`}
               >
-                <ChevronRight size={16} />
+                <ChevronRight size={15} />
               </button>
             </div>
           </div>
