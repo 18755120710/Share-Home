@@ -206,9 +206,9 @@ export default function RecordCenter({
             <button
               key={p}
               onClick={() => setCurrentPage(p)}
-              className={`w-[30px] h-[30px] rounded-md text-xs font-semibold border transition-all duration-200 ${
+              className={`w-8 h-8 rounded-md text-xs font-semibold border transition-all duration-200 ${
                 isSelected 
-                  ? 'bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20' 
+                  ? 'bg-zinc-800 border-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:border-zinc-100 dark:text-zinc-900 shadow-sm' 
                   : 'bg-muted/30 border-border text-foreground hover:bg-muted/80'
               }`}
             >
@@ -237,14 +237,14 @@ export default function RecordCenter({
         <div className="flex flex-col gap-5">
           
           {/* 高级极简搜索及清空工具条 */}
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-card border border-border rounded-xl p-3 px-[18px] shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4 border border-border/30 rounded-xl p-3 px-[18px] bg-card/10 backdrop-blur-sm shadow-sm">
             <div className="relative w-60">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={subTab === 'share' ? "搜索共享文件名 / 上传者..." : "搜索云文档名称 / 新建者..."}
-                className="w-full bg-muted/40 border border-border rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
+                className="w-full bg-muted/40 border border-border/80 rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-border-hover focus:ring-2 focus:ring-zinc-500/10 transition-all duration-200"
               />
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
@@ -284,26 +284,26 @@ export default function RecordCenter({
             )}
           </div>
 
-          {/* 列表陈列容器 */}
-          <Card className="border border-border/85 shadow-sm bg-card overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-3 px-6">
-              <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
+          {/* 列表陈列容器 (无Card大包装，一体化平铺设计) */}
+          <div className="border border-border/30 rounded-xl bg-card/25 backdrop-blur-sm overflow-hidden shadow-sm flex flex-col">
+            <div className="flex items-center justify-between border-b border-border/30 py-4 px-6 bg-muted/10">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {subTab === 'share' ? '公共共享空间文件投递日志' : '局域网去中心协作审计日志'}
-              </CardTitle>
-              <span className="text-xs font-medium text-muted-foreground">
+              </h3>
+              <span className="text-xs font-semibold text-muted-foreground/80">
                 {isLoading ? '加载日志中...' : `已过滤出 ${filteredLogs.length} 条记录`}
               </span>
-            </CardHeader>
+            </div>
 
-            <CardContent className="p-6 flex flex-col gap-2.5">
+            <div className="flex flex-col">
               {isLoading ? (
                 <div className="py-12 text-center flex flex-col items-center justify-center">
-                  <RefreshCw size={22} className="text-muted-foreground animate-spin mb-3" />
+                  <RefreshCw size={22} className="text-muted-foreground/60 animate-spin mb-3" />
                   <p className="text-xs text-muted-foreground">正在同步局域网日志数据库...</p>
                 </div>
               ) : filteredLogs.length === 0 ? (
                 <div className="py-12 text-center opacity-70 flex flex-col items-center justify-center">
-                  <AlertCircle size={26} className="text-muted-foreground mb-3 opacity-50" />
+                  <AlertCircle size={26} className="text-muted-foreground mb-3 opacity-40" />
                   <p className="text-xs text-muted-foreground">
                     当前尚无匹配的操作活动记录
                   </p>
@@ -322,8 +322,8 @@ export default function RecordCenter({
                           onNavigateToDoc(docId);
                         }
                       }}
-                      className={`group p-3 px-4.5 bg-muted/10 hover:bg-muted/30 border border-border/50 hover:border-border rounded-lg flex items-center justify-between gap-4 transition-all duration-200 ${
-                        subTab === 'document' && docId ? 'cursor-pointer hover:translate-x-0.5' : 'cursor-default'
+                      className={`group p-5 hover:bg-muted/15 border-b border-border/20 last:border-b-0 flex items-center justify-between gap-4 transition-colors duration-150 ${
+                        subTab === 'document' && docId ? 'cursor-pointer' : 'cursor-default'
                       }`}
                     >
                       {/* 左侧：详细信息 */}
@@ -332,12 +332,12 @@ export default function RecordCenter({
                         
                         <div className="flex flex-col gap-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-semibold text-foreground truncate max-w-[280px]">
+                            <span className="text-xs font-bold text-foreground truncate max-w-[280px]">
                               {log.title}
                             </span>
                             {/* 仅在共享文件上传显示文件大小 */}
                             {log.type === 'share' && log.details?.fileSize && (
-                              <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded font-medium">
+                              <span className="text-[9px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded font-semibold">
                                 {formatBytes(log.details.fileSize)}
                               </span>
                             )}
@@ -346,7 +346,7 @@ export default function RecordCenter({
                           {/* 底部副元信息 */}
                           <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1 font-medium">
-                              <User size={10} className="opacity-70" />
+                              <User size={10} className="opacity-75" />
                               操作人: {log.operator}
                             </span>
                             <span>•</span>
@@ -355,7 +355,7 @@ export default function RecordCenter({
                               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                                 isFolder 
                                   ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' 
-                                  : 'bg-primary/10 text-primary'
+                                  : 'bg-zinc-800/10 dark:bg-zinc-100/10 text-muted-foreground'
                               }`}>
                                 {isFolder ? '文件夹' : '富文本文档'}
                               </span>
@@ -365,14 +365,14 @@ export default function RecordCenter({
                       </div>
 
                       {/* 右侧：操作时间戳及高能跳转提示 */}
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Clock size={10} className="opacity-70" />
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
+                          <Clock size={10} className="opacity-75" />
                           {formatDateTime(log.timestamp)}
                         </span>
                         
                         {subTab === 'document' && docId && (
-                          <span className="text-[9px] text-primary font-bold flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[9px] text-muted-foreground font-semibold flex items-center gap-0.5 opacity-75 group-hover:opacity-100 group-hover:text-foreground transition-all duration-150">
                             立即前往
                             <ExternalLink size={9} />
                           </span>
@@ -383,15 +383,15 @@ export default function RecordCenter({
                   );
                 })
               )}
-            </CardContent>
+            </div>
 
             {/* 分页控制 */}
             {filteredLogs.length > 0 && (
-              <div className="border-t border-border/50 py-3.5 px-6">
+              <div className="border-t border-border/30 py-3.5 px-6 bg-muted/10">
                 {renderPagination()}
               </div>
             )}
-          </Card>
+          </div>
         </div>
       )}
 

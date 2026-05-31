@@ -219,7 +219,7 @@ export default function TransferHistory({
           onClick={() => setCurrentPage(p)}
           className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-semibold border transition-all duration-200 ${
             isSelected 
-              ? 'bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20' 
+              ? 'bg-zinc-800 border-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:border-zinc-100 dark:text-zinc-900 shadow-sm' 
               : 'bg-muted/30 border-border text-foreground hover:bg-muted/80'
           }`}
         >
@@ -232,21 +232,21 @@ export default function TransferHistory({
   return (
     <div className="flex flex-col gap-6">
       
-      {/* 1. 大厂风范精细统计仪表盘 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* 卡片 1：累计互传 */}
-        <Card className="p-5 flex flex-col gap-3 border border-border/80 bg-card shadow-sm relative overflow-hidden">
+      {/* 1. 大厂风范精细统计仪表盘 (无框横向平铺设计) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 border border-border/40 rounded-xl bg-card/25 backdrop-blur-sm divide-y md:divide-y-0 md:divide-x divide-border/30 overflow-hidden shadow-sm">
+        {/* 指标 1：累计互传 */}
+        <div className="p-6 flex flex-col gap-2.5">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-muted-foreground">累计物理互传</span>
-            <History size={16} className="text-muted-foreground opacity-80" />
+            <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">累计物理互传</span>
+            <History size={15} className="text-muted-foreground opacity-60" />
           </div>
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex items-baseline gap-1">
             <span className="text-3xl font-extrabold text-foreground tracking-tight">
               {totalCount}
             </span>
-            <span className="text-[10px] text-muted-foreground font-medium">次</span>
+            <span className="text-[10px] text-muted-foreground font-semibold">次</span>
           </div>
-          <div className="flex gap-4 text-xs text-muted-foreground border-t border-border/50 pt-2.5 mt-1">
+          <div className="flex gap-4 text-xs text-muted-foreground pt-1">
             <span className="flex items-center gap-1">
               成功: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{successCount}</strong>
             </span>
@@ -254,55 +254,55 @@ export default function TransferHistory({
               异常/拒绝: <strong className="text-destructive font-semibold">{failCount}</strong>
             </span>
           </div>
-        </Card>
+        </div>
 
-        {/* 卡片 2：物理收发结构 */}
-        <Card className="p-5 flex flex-col gap-3 border border-border/80 bg-card shadow-sm relative overflow-hidden">
+        {/* 指标 2：物理收发结构 */}
+        <div className="p-6 flex flex-col gap-2.5">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-muted-foreground">网络物理流向</span>
-            <ArrowRightLeft size={16} className="text-muted-foreground opacity-80" />
+            <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">网络物理流向</span>
+            <ArrowRightLeft size={15} className="text-muted-foreground opacity-60" />
           </div>
-          <div className="flex items-baseline gap-2.5">
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-extrabold text-primary tracking-tight">{sendCount}</span>
-              <span className="text-[10px] text-muted-foreground font-medium">发</span>
+          <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-3xl font-extrabold text-foreground tracking-tight">{sendCount}</span>
+              <span className="text-[10px] text-muted-foreground font-semibold">发</span>
             </div>
-            <span className="text-border text-lg font-light">/</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-extrabold text-purple-500 tracking-tight">{receiveCount}</span>
-              <span className="text-[10px] text-muted-foreground font-medium">收</span>
+            <span className="text-border/60 text-lg font-light mx-1">/</span>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-3xl font-extrabold text-foreground tracking-tight">{receiveCount}</span>
+              <span className="text-[10px] text-muted-foreground font-semibold">收</span>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground border-t border-border/50 pt-2.5 mt-1 flex items-center gap-1.5">
-            <Sparkles size={12} className="text-primary animate-pulse" />
-            <span>点对等极速高频互传信道已连接</span>
+          <div className="text-xs text-muted-foreground pt-1 flex items-center gap-1.5">
+            <Sparkles size={12} className="text-emerald-500 animate-pulse" />
+            <span>极速高频互传信道就绪</span>
           </div>
-        </Card>
+        </div>
 
-        {/* 卡片 3：信道质量健康度 */}
-        <Card className="p-5 flex flex-col gap-3 border border-border/80 bg-card shadow-sm relative overflow-hidden">
+        {/* 指标 3：信道质量健康度 */}
+        <div className="p-6 flex flex-col gap-2.5">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-muted-foreground">物理传输信道质量</span>
-            <span className={`w-2 h-2 rounded-full shadow-sm ${
-              successRate >= 90 ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-amber-500 shadow-amber-500/50'
+            <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">物理传输信道质量</span>
+            <span className={`w-2 h-2 rounded-full ${
+              successRate >= 90 ? 'bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.3)]' : 'bg-amber-500/80 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
             }`} />
           </div>
-          <div className="flex items-baseline gap-1">
+          <div className="flex items-baseline gap-0.5">
             <span className={`text-3xl font-extrabold tracking-tight ${
               successRate >= 90 ? 'text-emerald-500' : successRate >= 70 ? 'text-amber-500' : 'text-destructive'
             }`}>{successRate}%</span>
-            <span className="text-[10px] text-muted-foreground font-medium">传输成功率</span>
+            <span className="text-[10px] text-muted-foreground font-semibold">成功率</span>
           </div>
-          <div className="text-xs text-muted-foreground border-t border-border/50 pt-2.5 mt-1">
-            <span>信道评级: <strong className={successRate >= 90 ? 'text-emerald-500' : 'text-amber-500'}>
+          <div className="text-xs text-muted-foreground pt-1">
+            <span>信道评级: <strong className={successRate >= 90 ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
               {successRate >= 90 ? '极佳 (Excellent)' : '良好 (Fair)'}
             </strong></span>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* 2. 极简精致搜索与多维过滤工具栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-card border border-border rounded-xl p-3 px-[18px] shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4 border border-border/30 rounded-xl p-3 px-[18px] bg-card/10 backdrop-blur-sm shadow-sm">
         {/* 左侧：搜索与 Tab 过滤器 */}
         <div className="flex flex-wrap items-center gap-4 flex-1 min-w-[280px]">
           
@@ -313,13 +313,13 @@ export default function TransferHistory({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索文件名 / 对等伙伴..."
-              className="w-full bg-muted/40 border border-border rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all duration-200"
+              className="w-full bg-muted/40 border border-border/80 rounded-md py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-border-hover focus:ring-2 focus:ring-zinc-500/10 transition-all duration-200"
             />
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           </div>
 
           {/* 分类药丸 Tab */}
-          <div className="flex bg-muted/30 border border-border/80 rounded-lg p-0.5">
+          <div className="flex bg-muted/30 border border-border/60 rounded-lg p-0.5">
             {(['all', 'send', 'receive', 'completed', 'failed'] as const).map((filter) => {
               const label = {
                 all: '全部',
@@ -336,8 +336,8 @@ export default function TransferHistory({
                   onClick={() => setActiveFilter(filter)}
                   className={`border-none text-[11px] font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-all duration-150 ${
                     isActive 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'bg-transparent text-muted-foreground hover:text-foreground'
+                      ? 'bg-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 shadow-sm' 
+                      : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/20'
                   }`}
                 >
                   {label}
@@ -385,22 +385,22 @@ export default function TransferHistory({
         )}
       </div>
 
-      {/* 3. 物理互传记录陈列大列表 */}
-      <Card className="border border-border/80 shadow-sm bg-card overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-3 px-6">
-          <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
+      {/* 3. 物理互传记录陈列大列表 (无Card大包装，直接一体扁平平铺列表) */}
+      <div className="border border-border/30 rounded-xl bg-card/25 backdrop-blur-sm overflow-hidden shadow-sm flex flex-col">
+        <div className="flex items-center justify-between border-b border-border/30 py-4 px-6 bg-muted/10">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             局域网对等体互传历史归档
-          </CardTitle>
-          <span className="text-xs font-medium text-muted-foreground">
+          </h3>
+          <span className="text-xs font-semibold text-muted-foreground/80">
             已过滤出 {filteredTasks.length} 项记录
           </span>
-        </CardHeader>
+        </div>
 
-        <CardContent className="p-6 flex flex-col gap-3">
+        <div className="flex flex-col">
           {filteredTasks.length === 0 ? (
             <div className="py-16 text-center opacity-70 flex flex-col items-center justify-center">
-              <History size={30} className="text-muted-foreground mb-3 opacity-50" />
-              <p className="text-xs text-muted-foreground font-medium">
+              <History size={30} className="text-muted-foreground mb-3 opacity-40" />
+              <p className="text-xs text-muted-foreground font-semibold">
                 {searchTerm.trim() !== '' ? '未搜索到匹配的历史物理传输记录' : '当前尚无任何物理传输历史记录'}
               </p>
             </div>
@@ -423,7 +423,7 @@ export default function TransferHistory({
               return (
                 <div
                   key={task.id}
-                  className="group p-4 bg-muted/10 hover:bg-muted/20 border border-border/50 hover:border-border rounded-lg flex flex-col gap-3.5 transition-all duration-250 relative overflow-hidden"
+                  className="group p-5 hover:bg-muted/15 border-b border-border/20 last:border-b-0 flex flex-col gap-4 transition-colors duration-150 relative overflow-hidden"
                 >
                   {/* 对等互传核心：左中右大厂双翼布局 */}
                   <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -449,35 +449,35 @@ export default function TransferHistory({
                         <path 
                           d="M0 4H200" 
                           stroke={isCompleted ? 'var(--success-color)' : isRejected ? 'var(--warning-color)' : 'var(--error-color)'} 
-                          strokeWidth="1.5" 
-                          strokeDasharray="6 4"
-                          className="opacity-60 animate-[dash_15s_linear_infinite]"
+                          strokeWidth="1.2" 
+                          strokeDasharray="5 3"
+                          className="opacity-45 animate-[dash_25s_linear_infinite] group-hover:animate-[dash_10s_linear_infinite] transition-all"
                         />
                         {/* 状态波纹 */}
-                        <circle cx={isCompleted ? "180" : "100"} cy="4" r="2.5" fill={isCompleted ? 'var(--success-color)' : isRejected ? 'var(--warning-color)' : 'var(--error-color)'} className="animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                        <circle cx={isCompleted ? "180" : "100"} cy="4" r="2" fill={isCompleted ? 'var(--success-color)' : isRejected ? 'var(--warning-color)' : 'var(--error-color)'} className="opacity-80 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
                       </svg>
 
                       {/* 中间药丸徽章 */}
-                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold border ${
                         isCompleted 
-                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+                          ? 'bg-emerald-500/10 border-emerald-500/15 text-emerald-600 dark:text-emerald-400' 
                           : isRejected 
-                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' 
-                            : 'bg-destructive/10 border-destructive/20 text-destructive'
+                            ? 'bg-amber-500/10 border-amber-500/15 text-amber-600 dark:text-amber-400' 
+                            : 'bg-destructive/10 border-destructive/15 text-destructive'
                       }`}>
                         {isCompleted ? (
                           <>
-                            <CheckCircle2 size={10} />
+                            <CheckCircle2 size={9} />
                             <span>物理下载落地</span>
                           </>
                         ) : isRejected ? (
                           <>
-                            <Ban size={10} />
+                            <Ban size={9} />
                             <span>接收端拒绝</span>
                           </>
                         ) : (
                           <>
-                            <XCircle size={10} />
+                            <XCircle size={9} />
                             <span>信道中断/异常</span>
                           </>
                         )}
@@ -500,9 +500,6 @@ export default function TransferHistory({
                     </div>
                   </div>
 
-                  {/* 物理分隔极细实线 */}
-                  <div className="border-t border-border/50 my-0.5" />
-
                   {/* 底部：文件描述元数据与具体时间戳，附带物理抹除动作 */}
                   <div className="flex justify-between items-center text-[11px] text-muted-foreground flex-wrap gap-3">
                     <div className="flex items-center gap-1.5">
@@ -511,7 +508,7 @@ export default function TransferHistory({
                     </div>
                     
                     <div className="flex items-center gap-3">
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-[10px] text-muted-foreground font-medium">
                         {formatDateTime(task.startedAt)}
                       </div>
 
@@ -520,7 +517,7 @@ export default function TransferHistory({
                         <button
                           onClick={() => onDeleteTask(task.id)}
                           title="从本地数据库中彻底抹除此记录"
-                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1 rounded transition-all duration-200"
+                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1.5 rounded transition-all duration-200"
                         >
                           <Trash2 size={12} />
                         </button>
@@ -531,13 +528,13 @@ export default function TransferHistory({
               );
             })
           )}
-        </CardContent>
+        </div>
 
         {/* 4. 精美分页导航组件 */}
         {filteredTasks.length > 0 && (
-          <div className="border-t border-border/50 py-3.5 px-6 flex items-center justify-between flex-wrap gap-3">
+          <div className="border-t border-border/30 py-3.5 px-6 flex items-center justify-between flex-wrap gap-3 bg-muted/10">
             {/* 左侧：分页状态 */}
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground font-medium">
               显示第 <strong className="text-foreground">{startIndex + 1}</strong> 至 <strong className="text-foreground">{Math.min(startIndex + ITEMS_PER_PAGE, filteredTasks.length)}</strong> 项，共 <strong className="text-foreground">{filteredTasks.length}</strong> 项记录
             </span>
 
@@ -572,7 +569,7 @@ export default function TransferHistory({
             </div>
           </div>
         )}
-      </Card>
+      </div>
 
       {/* SVG 动画 CSS 注入 */}
       <style jsx global>{`

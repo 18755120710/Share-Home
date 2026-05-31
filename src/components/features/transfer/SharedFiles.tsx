@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import Card from '../../ui/LegacyCard';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { formatBytes } from '@/lib/format';
 import { SocketClient } from '@/lib/socketClient';
 import { 
