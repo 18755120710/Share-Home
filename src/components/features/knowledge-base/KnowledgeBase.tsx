@@ -93,6 +93,24 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'split' | 'write' | 'read'>('split');
 
+  // 组件挂载时自动读取用户的视图模式偏好
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedMode = localStorage.getItem('kb_view_mode') as 'split' | 'write' | 'read' | null;
+      if (savedMode && ['split', 'write', 'read'].includes(savedMode)) {
+        setViewMode(savedMode);
+      }
+    }
+  }, []);
+
+  // 模式变更并持久化写入偏好
+  const changeViewMode = (mode: 'split' | 'write' | 'read') => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kb_view_mode', mode);
+    }
+  };
+
   // 文件导入相关的引用和处理逻辑
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -661,7 +679,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
     setContentInput(doc.content);
     setContentPreview(doc.content);
     setSaveStatus('saved');
-    setViewMode('split'); // 默认选中后进入极致直观的实时分栏对照模式！
   };
 
   interface TOCItem {
@@ -1193,7 +1210,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
           });
         }
         selectDocument(newDoc);
-        setViewMode('split'); // 新建后直接进入分栏态
 
         // 局域网广播广播：并发投递给局域网其他所有在线设备后端
         broadcastSync(newDoc);
@@ -2224,7 +2240,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
               {/* 模式切换胶囊按钮 (Split / Write / Read) */}
               <div style={{ display: 'flex', gap: '4px', background: 'rgba(255, 255, 255, 0.03)', padding: '2px', borderRadius: '6px' }}>
                 <button
-                  onClick={() => setViewMode('split')}
+                  onClick={() => changeViewMode('split')}
                   style={{
                     padding: '5px 12px',
                     fontSize: '0.75rem',
@@ -2243,7 +2259,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   实时分栏
                 </button>
                 <button
-                  onClick={() => setViewMode('write')}
+                  onClick={() => changeViewMode('write')}
                   style={{
                     padding: '5px 12px',
                     fontSize: '0.75rem',
@@ -2262,7 +2278,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   纯编辑
                 </button>
                 <button
-                  onClick={() => setViewMode('read')}
+                  onClick={() => changeViewMode('read')}
                   style={{
                     padding: '5px 12px',
                     fontSize: '0.75rem',
