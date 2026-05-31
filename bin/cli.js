@@ -98,7 +98,111 @@ async function findAvailablePort(host, preferredPort) {
   process.exit(1);
 }
 
+const crypto = require('crypto');
+const { Writable } = require('stream');
+
+// pbkdf2 密码加盐哈希高强度加密
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return { salt, hash };
+}
+
+// 终端交互等待与密码安全隐藏配置引导
+function promptInitAuth(authFilePath, confDir) {
+  return new Promise((resolve, reject) => {
+    console.log('\n\x1b[36m%s\x1b[0m', '🛡️  检测到您是首次启动 Share Home，为保障您的局域网协同数据安全，请完成超级管理员配置：');
+    
+    const mutableStdout = new Writable({
+      write: function(chunk, encoding, callback) {
+        if (!this.muted) {
+          process.stdout.write(chunk, encoding);
+        }
+        callback();
+      }
+    });
+    mutableStdout.muted = false;
+
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: mutableStdout,
+      terminal: true
+    });
+
+    let username = '';
+    let password = '';
+    let guestPassword = '';
+
+    const askUser = () => {
+      rl.question('👤 请设置超级管理员账号 (默认 admin): ', (userAns) => {
+        username = userAns.trim() || 'admin';
+        
+        // 密码安全遮罩隐藏
+        process.stdout.write('🔑 请设置超级管理员密码 (输入时隐藏字符): ');
+        mutableStdout.muted = true;
+        
+        rl.question('', (passAns) => {
+          mutableStdout.muted = false;
+          process.stdout.write('\n'); // 换行
+          password = passAns.trim();
+          
+          if (!password) {
+            console.log('\x1b[31m%s\x1b[0m', '❌ 错误：密码不能为空，请重新配置。');
+            askUser();
+            return;
+          }
+
+          rl.question('👥 请设置局域网伙伴登录密钥 (默认 123456): ', (guestAns) => {
+            guestPassword = guestAns.trim() || '123456';
+
+            const adminHashObj = hashPassword(password);
+            const guestHashObj = hashPassword(guestPassword);
+
+            const authConfig = {
+              adminUsername: username,
+              adminSalt: adminHashObj.salt,
+              adminHash: adminHashObj.hash,
+              guestSalt: guestHashObj.salt,
+              guestHash: guestHashObj.hash,
+              devicePermissions: {} // 默认未指定，即全员默认全功能开放
+            };
+
+            try {
+              if (!fs.existsSync(confDir)) {
+                fs.mkdirSync(confDir, { recursive: true });
+              }
+              fs.writeFileSync(authFilePath, JSON.stringify(authConfig, null, 2), 'utf-8');
+              console.log('\x1b[32m%s\x1b[0m', '✓ 恭喜！超级管理员配置初始化完毕，已加盐哈希密文落盘。\n');
+              rl.close();
+              resolve();
+            } catch (err) {
+              rl.close();
+              reject(err);
+            }
+          });
+        });
+      });
+    };
+
+    askUser();
+  });
+}
+
+const readline = require('readline');
+
 async function main() {
+  // 0. 宿主首次启动管理员密码拦截配置
+  const confDir = path.join(projectRoot, 'conf');
+  const authFilePath = path.join(confDir, 'auth.json');
+  if (!fs.existsSync(authFilePath)) {
+    try {
+      await promptInitAuth(authFilePath, confDir);
+    } catch (err) {
+      console.error('❌ 初始化超级管理员密码配置失败:', err.message);
+      process.exit(1);
+    }
+  }
+
   const webPortResult = await findAvailablePort(hostname, requestedPort);
   const wsPortResult = await findAvailablePort(hostname, requestedWsPort === String(webPortResult.port) ? webPortResult.port + 1 : requestedWsPort);
   const port = String(webPortResult.port);
