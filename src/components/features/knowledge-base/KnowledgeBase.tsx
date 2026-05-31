@@ -306,6 +306,21 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
 
+  // 新建弹框与 Toast 的 UI 状态
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createModalType, setCreateModalType] = useState<'file' | 'folder'>('file');
+  const [createModalParentId, setCreateModalParentId] = useState<string | null>(null);
+  const [createModalInputValue, setCreateModalInputValue] = useState('');
+  const [toastText, setToastText] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToastText(message);
+    const timer = setTimeout(() => {
+      setToastText(null);
+    }, 3000);
+  };
+
+
   // 递归获取某个文件夹下的所有子代 ID (用于循环归属阻断)
   const getFolderDescendantIds = (folderId: string): string[] => {
     const children = documents.filter(d => d.parentId === folderId);
@@ -416,10 +431,22 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
     if (e) e.stopPropagation();
     if (!self) return;
 
+    setCreateModalType('folder');
+    setCreateModalParentId(targetParentId);
+    setCreateModalInputValue('未命名云文件夹');
+    setIsCreateModalOpen(true);
+  };
+
+  /**
+   * 实际执行新建云文件夹
+   */
+  const executeCreateFolder = async (name: string, targetParentId: string | null) => {
+    if (!self) return;
+
     const folderId = generateUUID();
     const newFolder: KBDocument = {
       id: folderId,
-      title: '未命名云文件夹',
+      title: name,
       content: '', // 文件夹正文为空即可
       type: 'folder',
       parentId: targetParentId,
@@ -450,9 +477,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
             return next;
           });
         }
-        // 立刻自动激活重命名模式，大幅度提升交互流畅度！
-        setRenamingId(folderId);
-        setRenameTitle('未命名云文件夹');
 
         broadcastSync(newFolder);
 
@@ -478,6 +502,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         } catch (e) {
           console.error('[KB] 新建文件夹日志上报异常:', e);
         }
+
+        // 输出创建名称的 toast 提示
+        showToast(`成功创建云文件夹：《${name}》`);
       }
     } catch (err) {
       console.error('[KB] 创建文件夹物理写入失败:', err);
@@ -1117,11 +1144,23 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   const handleCreateDocument = async (targetParentId: string | null = null) => {
     if (!self) return;
 
+    setCreateModalType('file');
+    setCreateModalParentId(targetParentId);
+    setCreateModalInputValue('未命名云文档');
+    setIsCreateModalOpen(true);
+  };
+
+  /**
+   * 实际执行创建新文档
+   */
+  const executeCreateDocument = async (name: string, targetParentId: string | null) => {
+    if (!self) return;
+
     const docId = generateUUID();
     const newDoc: KBDocument = {
       id: docId,
-      title: '未命名云文档',
-      content: '# 未命名云文档\n\n在这里开始书写飞书般的文档协作体验...\n\n你可以通过上方工具栏插入代码块。',
+      title: name,
+      content: `# ${name}\n\n在这里开始书写飞书般的文档协作体验...\n\n你可以通过上方工具栏插入代码块。`,
       type: 'file',
       parentId: targetParentId,
       senderId: self.id,
@@ -1180,9 +1219,29 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         } catch (e) {
           console.error('[KB] 新建云文档日志上报异常:', e);
         }
+
+        // 输出创建名称的 toast 提示
+        showToast(`成功创建云文档：《${name}》`);
       }
     } catch (err) {
       console.error('[KB] 创建文档物理写入失败:', err);
+    }
+  };
+
+  /**
+   * 处理弹窗的确认创建行为
+   */
+  const handleConfirmCreate = () => {
+    const trimmedValue = createModalInputValue.trim();
+    if (!trimmedValue) {
+      alert('名称不能为空！');
+      return;
+    }
+    setIsCreateModalOpen(false);
+    if (createModalType === 'folder') {
+      executeCreateFolder(trimmedValue, createModalParentId);
+    } else {
+      executeCreateDocument(trimmedValue, createModalParentId);
     }
   };
 
@@ -2639,6 +2698,143 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         )}
       </div>
 
+      {/* 新建文件/文件夹的纯平 Modal 弹窗 */}
+      {isCreateModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '400px',
+            boxShadow: 'var(--shadow-lg)',
+            animation: 'scaleIn 0.2s ease-out',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {createModalType === 'folder' ? <Folder size={18} style={{ color: '#CA8A04' }} /> : <FileText size={18} style={{ color: 'var(--accent-color)' }} />}
+              新建{createModalType === 'folder' ? '云文件夹' : '云文档'}
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                请输入{createModalType === 'folder' ? '文件夹' : '文档'}的名称：
+              </span>
+              <input
+                type="text"
+                value={createModalInputValue}
+                onChange={(e) => setCreateModalInputValue(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleConfirmCreate();
+                  } else if (e.key === 'Escape') {
+                    setIsCreateModalOpen(false);
+                  }
+                }}
+                style={{
+                  background: 'var(--bg-app)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '8px 12px',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  transition: 'border-color 0.15s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--accent-color)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-color)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.825rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmCreate}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  background: 'var(--accent-color)',
+                  color: '#fff',
+                  fontSize: '0.825rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                确定创建
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 创建成功的全局 Toast 通知通道 */}
+      {toastText && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 18px',
+          boxShadow: 'var(--shadow-md)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: 'slideDownFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <span style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            background: '#10B981',
+            display: 'inline-block'
+          }} />
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+            {toastText}
+          </span>
+        </div>
+      )}
+
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
@@ -2652,6 +2848,18 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
           0% { transform: scale(1); opacity: 0.8; }
           50% { transform: scale(1.05); opacity: 1; }
           100% { transform: scale(1); opacity: 0.8; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes slideDownFadeIn {
+          from { transform: translate(-50%, -10px); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
         }
       `}</style>
     </Card>
