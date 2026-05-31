@@ -7,7 +7,7 @@ import { SocketClient } from '@/lib/socketClient';
 import PeerList from '@/components/features/peers/PeerList';
 import Transfer from '@/components/features/transfer/Transfer';
 import SharedFiles from '@/components/features/transfer/SharedFiles';
-import TransferHistory from '@/components/features/transfer/TransferHistory';
+import RecordCenter from '@/components/features/transfer/RecordCenter';
 import KnowledgeBase from '@/components/features/knowledge-base/KnowledgeBase';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -501,7 +501,7 @@ export default function Home() {
               }}
             >
               <History size={15} style={{ color: activeTab === 'history' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
-              <span className="sidebar-nav-text">传输记录</span>
+              <span className="sidebar-nav-text">记录中心</span>
             </button>
 
             <button
@@ -696,12 +696,14 @@ export default function Home() {
               {activeTab === 'transfer' && '文件传输工作台'}
               {activeTab === 'share' && '公共共享中心'}
               {activeTab === 'knowledge' && '知识协作云文档'}
+              {activeTab === 'history' && '操作与协作记录中心'}
               {activeTab === 'settings' && '全局系统配置'}
             </h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
               {activeTab === 'transfer' && '安全、无压缩的局域网零阻碍点对点极速传输'}
               {activeTab === 'share' && '长效、大文件零压缩合并存储的局域网公共共享空间'}
               {activeTab === 'knowledge' && '支持富文本与代码的局域网去中心化物理落盘云文档'}
+              {activeTab === 'history' && '局域网互传历史、共享上传审计以及云协作审计日志'}
               {activeTab === 'settings' && '修改默认存储路径以及查看本端硬件和网络特征'}
             </p>
           </div>
@@ -830,14 +832,23 @@ export default function Home() {
             </div>
           )}
 
-          {/* TAB 4: 局域网物理传输历史记录 */}
+          {/* TAB 4: 局域网物理传输与审计操作记录中心 (大统一 Activity Center) */}
           {activeTab === 'history' && (
             <div className="fade-in">
-              <TransferHistory 
+              <RecordCenter 
                 tasks={tasks} 
                 self={self} 
                 onDeleteTask={deleteTask}
                 onClearHistory={clearHistory}
+                onNavigateToDoc={(docId) => {
+                  // 智能缓存待定位文档的 id，并激活 Tab 跳转至云文档模块
+                  localStorage.setItem('kb_selected_id', docId);
+                  setActiveTab('knowledge');
+                  // 延时发送跨组件自定义事件，确保云文档组件有足够时机就绪并执行自动高亮选中
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('kb-select-doc', { detail: docId }));
+                  }, 50);
+                }}
               />
             </div>
           )}

@@ -481,6 +481,32 @@ export function useFileTransfer(self: any) {
       }
     }
 
+    if (isSuccess) {
+      // 成功上传共享文件后，向日志服务上报审计日志
+      try {
+        await fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: taskId,
+            type: 'share',
+            action: 'upload',
+            title: `成功上传公共共享文件《${file.name}》`,
+            operator: selfNickname || '本端设备',
+            avatar: selfAvatar,
+            details: {
+              fileName: file.name,
+              fileSize: file.size,
+              deviceInfo
+            },
+            timestamp: Date.now()
+          })
+        });
+      } catch (e) {
+        console.error('[useFileTransfer] 共享文件上传成功日志上报异常:', e);
+      }
+    }
+
     return isSuccess;
   };
 

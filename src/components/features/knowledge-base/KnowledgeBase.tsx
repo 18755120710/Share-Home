@@ -229,6 +229,36 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
     }
   }, []);
 
+  // 🌟 记录中心智能联动：监听全局文档高亮选择广播事件
+  useEffect(() => {
+    const handleSelectDocEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const docId = customEvent.detail;
+      if (docId) {
+        const doc = documents.find(d => d.id === docId);
+        if (doc) {
+          selectDocument(doc);
+        }
+      }
+    };
+    window.addEventListener('kb-select-doc', handleSelectDocEvent);
+    return () => {
+      window.removeEventListener('kb-select-doc', handleSelectDocEvent);
+    };
+  }, [documents]);
+
+  // 🌟 记录中心智能联动：页面加载时若发现缓存在 localStorage 的待定位 ID，则自动执行深度跳转高亮
+  useEffect(() => {
+    const cachedId = localStorage.getItem('kb_selected_id');
+    if (cachedId && documents.length > 0 && !selectedId) {
+      const doc = documents.find(d => d.id === cachedId);
+      if (doc) {
+        selectDocument(doc);
+      }
+      localStorage.removeItem('kb_selected_id'); // 消费后立刻物理擦除，防止后遗症
+    }
+  }, [documents, selectedId]);
+
   const toggleKbSidebar = () => {
     const next = !isKbSidebarCollapsed;
     setIsKbSidebarCollapsed(next);
@@ -425,6 +455,29 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         setRenameTitle('未命名云文件夹');
 
         broadcastSync(newFolder);
+
+        // 新建文件夹成功，向日志服务上报审计日志
+        try {
+          fetch('/api/logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: folderId,
+              type: 'document',
+              action: 'create_folder',
+              title: `新建了云文件夹《${newFolder.title}》`,
+              operator: self.nickname || '本端设备',
+              avatar: self.avatar,
+              details: {
+                docId: folderId,
+                isFolder: true
+              },
+              timestamp: Date.now()
+            })
+          });
+        } catch (e) {
+          console.error('[KB] 新建文件夹日志上报异常:', e);
+        }
       }
     } catch (err) {
       console.error('[KB] 创建文件夹物理写入失败:', err);
@@ -1104,6 +1157,29 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
 
         // 局域网广播广播：并发投递给局域网其他所有在线设备后端
         broadcastSync(newDoc);
+
+        // 新建云文档成功，向日志服务上报审计日志
+        try {
+          fetch('/api/logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: docId,
+              type: 'document',
+              action: 'create_doc',
+              title: `新建了云文档《${newDoc.title}》`,
+              operator: self.nickname || '本端设备',
+              avatar: self.avatar,
+              details: {
+                docId,
+                isFolder: false
+              },
+              timestamp: Date.now()
+            })
+          });
+        } catch (e) {
+          console.error('[KB] 新建云文档日志上报异常:', e);
+        }
       }
     } catch (err) {
       console.error('[KB] 创建文档物理写入失败:', err);
