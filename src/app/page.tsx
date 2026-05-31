@@ -324,40 +324,18 @@ export default function Home() {
     <div className="app-container">
       
       {/* 1. 左侧大厂极简侧边导航栏 (Sidebar) */}
-      <aside className={`sidebar-container ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+      <aside className={`sidebar-container ${isSidebarCollapsed ? 'collapsed' : ''} bg-sidebar border-r border-border/40 flex flex-col justify-between flex-shrink-0 z-10 duration-300`}>
         {/* 顶部 Logo & 品牌区 */}
         <div>
-          <div className="sidebar-logo-group" style={{ 
-            display: 'flex', 
-            flexDirection: isSidebarCollapsed ? 'column' : 'row',
-            alignItems: 'center', 
-            justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-            gap: isSidebarCollapsed ? '12px' : '0px',
-            padding: isSidebarCollapsed ? '20px 8px' : '24px 20px',
-            borderBottom: '1px solid var(--border-color)',
-            position: 'relative'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden', justifyContent: 'center' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                background: 'var(--accent-glow)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(37, 99, 235, 0.3)',
-                boxShadow: 'var(--shadow-sm)',
-                flexShrink: 0
-              }}>
-                <Radio size={16} style={{ color: 'var(--accent-color)' }} />
+          <div className={`sidebar-logo-group flex ${isSidebarCollapsed ? 'flex-col justify-center py-5 px-2 gap-3' : 'flex-row justify-between py-6 px-5 gap-0'} items-center border-b border-border/40 relative`}>
+            <div className="flex items-center gap-3 overflow-hidden justify-center">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shadow-sm flex-shrink-0">
+                <Radio size={16} className="text-primary animate-pulse" />
               </div>
               {!isSidebarCollapsed && (
-                <div className="sidebar-title-group" style={{
-                  animation: 'fadeIn 0.15s ease-out forwards'
-                }}>
-                  <h1 style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Share Home</h1>
-                  <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>局域网协作平台</p>
+                <div className="sidebar-title-group animate-in fade-in slide-in-from-left-2 duration-200">
+                  <h1 className="text-sm font-bold text-foreground tracking-tight white-space-nowrap">Share Home</h1>
+                  <p className="text-[10px] text-muted-foreground tracking-wide white-space-nowrap">局域网协作平台</p>
                 </div>
               )}
             </div>
@@ -366,128 +344,53 @@ export default function Home() {
             <button
               onClick={toggleSidebar}
               title={isSidebarCollapsed ? '展开导航' : '收起导航'}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                marginTop: isSidebarCollapsed ? '8px' : '0px',
-                width: isSidebarCollapsed ? '32px' : 'auto',
-                height: isSidebarCollapsed ? '32px' : 'auto',
-                flexShrink: 0
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--text-secondary)';
-              }}
+              className={`p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-200 flex items-center justify-center flex-shrink-0 ${
+                isSidebarCollapsed ? 'mt-2 w-8 h-8' : 'w-auto h-auto'
+              }`}
             >
               {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
             </button>
           </div>
 
           {/* 导航菜单列表 */}
-          <nav className="sidebar-nav" style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <nav className="sidebar-nav p-4 flex flex-col gap-1.5">
             <button
               onClick={() => setActiveTab('transfer')}
-              className="sidebar-nav-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '10px 14px',
-                background: activeTab === 'transfer' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
-                border: activeTab === 'transfer' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
-                color: activeTab === 'transfer' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.85rem',
-                fontWeight: activeTab === 'transfer' ? 600 : 500,
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== 'transfer') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== 'transfer') e.currentTarget.style.background = 'transparent';
-              }}
+              className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
+                activeTab === 'transfer'
+                  ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
+                  : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
+              }`}
             >
-              <Files size={15} style={{ color: activeTab === 'transfer' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              <Files size={15} className={`flex-shrink-0 ${activeTab === 'transfer' ? 'text-primary' : 'text-muted-foreground'}`} />
               <span className="sidebar-nav-text">极速文件流</span>
             </button>
 
             <button
               onClick={() => setActiveTab('share')}
-              className="sidebar-nav-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '10px 14px',
-                background: activeTab === 'share' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
-                border: activeTab === 'share' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
-                color: activeTab === 'share' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.85rem',
-                fontWeight: activeTab === 'share' ? 600 : 500,
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== 'share') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== 'share') e.currentTarget.style.background = 'transparent';
-              }}
+              className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
+                activeTab === 'share'
+                  ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
+                  : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
+              }`}
             >
-              <FolderOpen size={15} style={{ color: activeTab === 'share' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              <FolderOpen size={15} className={`flex-shrink-0 ${activeTab === 'share' ? 'text-primary' : 'text-muted-foreground'}`} />
               <span className="sidebar-nav-text">共享中心</span>
             </button>
 
             <button
               onClick={() => setActiveTab('knowledge')}
-              className="sidebar-nav-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '10px 14px',
-                background: activeTab === 'knowledge' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
-                border: activeTab === 'knowledge' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
-                color: activeTab === 'knowledge' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.85rem',
-                fontWeight: activeTab === 'knowledge' ? 600 : 500,
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== 'knowledge') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== 'knowledge') e.currentTarget.style.background = 'transparent';
-              }}
+              className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
+                activeTab === 'knowledge'
+                  ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
+                  : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
+              }`}
             >
-              <FileText size={15} style={{ color: activeTab === 'knowledge' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              <FileText size={15} className={`flex-shrink-0 ${activeTab === 'knowledge' ? 'text-primary' : 'text-muted-foreground'}`} />
               <span className="sidebar-nav-text">云文档</span>
             </button>
 
-            <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+            <div className="flex flex-col w-full">
               <button
                 onClick={() => {
                   setIsRecordMenuExpanded(!isRecordMenuExpanded);
@@ -495,157 +398,66 @@ export default function Home() {
                     setActiveTab('history-transfer'); // 点击大类默认切换到第一个子菜单
                   }
                 }}
-                className="sidebar-nav-btn"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  width: '100%',
-                  padding: '10px 14px',
-                  background: activeTab.startsWith('history-') ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
-                  border: activeTab.startsWith('history-') ? '1px solid var(--border-color-hover)' : '1px solid transparent',
-                  color: activeTab.startsWith('history-') ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.85rem',
-                  fontWeight: activeTab.startsWith('history-') ? 600 : 500,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s'
-                }}
-                onMouseEnter={(e) => {
-                  if (!activeTab.startsWith('history-')) e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!activeTab.startsWith('history-')) e.currentTarget.style.background = 'transparent';
-                }}
+                className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
+                  activeTab.startsWith('history-')
+                    ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
+                    : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                }`}
               >
-                <History size={15} style={{ color: activeTab.startsWith('history-') ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+                <History size={15} className={`flex-shrink-0 ${activeTab.startsWith('history-') ? 'text-primary' : 'text-muted-foreground'}`} />
                 <span className="sidebar-nav-text">记录中心</span>
                 {!isSidebarCollapsed && (
                   <ChevronDown 
                     size={12} 
-                    style={{ 
-                      marginLeft: 'auto', 
-                      opacity: 0.6,
-                      transform: isRecordMenuExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-                    }} 
+                    className={`ml-auto opacity-60 transition-transform duration-300 ${
+                      isRecordMenuExpanded ? 'rotate-180' : 'rotate-0'
+                    }`}
                   />
                 )}
               </button>
 
               {/* 二级侧边导航子菜单 (大厂级莫兰迪缩进美学) */}
               {isRecordMenuExpanded && !isSidebarCollapsed && (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  paddingLeft: '22px',
-                  marginTop: '4px',
-                  animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-                }}>
+                <div className="flex flex-col gap-1 pl-5 mt-1.5 border-l border-border/40 ml-4 animate-in fade-in duration-200">
                   <button
                     onClick={() => setActiveTab('history-transfer')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      width: '100%',
-                      padding: '8px 12px',
-                      background: activeTab === 'history-transfer' ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
-                      border: 'none',
-                      color: activeTab === 'history-transfer' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                      borderRadius: '4px',
-                      fontSize: '0.78rem',
-                      fontWeight: activeTab === 'history-transfer' ? 600 : 500,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeTab !== 'history-transfer') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeTab !== 'history-transfer') e.currentTarget.style.background = 'transparent';
-                    }}
+                    className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
+                      activeTab === 'history-transfer'
+                        ? 'text-primary font-semibold'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
                   >
-                    <span style={{
-                      width: '4px',
-                      height: '4px',
-                      borderRadius: '50%',
-                      background: activeTab === 'history-transfer' ? 'var(--accent-color)' : 'var(--text-muted)',
-                      display: 'inline-block'
-                    }} />
+                    <span className={`w-1 h-1 rounded-full ${
+                      activeTab === 'history-transfer' ? 'bg-primary shadow-[0_0_6px_#3b82f6]' : 'bg-muted-foreground/60'
+                    } inline-block`} />
                     设备互传历史
                   </button>
 
                   <button
                     onClick={() => setActiveTab('history-share')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      width: '100%',
-                      padding: '8px 12px',
-                      background: activeTab === 'history-share' ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
-                      border: 'none',
-                      color: activeTab === 'history-share' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                      borderRadius: '4px',
-                      fontSize: '0.78rem',
-                      fontWeight: activeTab === 'history-share' ? 600 : 500,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeTab !== 'history-share') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeTab !== 'history-share') e.currentTarget.style.background = 'transparent';
-                    }}
+                    className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
+                      activeTab === 'history-share'
+                        ? 'text-primary font-semibold'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
                   >
-                    <span style={{
-                      width: '4px',
-                      height: '4px',
-                      borderRadius: '50%',
-                      background: activeTab === 'history-share' ? 'var(--accent-color)' : 'var(--text-muted)',
-                      display: 'inline-block'
-                    }} />
+                    <span className={`w-1 h-1 rounded-full ${
+                      activeTab === 'history-share' ? 'bg-primary shadow-[0_0_6px_#3b82f6]' : 'bg-muted-foreground/60'
+                    } inline-block`} />
                     共享上传记录
                   </button>
 
                   <button
                     onClick={() => setActiveTab('history-document')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      width: '100%',
-                      padding: '8px 12px',
-                      background: activeTab === 'history-document' ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
-                      border: 'none',
-                      color: activeTab === 'history-document' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                      borderRadius: '4px',
-                      fontSize: '0.78rem',
-                      fontWeight: activeTab === 'history-document' ? 600 : 500,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeTab !== 'history-document') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeTab !== 'history-document') e.currentTarget.style.background = 'transparent';
-                    }}
+                    className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
+                      activeTab === 'history-document'
+                        ? 'text-primary font-semibold'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
                   >
-                    <span style={{
-                      width: '4px',
-                      height: '4px',
-                      borderRadius: '50%',
-                      background: activeTab === 'history-document' ? 'var(--accent-color)' : 'var(--text-muted)',
-                      display: 'inline-block'
-                    }} />
+                    <span className={`w-1 h-1 rounded-full ${
+                      activeTab === 'history-document' ? 'bg-primary shadow-[0_0_6px_#3b82f6]' : 'bg-muted-foreground/60'
+                    } inline-block`} />
                     云文档活动日志
                   </button>
                 </div>
@@ -654,82 +466,38 @@ export default function Home() {
 
             <button
               onClick={() => setActiveTab('settings')}
-              className="sidebar-nav-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '10px 14px',
-                background: activeTab === 'settings' ? 'rgba(128, 128, 128, 0.08)' : 'transparent',
-                border: activeTab === 'settings' ? '1px solid var(--border-color-hover)' : '1px solid transparent',
-                color: activeTab === 'settings' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.85rem',
-                fontWeight: activeTab === 'settings' ? 600 : 500,
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== 'settings') e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== 'settings') e.currentTarget.style.background = 'transparent';
-              }}
+              className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
+                activeTab === 'settings'
+                  ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
+                  : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
+              }`}
             >
-              <Settings size={15} style={{ color: activeTab === 'settings' ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }} />
+              <Settings size={15} className={`flex-shrink-0 ${activeTab === 'settings' ? 'text-primary' : 'text-muted-foreground'}`} />
               <span className="sidebar-nav-text">系统配置</span>
             </button>
           </nav>
         </div>
 
         {/* 侧边栏底部本端身份管理与主题切换区 */}
-        <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)' }}>
+        <div className="p-4 border-t border-border/40">
           {self && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
                 {isEditingProfile ? (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    background: 'rgba(128, 128, 128, 0.04)',
-                    border: '1px solid var(--border-color)',
-                    padding: '10px',
-                    borderRadius: 'var(--radius-sm)'
-                  }}>
-                    <input
+                  <div className="flex flex-col gap-2 p-2.5 bg-muted/30 border border-border/40 rounded-lg animate-in fade-in duration-200">
+                    <ShadcnInput
                       type="text"
                       value={newNickname}
                       onChange={(e) => setNewNickname(e.target.value)}
-                      style={{
-                        background: 'var(--bg-app)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.8rem',
-                        padding: '4px 6px',
-                        borderRadius: '4px',
-                        outline: 'none',
-                        width: '100%'
-                      }}
+                      className="bg-background border-border/40 text-xs px-2.5 py-1.5 rounded-md w-full h-8"
                       maxLength={10}
                       placeholder="昵称"
                     />
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <div className="flex gap-2 items-center">
                       <select
                         value={newAvatar}
                         onChange={(e) => setNewAvatar(e.target.value)}
-                        style={{
-                          background: 'var(--bg-app)',
-                          color: 'var(--text-primary)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          outline: 'none',
-                          padding: '3px',
-                          flex: 1
-                        }}
+                        className="bg-background text-foreground border border-border/40 rounded-md text-[11px] p-1 h-8 flex-1 outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
                       >
                         <option value="avatar-1">💻 笔记本</option>
                         <option value="avatar-2">🖥️ 显示器</option>
@@ -742,49 +510,28 @@ export default function Home() {
                         <option value="🎨">🎨 调色板</option>
                         <option value="⚡">⚡ 闪电</option>
                       </select>
-                      <button onClick={saveProfile} style={{ 
-                        background: 'var(--accent-color)', 
-                        border: 'none', 
-                        color: '#ffffff', 
-                        padding: '4px 8px', 
-                        borderRadius: '4px', 
-                        cursor: 'pointer',
-                        fontSize: '0.75rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '2px'
-                      }}>
-                        <Check size={12} />
+                      <ShadcnButton 
+                        onClick={saveProfile} 
+                        size="sm"
+                        className="h-8 px-2 text-[11px] bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1"
+                      >
+                        <Check size={11} />
                         存
-                      </button>
+                      </ShadcnButton>
                     </div>
                   </div>
                 ) : (
                   <div 
                     onClick={startEditProfile}
-                    className="sidebar-profile-card"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      cursor: 'pointer',
-                      background: 'rgba(128, 128, 128, 0.04)',
-                      border: '1px solid var(--border-color)',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      transition: 'all 0.2s',
-                      overflow: 'hidden'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-color-hover)'}
-                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                    className="sidebar-profile-card flex items-center justify-between cursor-pointer bg-muted/20 border border-border/30 px-2.5 py-2 rounded-lg hover:border-border/60 hover:bg-muted/40 transition-all duration-200 overflow-hidden"
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', minWidth: 0 }}>
+                    <div className="flex items-center gap-2 overflow-hidden min-w-0">
                       {renderSelfAvatar(self.avatar, 13)}
-                      <span className="sidebar-profile-details" style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span className="sidebar-profile-details text-xs font-semibold text-foreground overflow-hidden text-ellipsis white-space-nowrap">
                         {self.nickname}
                       </span>
                     </div>
-                    <Edit3 size={11} className="sidebar-profile-edit" style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <Edit3 size={11} className="sidebar-profile-edit text-muted-foreground flex-shrink-0 opacity-60" />
                   </div>
                 )}
               </div>
@@ -793,33 +540,12 @@ export default function Home() {
                 <button
                   onClick={toggleTheme}
                   title={theme === 'dark' ? '切换至亮色模式' : '切换至暗色模式'}
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(128, 128, 128, 0.04)',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    color: 'var(--text-primary)',
-                    flexShrink: 0
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                    e.currentTarget.style.background = 'rgba(128, 128, 128, 0.04)';
-                  }}
+                  className="w-9 h-9 rounded-lg bg-muted/20 border border-border/30 flex items-center justify-center cursor-pointer hover:border-border/60 hover:bg-muted/40 transition-all duration-200 text-foreground flex-shrink-0"
                 >
                   {theme === 'dark' ? (
-                    <Sun size={15} style={{ color: '#f59e0b' }} />
+                    <Sun size={15} className="text-amber-500 animate-spin-slow" />
                   ) : (
-                    <Moon size={15} style={{ color: '#6366f1' }} />
+                    <Moon size={15} className="text-indigo-500" />
                   )}
                 </button>
               )}
