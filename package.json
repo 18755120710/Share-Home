@@ -21,7 +21,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "pkill -f 'next-dev-server' 2>/dev/null || true; pkill -f 'next dev' 2>/dev/null || true; next dev --webpack",
     "build": "next build --webpack",
     "start": "next start -p 8301",
     "lint": "eslint"
