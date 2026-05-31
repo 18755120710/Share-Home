@@ -161,14 +161,16 @@ export default function Home() {
     };
   }, []);
 
-  // 当 self 数据加载成功后，自动同步初始化本端昵称与头像 (仅在首次加载时初始化一次，避免清空昵称时回显的 bug)
+  // 当 self 数据加载成功后，自动同步初始化本端昵称与头像 (仅在非编辑状态下同步，避免清空昵称时回显的 bug)
   useEffect(() => {
-    if (self && !isProfileInitialized.current) {
-      setNewNickname(self.nickname);
-      setNewAvatar(self.avatar || '💻');
-      isProfileInitialized.current = true;
+    if (self && !isEditingProfile) {
+      if (!isProfileInitialized.current || self.nickname !== newNickname || self.avatar !== newAvatar) {
+        setNewNickname(self.nickname);
+        setNewAvatar(self.avatar || '💻');
+        isProfileInitialized.current = true;
+      }
     }
-  }, [self]);
+  }, [self, isEditingProfile]);
 
   // 智能状态同步：当激活路由为记录中心的子分类时，自动展开二级导航菜单
   useEffect(() => {
