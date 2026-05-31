@@ -14,7 +14,7 @@ import {
   Plus, FileText, Trash2, Edit2, Check, X, Eye, Edit3, 
   Bold, Italic, Heading, Quote, List, Code, Copy, 
   CheckSquare, Globe, Save, Columns, ChevronsLeft, ChevronsRight,
-  Folder, FolderOpen, FolderPlus, ChevronDown, ChevronRight, CornerDownRight, Move, Upload
+  Folder, FolderOpen, FolderPlus, ChevronDown, ChevronRight, CornerDownRight, Move, Upload, Download
 } from 'lucide-react';
 import { generateUUID } from '@/lib/utils';
 import { SocketClient } from '@/lib/socketClient';
@@ -131,6 +131,92 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
 
     reader.readAsText(file);
     e.target.value = ''; // 清空 input 缓存
+  };
+
+  // ==========================================
+  // 云文档导出相关的引用与逻辑 (Markdown & Word)
+  // ==========================================
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  const [isExportingDocx, setIsExportingDocx] = useState(false);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
+
+  // 监听外部点击，实现点击空白处自动收起导出下拉菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setIsExportDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // 导出为本地 Markdown (.md) 文件 (纯前端零消耗极速生成)
+  const handleExportMarkdown = () => {
+    if (!editor || !selectedDoc) return;
+    
+    // 优先提取编辑器的最新 Markdown 内容
+    const currentMarkdown = (editor.storage as any).markdown?.getMarkdown() || contentInput;
+    const title = titleInput.trim() || '未命名云文档';
+    
+    try {
+      const blob = new Blob([currentMarkdown], { type: 'text/markdown;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${title}.md`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setIsExportDropdownOpen(false);
+    } catch (err) {
+      console.error('[KB] 导出 Markdown 失败:', err);
+    }
+  };
+
+  // 导出为本地 Word (.docx) 文件 (服务端 html-to-docx 高能编译，免去客户端格式警告)
+  const handleExportDocx = async () => {
+    if (!editor || !selectedDoc || isExportingDocx) return;
+    
+    setIsExportingDocx(true);
+    const htmlContent = editor.getHTML();
+    const title = titleInput.trim() || '未命名云文档';
+    
+    try {
+      const response = await fetch('/api/documents/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          html: htmlContent,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('导出 DOCX 文件失败');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${title}.docx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[KB] 导出 Word 文档失败:', err);
+      alert('导出 Word 文档失败，请稍后重试');
+    } finally {
+      setIsExportingDocx(false);
+      setIsExportDropdownOpen(false);
+    }
   };
 
   // 知识库目录栏折叠状态 (持久化偏好缓存)
@@ -2136,6 +2222,125 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   <Upload size={12} />
                   导入 MD
                 </button>
+
+                {/* 导出文档下拉菜单组件 (大厂风极简高能设计) */}
+                <div style={{ position: 'relative' }} ref={exportDropdownRef}>
+                  <button
+                    onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                    title="导出当前云文档"
+                    style={{
+                      padding: '5px 12px',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      border: 'none',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      color: 'var(--text-secondary)',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.2s',
+                      marginRight: '4px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }}
+                  >
+                    <Download size={12} />
+                    导出文档
+                  </button>
+
+                  {isExportDropdownOpen && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 6px)',
+                      right: 0,
+                      background: 'var(--bg-card)',
+                      backdropFilter: 'blur(25px)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg), var(--shadow-glow)',
+                      padding: '6px',
+                      zIndex: 9999,
+                      minWidth: '160px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      animation: 'fadeIn 0.18s ease-out'
+                    }}>
+                      <button
+                        onClick={handleExportMarkdown}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 500,
+                          border: 'none',
+                          background: 'transparent',
+                          color: 'var(--text-primary)',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                          width: '100%'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                          e.currentTarget.style.paddingLeft = '14px';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.paddingLeft = '12px';
+                        }}
+                      >
+                        <FileText size={13} style={{ color: 'var(--accent-color)' }} />
+                        Markdown (.md)
+                      </button>
+                      <button
+                        onClick={handleExportDocx}
+                        disabled={isExportingDocx}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 500,
+                          border: 'none',
+                          background: 'transparent',
+                          color: isExportingDocx ? 'var(--text-muted)' : 'var(--text-primary)',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: isExportingDocx ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                          opacity: isExportingDocx ? 0.6 : 1,
+                          width: '100%'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (isExportingDocx) return;
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                          e.currentTarget.style.paddingLeft = '14px';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (isExportingDocx) return;
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.paddingLeft = '12px';
+                        }}
+                      >
+                        <FileText size={13} style={{ color: '#2b579a' }} />
+                        {isExportingDocx ? '正在导出 Word...' : 'Word 文档 (.docx)'}
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 <span style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 8px' }} />
                 <button
