@@ -11,6 +11,9 @@ import RecordCenter from '@/components/features/transfer/RecordCenter';
 import KnowledgeBase from '@/components/features/knowledge-base/KnowledgeBase';
 import Button from '@/components/ui/LegacyButton';
 import Card from '@/components/ui/LegacyCard';
+import { Button as ShadcnButton } from '@/components/ui/button';
+import { Card as ShadcnCard, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Input as ShadcnInput } from '@/components/ui/input';
 import { 
   Radio, RefreshCw, Laptop, Monitor, Smartphone, Edit3, Check, 
   Files, FileText, Settings, ShieldAlert, FolderOpen,
@@ -1007,255 +1010,133 @@ export default function Home() {
 
           {/* TAB 3: 系统配置控制台仪表盘 */}
           {activeTab === 'settings' && (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
-              gap: '24px',
-              width: '100%',
-              alignItems: 'start'
-            }} className="fade-in">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start fade-in">
               
               {/* ===================== 左侧分栏：核心存储与网络服务控制器 ===================== */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="flex flex-col gap-6">
                 
                 {/* 核心配置：动态存储路径修改 */}
-                <Card>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <ShadcnCard className="border border-border/40 bg-card/60 backdrop-blur-md shadow-lg rounded-xl overflow-hidden hover:border-border/80 hover:shadow-xl transition-all duration-300">
+                  <CardContent className="p-6 flex flex-col gap-4">
                     
                     {/* 头部标题与存储徽章 */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '8px',
-                          background: 'rgba(37, 99, 235, 0.08)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <FolderOpen size={14} style={{ color: 'var(--accent-color)' }} />
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <FolderOpen size={15} className="text-primary" />
                         </div>
-                        <h3 style={{ fontSize: '0.95rem', fontWeight: 600, margin: 0 }}>默认文件及文档存储目录</h3>
+                        <h3 className="text-sm font-semibold text-foreground">默认文件及文档存储目录</h3>
                       </div>
                       
                       {/* 物理路径健康微光指示灯 */}
-                      <span style={{
-                        fontSize: '0.68rem',
-                        background: 'rgba(16, 185, 129, 0.08)',
-                        color: 'var(--success-color)',
-                        border: '1px solid rgba(16, 185, 129, 0.15)',
-                        padding: '2px 8px',
-                        borderRadius: '99px',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}>
-                        <span style={{
-                          width: '5px',
-                          height: '5px',
-                          borderRadius: '50%',
-                          background: 'var(--success-color)',
-                          display: 'inline-block',
-                          boxShadow: '0 0 6px var(--success-color)'
-                        }} />
+                      <span className="text-[11px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse shadow-[0_0_8px_#10b981]" />
                         存储就绪
                       </span>
                     </div>
 
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       收到的局域网传输文件，以及您创建同步的云文档，均会实时存放于此物理目录中。支持绝对路径或以 `./` 开头的根相对路径。
                     </p>
 
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                      <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                        <input
+                    <div className="flex gap-3 mt-1">
+                      <div className="relative flex-1 flex items-center">
+                        <ShadcnInput
                           type="text"
                           value={storagePath}
                           onChange={(e) => setStoragePath(e.target.value)}
                           placeholder="例如: ./storage"
-                          style={{
-                            width: '100%',
-                            background: 'rgba(0, 0, 0, 0.15)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '10px',
-                            padding: '10px 16px',
-                            paddingRight: '45px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.85rem',
-                            outline: 'none',
-                            transition: 'all 0.2s',
-                          }}
-                          onFocus={(e) => {
-                            e.target.style.borderColor = 'var(--accent-color)';
-                            e.target.style.boxShadow = '0 0 0 2px rgba(99, 102, 241, 0.12)';
-                          }}
-                          onBlur={(e) => {
-                            e.target.style.borderColor = 'var(--border-color)';
-                            e.target.style.boxShadow = 'none';
-                          }}
+                          className="w-full bg-background/50 border-border/50 pr-12 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200"
                         />
                         <button
                           onClick={handleSelectDirectory}
                           disabled={isSelectingDir}
                           title="弹出系统文件浏览器选择物理存储路径"
-                          style={{
-                            position: 'absolute',
-                            right: '8px',
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            padding: '6px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = 'var(--accent-color)';
-                            e.currentTarget.style.background = 'rgba(128, 128, 128, 0.08)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = 'var(--text-secondary)';
-                            e.currentTarget.style.background = 'transparent';
-                          }}
+                          className="absolute right-2 text-muted-foreground hover:text-primary hover:bg-muted p-1.5 rounded-md transition-all duration-200"
                         >
                           {isSelectingDir ? (
-                            <RefreshCw size={15} style={{ animation: 'spin 1.2s linear infinite', display: 'inline-block' }} />
+                            <RefreshCw size={15} className="animate-spin text-primary" />
                           ) : (
                             <FolderOpen size={15} />
                           )}
                         </button>
                       </div>
-                      <Button onClick={() => handleSaveConfig()} disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}>
+                      <ShadcnButton 
+                        onClick={() => handleSaveConfig()} 
+                        disabled={configStatus === 'saving' || !storagePath.trim() || isSelectingDir}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                      >
                         {configStatus === 'saving' ? '正在校验保存...' : '应用修改'}
-                      </Button>
+                      </ShadcnButton>
                     </div>
 
                     {/* 状态反馈 */}
                     {configStatus === 'success' && (
-                      <div style={{
-                        padding: '10px 14px',
-                        background: 'var(--success-glow)',
-                        border: '1px solid rgba(16, 185, 129, 0.15)',
-                        borderRadius: '10px',
-                        fontSize: '0.75rem',
-                        color: 'var(--success-color)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-lg text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
                         <Check size={14} />
                         存储路径校验通过，修改已成功持久化保存！
                       </div>
                     )}
 
                     {configStatus === 'error' && (
-                      <div style={{
-                        padding: '10px 14px',
-                        background: 'rgba(239, 68, 68, 0.08)',
-                        border: '1px solid rgba(239, 68, 68, 0.15)',
-                        borderRadius: '10px',
-                        fontSize: '0.75rem',
-                        color: '#f87171',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
+                      <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive/90 rounded-lg text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
                         <ShieldAlert size={14} />
                         修改失败：{configErrorMsg}
                       </div>
                     )}
 
                     {absolutePath && (
-                      <div style={{ 
-                        fontSize: '0.72rem', 
-                        color: 'var(--text-muted)', 
-                        background: 'rgba(128, 128, 128, 0.03)',
-                        padding: '10px 14px',
-                        borderRadius: '10px',
-                        border: '1px dashed var(--border-color)',
-                        wordBreak: 'break-all',
-                        fontFamily: 'monospace'
-                      }}>
-                        <strong>当前服务器绝对落盘路径：</strong> {absolutePath}
+                      <div className="text-[11px] text-muted-foreground bg-muted/40 p-3 rounded-lg border border-border/40 border-dashed word-break font-mono leading-relaxed">
+                        <strong className="text-foreground">当前服务器绝对落盘路径：</strong> {absolutePath}
                       </div>
                     )}
-                  </div>
-                </Card>
+                  </CardContent>
+                </ShadcnCard>
 
                 {/* 局域网协同办公安全指引 */}
-                <Card style={{
-                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.02) 0%, rgba(59, 130, 246, 0.02) 100%)',
-                  border: '1px solid var(--border-color)'
-                }}>
-                  <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                    <Info size={16} style={{ color: 'var(--accent-color)', flexShrink: 0, marginTop: '2px' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <h4 style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>去中心化局域网多播提醒</h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                        Share Home 依赖 mDNS 多播及去中心化点对点网络工作。请确保所有协作节点设备均连入同一局域网（或 Wi-Fi），且本端防火墙已开放相应的 WebSocket 及 HTTP 端口信道，即可获得最佳体验。
+                <ShadcnCard className="border border-border/40 bg-gradient-to-br from-primary/5 to-transparent shadow-md rounded-xl overflow-hidden hover:border-border/60 transition-all duration-300">
+                  <CardContent className="p-6 flex gap-3.5 items-start">
+                    <Info size={16} className="text-primary flex-shrink-0 mt-0.5" />
+                    <div className="flex flex-col gap-1.5">
+                      <h4 className="text-xs font-semibold text-foreground">去中心化局域网多播提醒</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Share Home 依赖 mDNS 多播及去中心化 P2P 网络工作。请确保所有协作节点设备均连入同一局域网（或 Wi-Fi），且本端防火墙已开放相应的 WebSocket 及 HTTP 端口信道，即可获得最佳体验。
                       </p>
                     </div>
-                  </div>
-                </Card>
+                  </CardContent>
+                </ShadcnCard>
               </div>
 
               {/* ===================== 右侧分栏：本端极客身份个性化与网络探测 ===================== */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="flex flex-col gap-6">
                 
                 {/* 新增：设备身份档案舱卡片 */}
-                <Card>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '8px',
-                        background: 'rgba(99, 102, 241, 0.08)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <Edit3 size={14} style={{ color: 'var(--accent-color)' }} />
+                <ShadcnCard className="border border-border/40 bg-card/60 backdrop-blur-md shadow-lg rounded-xl overflow-hidden hover:border-border/80 hover:shadow-xl transition-all duration-300">
+                  <CardContent className="p-6 flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Edit3 size={15} className="text-primary" />
                       </div>
-                      <h3 style={{ fontSize: '0.95rem', fontWeight: 600, margin: 0 }}>本端设备身份名片</h3>
+                      <h3 className="text-sm font-semibold text-foreground">本端设备身份名片</h3>
                     </div>
 
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       个性化您在局域网中的展现身份，设置后邻居节点将立即看到您的更改。
                     </p>
 
                     {/* 头像展示与拟物化键盘选择 */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <label style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 500 }}>快速选择专属极客头像</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '6px' }}>
+                    <div className="flex flex-col gap-2.5">
+                      <label className="text-xs text-muted-foreground font-medium">快速选择专属极客头像</label>
+                      <div className="grid grid-cols-8 gap-2">
                         {['💻', '🚀', '🐱', '🦊', '🤖', '🍎', '🎨', '⚡'].map((emoji) => {
                           const isSelected = newAvatar === emoji;
                           return (
                             <button
                               key={emoji}
                               onClick={() => setNewAvatar(emoji)}
-                              style={{
-                                fontSize: '1.3rem',
-                                padding: '8px 0',
-                                background: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'rgba(128, 128, 128, 0.02)',
-                                border: isSelected ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
-                                borderRadius: '10px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                boxShadow: isSelected ? '0 0 10px rgba(99, 102, 241, 0.15)' : 'none',
-                                transform: isSelected ? 'scale(1.06)' : 'scale(1)',
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!isSelected) e.currentTarget.style.background = 'rgba(128, 128, 128, 0.06)';
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!isSelected) e.currentTarget.style.background = 'rgba(128, 128, 128, 0.02)';
-                              }}
+                              className={`text-lg py-2.5 bg-background/50 hover:bg-muted border rounded-xl cursor-pointer transition-all duration-300 flex items-center justify-center ${
+                                isSelected ? 'bg-primary/10 border-primary shadow-md shadow-primary/15 scale-105 font-bold' : 'border-border/50'
+                              }`}
                             >
                               {emoji}
                             </button>
@@ -1265,133 +1146,76 @@ export default function Home() {
                     </div>
 
                     {/* 昵称编辑输入框及一键同步按钮 */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
-                      <label style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 500 }}>自定义设备昵称</label>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <input
+                    <div className="flex flex-col gap-2 mt-1">
+                      <label className="text-xs text-muted-foreground font-medium">自定义设备昵称</label>
+                      <div className="flex gap-3">
+                        <ShadcnInput
                           type="text"
                           value={newNickname}
                           onChange={(e) => setNewNickname(e.target.value)}
                           placeholder="输入您的专属极客昵称"
                           maxLength={16}
-                          style={{
-                            flex: 1,
-                            background: 'rgba(0, 0, 0, 0.15)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '10px',
-                            padding: '10px 14px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.85rem',
-                            outline: 'none',
-                            transition: 'all 0.2s'
-                          }}
-                          onFocus={(e) => {
-                            e.target.style.borderColor = 'var(--accent-color)';
-                            e.target.style.boxShadow = '0 0 0 2px rgba(99, 102, 241, 0.12)';
-                          }}
-                          onBlur={(e) => {
-                            e.target.style.borderColor = 'var(--border-color)';
-                            e.target.style.boxShadow = 'none';
-                          }}
+                          className="flex-1 bg-background/50 border-border/50 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200"
                         />
-                        <Button 
+                        <ShadcnButton 
                           onClick={saveProfile} 
                           disabled={!newNickname.trim() || !!(self && self.nickname === newNickname && self.avatar === newAvatar)}
+                          className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                         >
                           同步修改档案
-                        </Button>
+                        </ShadcnButton>
                       </div>
                     </div>
-                  </div>
-                </Card>
+                  </CardContent>
+                </ShadcnCard>
 
                 {/* 本端设备的高端硬件及网络参数 */}
-                <Card>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '8px',
-                        background: 'rgba(37, 99, 235, 0.08)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <Cpu size={14} style={{ color: 'var(--accent-color)' }} />
+                <ShadcnCard className="border border-border/40 bg-card/60 backdrop-blur-md shadow-lg rounded-xl overflow-hidden hover:border-border/80 hover:shadow-xl transition-all duration-300">
+                  <CardContent className="p-6 flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Cpu size={15} className="text-primary" />
                       </div>
-                      <h3 style={{ fontSize: '0.95rem', fontWeight: 600, margin: 0 }}>本端局域网硬件参数</h3>
+                      <h3 className="text-sm font-semibold text-foreground">本端局域网硬件参数</h3>
                     </div>
 
                     {self && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'flex', fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>设备唯一标识</span>
-                          <span style={{ 
-                            color: 'var(--text-primary)', 
-                            fontFamily: 'monospace', 
-                            background: 'rgba(128, 128, 128, 0.05)', 
-                            padding: '3px 8px', 
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
-                            wordBreak: 'break-all'
-                          }}>{self.id}</span>
+                      <div className="flex flex-col gap-3.5">
+                        <div className="flex text-xs border-b border-border/40 pb-3 items-center justify-between">
+                          <span className="text-muted-foreground font-medium">设备唯一标识</span>
+                          <span className="text-foreground font-mono bg-muted/50 px-2.5 py-1 rounded-md text-[10.5px] border border-border/30 max-w-[240px] truncate" title={self.id}>
+                            {self.id}
+                          </span>
                         </div>
-                        <div style={{ display: 'flex', fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>本端网络 IP 地址</span>
-                          <span style={{ 
-                            color: 'var(--text-primary)', 
-                            fontFamily: 'monospace', 
-                            background: 'rgba(128, 128, 128, 0.05)', 
-                            padding: '3px 8px', 
-                            borderRadius: '6px',
-                            fontSize: '0.72rem'
-                          }}>{self.ip}</span>
+                        <div className="flex text-xs border-b border-border/40 pb-3 items-center justify-between">
+                          <span className="text-muted-foreground font-medium">本端网络 IP 地址</span>
+                          <span className="text-foreground font-mono bg-muted/50 px-2.5 py-1 rounded-md text-[10.5px] border border-border/30">
+                            {self.ip}
+                          </span>
                         </div>
-                        <div style={{ display: 'flex', fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>节点侦听端口</span>
-                          <span style={{ 
-                            color: 'var(--text-primary)', 
-                            fontFamily: 'monospace', 
-                            background: 'rgba(128, 128, 128, 0.05)', 
-                            padding: '3px 8px', 
-                            borderRadius: '6px',
-                            fontSize: '0.72rem'
-                          }}>{self.port}</span>
+                        <div className="flex text-xs border-b border-border/40 pb-3 items-center justify-between">
+                          <span className="text-muted-foreground font-medium">节点侦听端口</span>
+                          <span className="text-foreground font-mono bg-muted/50 px-2.5 py-1 rounded-md text-[10.5px] border border-border/30">
+                            {self.port}
+                          </span>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.76rem', marginTop: '4px' }}>
-                          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>去中心化服务信道状态</span>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '2px' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success-color)', fontWeight: 600 }}>
-                              <span style={{ 
-                                width: '6px', 
-                                height: '6px', 
-                                borderRadius: '50%', 
-                                background: 'var(--success-color)', 
-                                display: 'inline-block', 
-                                boxShadow: '0 0 8px var(--success-color)',
-                                animation: 'pulse 2s infinite'
-                              }} />
+                        <div className="flex flex-col gap-2 text-xs mt-1">
+                          <span className="text-muted-foreground font-medium">去中心化服务信道状态</span>
+                          <div className="flex flex-wrap gap-4 mt-1">
+                            <span className="flex items-center gap-2 text-emerald-500 font-semibold bg-emerald-500/5 px-2.5 py-1.5 rounded-lg border border-emerald-500/10">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse shadow-[0_0_8px_#10b981]" />
                               WebSocket 信道 (Active)
                             </span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success-color)', fontWeight: 600 }}>
-                              <span style={{ 
-                                width: '6px', 
-                                height: '6px', 
-                                borderRadius: '50%', 
-                                background: 'var(--success-color)', 
-                                display: 'inline-block', 
-                                boxShadow: '0 0 8px var(--success-color)',
-                                animation: 'pulse 2s infinite'
-                              }} />
+                            <span className="flex items-center gap-2 text-emerald-500 font-semibold bg-emerald-500/5 px-2.5 py-1.5 rounded-lg border border-emerald-500/10">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse shadow-[0_0_8px_#10b981]" />
                               mDNS 发现 (Active)
                             </span>
                           </div>
                         </div>
                       </div>
                     )}
-                  </div>
-                </Card>
+                  </CardContent>
+                </ShadcnCard>
 
               </div>
 
