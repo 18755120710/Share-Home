@@ -77,6 +77,7 @@ export default function Home() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [newNickname, setNewNickname] = useState('');
   const [newAvatar, setNewAvatar] = useState('avatar-1');
+  const isProfileInitialized = useRef(false);
 
   // 3. 系统参数配置相关状态
   const [storagePath, setStoragePath] = useState('');
@@ -159,13 +160,14 @@ export default function Home() {
     };
   }, []);
 
-  // 当 self 数据加载成功后，自动同步初始化本端昵称与头像
+  // 当 self 数据加载成功后，自动同步初始化本端昵称与头像 (仅在首次加载时初始化一次，避免清空昵称时回显的 bug)
   useEffect(() => {
-    if (self && !newNickname) {
+    if (self && !isProfileInitialized.current) {
       setNewNickname(self.nickname);
       setNewAvatar(self.avatar || '💻');
+      isProfileInitialized.current = true;
     }
-  }, [self, newNickname]);
+  }, [self]);
 
   const renderSelfAvatar = (avatar: string, size = 13) => {
     switch (avatar) {
