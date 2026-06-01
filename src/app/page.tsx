@@ -696,18 +696,13 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 个人资料编辑状态
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  // 个人资料相关状态
   const [newNickname, setNewNickname] = useState('');
   const [newAvatar, setNewAvatar] = useState('avatar-1');
   const isProfileInitialized = useRef(false);
+  const prevSelfRef = useRef<{ nickname: string; avatar?: string } | null>(null);
 
-  // 智能自愈：当侧边栏被收起时，自动强制退出个人资料编辑模式，防止排版溢出和布局破碎
-  useEffect(() => {
-    if (isSidebarCollapsed) {
-      setIsEditingProfile(false);
-    }
-  }, [isSidebarCollapsed]);
+
 
   // 3. 系统参数配置相关状态
   const [storagePath, setStoragePath] = useState('');
@@ -800,16 +795,18 @@ export default function Home() {
     };
   }, []);
 
-  // 当 self 数据加载成功后，自动同步初始化本端昵称与头像 (仅在非编辑状态下同步，避免清空昵称时回显的 bug)
+  // 当 self 数据加载成功后，自动同步初始化本端昵称与头像，当 self 的真实资料发生变更时进行深度同步
   useEffect(() => {
-    if (self && !isEditingProfile) {
-      if (!isProfileInitialized.current || self.nickname !== newNickname || self.avatar !== newAvatar) {
+    if (self) {
+      const selfChanged = prevSelfRef.current?.nickname !== self.nickname || prevSelfRef.current?.avatar !== self.avatar;
+      if (!isProfileInitialized.current || selfChanged) {
         setNewNickname(self.nickname);
         setNewAvatar(self.avatar || '💻');
         isProfileInitialized.current = true;
+        prevSelfRef.current = { nickname: self.nickname, avatar: self.avatar };
       }
     }
-  }, [self, isEditingProfile]);
+  }, [self]);
 
   // 智能状态同步：当激活路由为记录中心的子分类时，自动展开二级导航菜单
   useEffect(() => {
@@ -849,20 +846,9 @@ export default function Home() {
     }
   };
 
-  const startEditProfile = () => {
-    if (self) {
-      setNewNickname(self.nickname);
-      setNewAvatar(self.avatar);
-      setIsEditingProfile(true);
-    }
-  };
-
   const saveProfile = async () => {
     if (newNickname.trim()) {
-      const ok = await updateProfile(newNickname.trim(), newAvatar);
-      if (ok) {
-        setIsEditingProfile(false);
-      }
+      await updateProfile(newNickname.trim(), newAvatar);
     }
   };
 
@@ -1401,72 +1387,32 @@ export default function Home() {
           {self && (
             <div className={`flex ${isSidebarCollapsed ? 'flex-col items-center gap-3' : 'flex-row items-center gap-2'}`}>
               <div className="flex-1 min-w-0 w-full flex justify-center">
-                {isEditingProfile ? (
-                  <div className="flex flex-col gap-2 p-2.5 bg-muted/30 border border-border/40 rounded-lg animate-in fade-in duration-200">
-                    <ShadcnInput
-                      type="text"
-                      value={newNickname}
-                      onChange={(e) => setNewNickname(e.target.value)}
-                      className="bg-background border-border/40 text-xs px-2.5 py-1.5 rounded-md w-full h-8"
-                      maxLength={10}
-                      placeholder="昵称"
-                    />
-                    <div className="flex gap-2 items-center">
-                      <select
-                        value={newAvatar}
-                        onChange={(e) => setNewAvatar(e.target.value)}
-                        className="bg-background text-foreground border border-border/40 rounded-md text-[11px] p-1 h-8 flex-1 outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
-                      >
-                        <option value="avatar-1">💻 笔记本</option>
-                        <option value="avatar-2">🖥️ 显示器</option>
-                        <option value="avatar-3">📱 手机</option>
-                        <option value="🚀">🚀 火箭</option>
-                        <option value="🐱">🐱 猫咪</option>
-                        <option value="🦊">🦊 狐狸</option>
-                        <option value="🤖">🤖 机器人</option>
-                        <option value="🍎">🍎 苹果</option>
-                        <option value="🎨">🎨 调色板</option>
-                        <option value="⚡">⚡ 闪电</option>
-                      </select>
-                      <ShadcnButton 
-                        onClick={saveProfile} 
-                        size="sm"
-                        className="h-8 px-2 text-[11px] bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1"
-                      >
-                        <Check size={11} />
-                        存
-                      </ShadcnButton>
-                    </div>
+                <div 
+                  onClick={isSidebarCollapsed ? () => setIsSidebarCollapsed(false) : undefined}
+                  className={`sidebar-profile-card flex items-center justify-between bg-transparent px-2.5 py-2 rounded-lg transition-all duration-200 overflow-hidden ${
+                    isSidebarCollapsed ? 'cursor-pointer hover:bg-muted/30' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                    {renderSelfAvatar(self.avatar, 13)}
+                    <span className="sidebar-profile-details text-xs font-semibold text-foreground overflow-hidden text-ellipsis white-space-nowrap">
+                      {self.nickname}
+                    </span>
                   </div>
-                ) : (
-                  <div 
-                    onClick={isSidebarCollapsed ? () => setIsSidebarCollapsed(false) : startEditProfile}
-                    className="sidebar-profile-card flex items-center justify-between cursor-pointer bg-transparent px-2.5 py-2 rounded-lg hover:bg-muted/30 transition-all duration-200 overflow-hidden"
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden min-w-0">
-                      {renderSelfAvatar(self.avatar, 13)}
-                      <span className="sidebar-profile-details text-xs font-semibold text-foreground overflow-hidden text-ellipsis white-space-nowrap">
-                        {self.nickname}
-                      </span>
-                    </div>
-                    <Edit3 size={11} className="sidebar-profile-edit text-muted-foreground flex-shrink-0 opacity-60" />
-                  </div>
-                )}
+                </div>
               </div>
 
-              {!isEditingProfile && (
-                <button
-                  onClick={toggleTheme}
-                  title={theme === 'dark' ? '切换至亮色模式' : '切换至暗色模式'}
-                  className="w-9 h-9 rounded-lg bg-muted/20 border border-border/30 flex items-center justify-center cursor-pointer hover:border-border/60 hover:bg-muted/40 transition-all duration-200 text-foreground flex-shrink-0"
-                >
-                  {theme === 'dark' ? (
-                    <Sun size={15} className="text-amber-500 animate-spin-slow" />
-                  ) : (
-                    <Moon size={15} className="text-indigo-500" />
-                  )}
-                </button>
-              )}
+              <button
+                onClick={toggleTheme}
+                title={theme === 'dark' ? '切换至亮色模式' : '切换至暗色模式'}
+                className="w-9 h-9 rounded-lg bg-muted/20 border border-border/30 flex items-center justify-center cursor-pointer hover:border-border/60 hover:bg-muted/40 transition-all duration-200 text-foreground flex-shrink-0"
+              >
+                {theme === 'dark' ? (
+                  <Sun size={15} className="text-amber-500 animate-spin-slow" />
+                ) : (
+                  <Moon size={15} className="text-indigo-500" />
+                )}
+              </button>
             </div>
           )}
         </div>
