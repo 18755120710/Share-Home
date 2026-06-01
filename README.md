@@ -65,7 +65,7 @@
 
 ## 🚀 快速启动
 
-在开始之前，请确保本地已安装 [Node.js](https://nodejs.org/) 以及包管理器 [pnpm](https://pnpm.io/)。
+在开始之前，请确保本地已安装 [Node.js](https://nodejs.org/)。本项目全面支持经典的 **npm** 以及推荐的 **pnpm** 包管理器。
 
 ### 1. 克隆并安装依赖
 ```bash
@@ -73,12 +73,19 @@
 git clone https://github.com/18755120710/Share-Home.git
 cd Share-Home
 
-# 优先使用 pnpm 安装依赖
+# 方式 A：使用经典的 npm 安装依赖
+npm install
+
+# 方式 B：使用推荐的 pnpm 安装依赖
 pnpm install
 ```
 
 ### 2. 启动开发服务器
 ```bash
+# 方式 A：使用经典的 npm 启动开发服务
+npm run dev
+
+# 方式 B：使用推荐的 pnpm 启动开发服务
 pnpm dev
 ```
 启动后，控制台将输出本端设备在局域网中的监听端口及 Web 访问地址。打开浏览器访问对应的 `http://localhost:3000` 或本地分配的 IP（如 `http://192.168.1.100:3000`）即可进入平台。
