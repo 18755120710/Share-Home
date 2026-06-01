@@ -15,8 +15,18 @@ import {
   Plus, FileText, Trash2, Edit2, Check, X, Eye, Edit3, 
   Bold, Italic, Heading, Quote, List, Code, Copy, 
   CheckSquare, Globe, Save, Columns, ChevronsLeft, ChevronsRight,
-  Folder, FolderOpen, FolderPlus, ChevronDown, ChevronRight, CornerDownRight, Move, Upload, Download
+  Folder, FolderOpen, FolderPlus, ChevronDown, ChevronRight, CornerDownRight, Move, Upload, Download,
+  ShieldAlert
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button as ShadcnButton } from '@/components/ui/button';
 import { generateUUID } from '@/lib/utils';
 import { SocketClient } from '@/lib/socketClient';
 import Prism from 'prismjs';
@@ -333,6 +343,11 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
   const [createModalParentId, setCreateModalParentId] = useState<string | null>(null);
   const [createModalInputValue, setCreateModalInputValue] = useState('');
   const [toastText, setToastText] = useState<string | null>(null);
+
+  // 共享文档/文件夹删除确认弹窗状态
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmMsg, setDeleteConfirmMsg] = useState('');
+  const [deleteIds, setDeleteIds] = useState<string[]>([]);
 
   const showToast = (message: string) => {
     setToastText(message);
@@ -1287,7 +1302,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
   /**
    * 文档删除 (物理递归删除，完美支持文件夹与子项)
    */
-  const handleDeleteDocument = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteDocument = (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // 阻止触发选中
     
     const targetDoc = documents.find(d => d.id === id);
@@ -1313,12 +1328,22 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
       confirmMsg = `确定要删除此文件夹《${targetDoc.title}》吗？其内部包含的 ${childIds.length} 个子文档/文件夹都将被一并物理删除！`;
     }
 
-    if (!confirm(confirmMsg)) return;
+    setDeleteIds(idsToDelete);
+    setDeleteConfirmMsg(confirmMsg);
+    setIsDeleteModalOpen(true);
+  };
+
+  /**
+   * 实际执行文档删除
+   */
+  const executeDeleteDocument = async () => {
+    setIsDeleteModalOpen(false);
+    if (deleteIds.length === 0) return;
 
     try {
       // 循环删除所有物理文件
       let allSuccess = true;
-      for (const delId of idsToDelete) {
+      for (const delId of deleteIds) {
         const res = await fetch(`/api/documents?id=${delId}`, {
           method: 'DELETE'
         });
@@ -1329,8 +1354,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
       }
 
       if (allSuccess) {
-        setDocuments(prev => prev.filter(d => !idsToDelete.includes(d.id)));
-        if (idsToDelete.includes(selectedId || '')) {
+        setDocuments(prev => prev.filter(d => !deleteIds.includes(d.id)));
+        if (deleteIds.includes(selectedId || '')) {
           setSelectedId(null);
           setTitleInput('');
           setContentInput('');
@@ -1338,7 +1363,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
         }
         
         // 局域网广播批量删除通知
-        idsToDelete.forEach(delId => {
+        deleteIds.forEach(delId => {
           peers.forEach(async (peer) => {
             try {
               await fetch(`http://${peer.ip}:${peer.port}/api/documents?id=${delId}`, {
@@ -1349,9 +1374,16 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
             }
           });
         });
+        showToast('删除成功');
+      } else {
+        showToast('部分文件删除失败');
       }
     } catch (err) {
       console.error('[KB] 删除文档物理操作失败:', err);
+      showToast('删除失败，请稍后重试');
+    } finally {
+      setDeleteIds([]);
+      setDeleteConfirmMsg('');
     }
   };
 
@@ -2920,6 +2952,44 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
           to { transform: translate(-50%, 0); opacity: 1; }
         }
       `}</style>
+
+      {/* 共享文档/文件夹物理删除确认组件库弹窗 */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="rounded-xl border-border/70 bg-popover p-0 sm:max-w-[420px]" showCloseButton={true}>
+          <DialogHeader className="gap-0 border-b border-border/50 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-destructive/20 bg-destructive/10 text-destructive">
+                <ShieldAlert size={16} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-sm font-bold tracking-tight text-foreground">
+                  确认删除
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {deleteConfirmMsg}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <DialogFooter className="border-t border-border/50 px-5 py-4 flex gap-2 justify-end">
+            <ShadcnButton 
+              variant="outline" 
+              onClick={() => setIsDeleteModalOpen(false)} 
+              className="rounded-lg h-8 text-xs"
+            >
+              取消
+            </ShadcnButton>
+            <ShadcnButton 
+              variant="destructive" 
+              onClick={executeDeleteDocument} 
+              className="rounded-lg h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
+            >
+              确定删除
+            </ShadcnButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
