@@ -28,10 +28,10 @@ import {
   Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X,
   History, ArrowRight, CheckCircle2, XCircle, Ban,
   ChevronLeft, ChevronRight, ChevronDown, KeyRound, LogOut,
-  Users, ShieldCheck, Lock, UserRound
+  Users, ShieldCheck, Lock, UserRound, Eye, EyeOff
 } from 'lucide-react';
 
-type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history-transfer' | 'history-share' | 'history-document' | 'users';
+type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history-transfer' | 'history-share' | 'history-document' | 'users' | 'admin-settings';
 
 export default function Home() {
   // ==================== 局域网安全与权限管理状态 ====================
@@ -71,6 +71,18 @@ export default function Home() {
     variant: 'info' | 'error';
     permissions?: { allowUpload: boolean; allowEditDoc: boolean; allowCreateDoc: boolean };
   } | null>(null);
+
+  // ==================== 管理员账户设置状态 ====================
+  const [adminUsername, setAdminUsername] = useState('admin');
+  const [currentAdminPass, setCurrentAdminPass] = useState('');
+  const [newAdminUser, setNewAdminUser] = useState('admin');
+  const [newAdminPass, setNewAdminPass] = useState('');
+  const [confirmAdminPass, setConfirmAdminPass] = useState('');
+  const [adminSettingsStatus, setAdminSettingsStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [adminSettingsError, setAdminSettingsError] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   // 1. 初始化探针会话校验
   const checkSession = async (tokenToCheck?: string) => {
@@ -241,6 +253,11 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setDevicesList(data.devices || []);
+        if (data.adminUsername) {
+          setAdminUsername(data.adminUsername);
+          // 默认把当前的新用户名输入框也填成拉取到的用户名
+          setNewAdminUser(data.adminUsername);
+        }
       }
     } catch (err) {
       console.error('[Admin] 获取网内设备权限表失败:', err);
@@ -333,6 +350,81 @@ export default function Home() {
     }
   };
 
+  // 6.5 超级管理员：在线修改管理员自身账号和密码
+  const handleUpdateAdminSettingsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem('share_home_token') || '';
+    if (!token || role !== 'admin') return;
+
+    if (!currentAdminPass) {
+      setAdminSettingsError('请输入当前管理员密码以验证身份');
+      setAdminSettingsStatus('error');
+      return;
+    }
+
+    if (!newAdminUser.trim()) {
+      setAdminSettingsError('管理员用户名不能为空');
+      setAdminSettingsStatus('error');
+      return;
+    }
+
+    if (newAdminPass && newAdminPass.length < 6) {
+      setAdminSettingsError('新密码长度不能小于 6 位');
+      setAdminSettingsStatus('error');
+      return;
+    }
+
+    if (newAdminPass !== confirmAdminPass) {
+      setAdminSettingsError('两次输入的新密码不一致');
+      setAdminSettingsStatus('error');
+      return;
+    }
+
+    setAdminSettingsStatus('saving');
+    setAdminSettingsError('');
+
+    try {
+      const res = await fetch('/api/auth/admin', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'admin',
+          currentPassword: currentAdminPass,
+          newUsername: newAdminUser.trim(),
+          newPassword: newAdminPass ? newAdminPass : undefined
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAdminSettingsStatus('success');
+        setCurrentAdminPass('');
+        setNewAdminPass('');
+        setConfirmAdminPass('');
+        
+        setNoticeDialog({
+          title: '修改成功',
+          description: '管理员账号已成功更新，系统将在 2 秒后自动安全退出，请用新凭证重新登录。',
+          variant: 'info'
+        });
+        
+        setTimeout(() => {
+          setNoticeDialog(null);
+          setAdminSettingsStatus('idle');
+          handleLogout();
+        }, 2500);
+      } else {
+        setAdminSettingsError(data.error || '修改管理员账户失败');
+        setAdminSettingsStatus('error');
+      }
+    } catch (err: any) {
+      setAdminSettingsError(err.message || '网络连接异常');
+      setAdminSettingsStatus('error');
+    }
+  };
+
   // 7. 登出
   const handleLogout = () => {
     const token = localStorage.getItem('share_home_token') || '';
@@ -385,7 +477,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('transfer');
 
   useEffect(() => {
-    if (activeTab === 'users' && role === 'admin') {
+    if ((activeTab === 'users' || activeTab === 'admin-settings') && role === 'admin') {
       fetchDevicesList();
     }
   }, [activeTab, role]);
@@ -395,7 +487,7 @@ export default function Home() {
 
     const heartbeat = window.setInterval(() => {
       checkSession();
-      if (role === 'admin' && activeTab === 'users') {
+      if (role === 'admin' && (activeTab === 'users' || activeTab === 'admin-settings')) {
         fetchDevicesList();
       }
     }, 30 * 1000);
@@ -1043,17 +1135,31 @@ export default function Home() {
             </button>
 
             {role === 'admin' && (
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
-                  activeTab === 'users'
-                    ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
-                    : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
-                }`}
-              >
-                <Users size={15} className={`flex-shrink-0 ${activeTab === 'users' ? 'text-primary' : 'text-muted-foreground'}`} />
-                <span className="sidebar-nav-text">用户管理</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setActiveTab('users')}
+                  className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
+                    activeTab === 'users'
+                      ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
+                      : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  <Users size={15} className={`flex-shrink-0 ${activeTab === 'users' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className="sidebar-nav-text">用户管理</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('admin-settings')}
+                  className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
+                    activeTab === 'admin-settings'
+                      ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
+                      : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  <ShieldCheck size={15} className={`flex-shrink-0 ${activeTab === 'admin-settings' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className="sidebar-nav-text">管理员设置</span>
+                </button>
+              </>
             )}
           </nav>
         </div>
@@ -1153,6 +1259,7 @@ export default function Home() {
               {activeTab.startsWith('history-') && '操作与协作记录中心'}
               {activeTab === 'settings' && '全局系统配置'}
               {activeTab === 'users' && '用户与权限管理'}
+              {activeTab === 'admin-settings' && '管理员账号设置'}
             </h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
               {activeTab === 'transfer' && '安全、无压缩的局域网零阻碍点对点极速传输'}
@@ -1161,6 +1268,7 @@ export default function Home() {
               {activeTab.startsWith('history-') && '局域网互传历史、共享上传审计以及云协作审计日志'}
               {activeTab === 'settings' && '修改默认存储路径以及查看本端硬件和网络特征'}
               {activeTab === 'users' && '管理普通伙伴登录密钥以及每台设备的共享与文档权限'}
+              {activeTab === 'admin-settings' && '在线更新管理员的用户名以及登录密码，增强系统安全性'}
             </p>
           </div>
 
@@ -1744,6 +1852,188 @@ export default function Home() {
                     </tbody>
                   </table>
                 </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB 5: 管理员专属设置模块 (Premium 极客风去卡片化扁平直行表单设计) */}
+          {activeTab === 'admin-settings' && role === 'admin' && (
+            <div className="flex flex-col gap-6 w-full items-start fade-in mt-2 max-w-2xl animate-in fade-in duration-200">
+              <section className="w-full flex flex-col gap-5">
+                <div className="flex flex-col gap-0.5 border-b border-border/20 pb-3">
+                  <h3 className="text-sm font-bold text-foreground">修改管理员凭证</h3>
+                  <p className="text-[11px] text-muted-foreground">更改系统后台管理员用户名或登录密码，新设置将在提交验证后立即写入磁盘并登出重新登录</p>
+                </div>
+
+                <form onSubmit={handleUpdateAdminSettingsSubmit} className="flex flex-col gap-4 py-2 w-full">
+                  
+                  {/* 行：当前用户名 (只读) */}
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between py-4 border-b border-border/10">
+                    <div className="flex-1 pr-4">
+                      <h4 className="text-xs font-bold text-foreground">当前管理员用户名</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                        系统当前的管理员登录账号，不可在这里修改，由磁盘数据同步获取
+                      </p>
+                    </div>
+                    <div className="w-full md:w-[320px] shrink-0">
+                      <ShadcnInput
+                        type="text"
+                        value={adminUsername}
+                        disabled
+                        className="w-full bg-muted/40 text-muted-foreground border-border/40 cursor-not-allowed font-mono text-xs h-9 rounded-md"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 行：当前密码验证 */}
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between py-4 border-b border-border/10">
+                    <div className="flex-1 pr-4">
+                      <h4 className="text-xs font-bold text-foreground">当前管理员密码 <span className="text-destructive">*</span></h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                        为了保障系统安全，进行任何修改前必须验证当前的管理员密码
+                      </p>
+                    </div>
+                    <div className="relative w-full md:w-[320px] shrink-0 flex items-center">
+                      <ShadcnInput
+                        type={showCurrentPass ? 'text' : 'password'}
+                        value={currentAdminPass}
+                        onChange={(e) => {
+                          setCurrentAdminPass(e.target.value);
+                          setAdminSettingsStatus('idle');
+                          setAdminSettingsError('');
+                        }}
+                        placeholder="请输入当前密码验证身份"
+                        className="w-full border-border/80 pr-10 text-xs h-9 rounded-md"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPass(!showCurrentPass)}
+                        className="absolute right-2 text-muted-foreground hover:text-foreground p-1.5 rounded-md transition-colors"
+                      >
+                        {showCurrentPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 行：新管理员用户名 */}
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between py-4 border-b border-border/10">
+                    <div className="flex-1 pr-4">
+                      <h4 className="text-xs font-bold text-foreground">新管理员用户名 <span className="text-destructive">*</span></h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                        输入新的管理员登录用户名，允许和当前相同以仅修改密码
+                      </p>
+                    </div>
+                    <div className="w-full md:w-[320px] shrink-0">
+                      <ShadcnInput
+                        type="text"
+                        value={newAdminUser}
+                        onChange={(e) => {
+                          setNewAdminUser(e.target.value);
+                          setAdminSettingsStatus('idle');
+                          setAdminSettingsError('');
+                        }}
+                        placeholder="输入新管理员用户名"
+                        className="w-full border-border/80 text-xs font-mono h-9 rounded-md"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* 行：新管理员密码 (选填) */}
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between py-4 border-b border-border/10">
+                    <div className="flex-1 pr-4">
+                      <h4 className="text-xs font-bold text-foreground">新管理员密码</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                        留空表示仅修改用户名；若需修改密码，长度至少 6 位
+                      </p>
+                    </div>
+                    <div className="relative w-full md:w-[320px] shrink-0 flex items-center">
+                      <ShadcnInput
+                        type={showNewPass ? 'text' : 'password'}
+                        value={newAdminPass}
+                        onChange={(e) => {
+                          setNewAdminPass(e.target.value);
+                          setAdminSettingsStatus('idle');
+                          setAdminSettingsError('');
+                        }}
+                        placeholder="输入新密码 (至少 6 位)"
+                        className="w-full border-border/80 pr-10 text-xs h-9 rounded-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPass(!showNewPass)}
+                        className="absolute right-2 text-muted-foreground hover:text-foreground p-1.5 rounded-md transition-colors"
+                      >
+                        {showNewPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 行：确认新密码 */}
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between py-4 border-b border-border/10">
+                    <div className="flex-1 pr-4">
+                      <h4 className="text-xs font-bold text-foreground">确认新密码</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                        再次输入新管理员密码以确保输入无误
+                      </p>
+                    </div>
+                    <div className="relative w-full md:w-[320px] shrink-0 flex items-center">
+                      <ShadcnInput
+                        type={showConfirmPass ? 'text' : 'password'}
+                        value={confirmAdminPass}
+                        onChange={(e) => {
+                          setConfirmAdminPass(e.target.value);
+                          setAdminSettingsStatus('idle');
+                          setAdminSettingsError('');
+                        }}
+                        placeholder="请再次输入新密码"
+                        className="w-full border-border/80 pr-10 text-xs h-9 rounded-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPass(!showConfirmPass)}
+                        className="absolute right-2 text-muted-foreground hover:text-foreground p-1.5 rounded-md transition-colors"
+                      >
+                        {showConfirmPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 状态与控制项 */}
+                  <div className="flex flex-col gap-3 mt-2 w-full">
+                    {adminSettingsStatus === 'error' && adminSettingsError && (
+                      <div className="p-3 bg-destructive/10 border border-destructive/15 text-destructive rounded-lg text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                        <ShieldAlert size={14} />
+                        修改失败：{adminSettingsError}
+                      </div>
+                    )}
+                    {adminSettingsStatus === 'success' && (
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                        <Check size={14} />
+                        凭证修改通过，安全退出登录中...
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-3 mt-2">
+                      <ShadcnButton 
+                        type="submit" 
+                        disabled={adminSettingsStatus === 'saving'}
+                        className="bg-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-700 hover:dark:bg-zinc-200 shadow-sm rounded-lg"
+                      >
+                        {adminSettingsStatus === 'saving' ? (
+                          <>
+                            <RefreshCw size={14} className="animate-spin mr-1.5" />
+                            保存修改中...
+                          </>
+                        ) : (
+                          '同步保存凭证'
+                        )}
+                      </ShadcnButton>
+                    </div>
+                  </div>
+
+                </form>
               </section>
             </div>
           )}
