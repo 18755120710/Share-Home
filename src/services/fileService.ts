@@ -56,6 +56,15 @@ export class FileService {
   }
 
   /**
+   * 运行时存储路径变更自愈：重新同步获取最新的 physical 物理存储绝对路径对齐
+   */
+  public reloadService(): void {
+    const configService = ConfigService.getInstance();
+    this.downloadsDir = configService.getStoragePath();
+    console.log('[FileService] [自愈] 运行时由于存储路径变更，已成功同步刷新物理存储绝对路径！');
+  }
+
+  /**
    * 注册一个发送文件的本地任务，生成临时可下载映射
    */
   public registerUpload(taskId: string, filePath: string, fileName: string, fileSize: number): void {

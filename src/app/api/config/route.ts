@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { ConfigService } from '@/services/configService';
 import { SocketService } from '@/services/socketService';
 import { AuthService } from '@/services/authService';
+import { DocumentService } from '@/services/documentService';
+import { FileService } from '@/services/fileService';
 import fs from 'fs';
 import path from 'path';
 
@@ -219,6 +221,14 @@ export async function POST(request: Request) {
     const ok = configService.updateStoragePath(sanitizedPath);
     
     if (ok) {
+      // 触发运行时内存数据冷载入自愈，瞬间让新路径下的文档和共享文件在前端合流亮起！
+      try {
+        DocumentService.getInstance().reloadService();
+        FileService.getInstance().reloadService();
+      } catch (reloadErr) {
+        console.error('[ConfigAPI] 内存服务重载自愈触发失败:', reloadErr);
+      }
+
       return NextResponse.json({
         success: true,
         requireMigration: false,

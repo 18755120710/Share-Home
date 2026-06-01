@@ -20,6 +20,16 @@ export class DocumentService {
   }
 
   /**
+   * 运行时存储路径变更自愈：清空旧路径元数据缓存，强制对新路径进行物理冷重扫并完成拓扑重建
+   */
+  public reloadService(): void {
+    this.isInitialized = false;
+    this.cacheDocs = [];
+    this.initService();
+    console.log('[DocumentService] [自愈] 运行时由于存储路径变更，已成功触发元数据冷重扫与合流！');
+  }
+
+  /**
    * 获取文档保存的 docs 子物理路径
    */
   private getDocsDir(): string {
