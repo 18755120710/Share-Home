@@ -208,6 +208,50 @@ export async function POST(request: Request) {
         console.log(`[ConfigAPI] 正在执行数据迁移: 从 ${oldAbsPath} 到 ${newAbsPath}`);
         await migrateDirectory(oldAbsPath, newAbsPath);
         console.log(`[ConfigAPI] 数据迁移合并成功！`);
+
+        // ============ 重磅物理修复：绝对路径索引自愈刷新 ============
+        // 1. 修正 shared_files.json 中的旧绝对物理路径
+        const sharedFilesJsonPath = path.join(newAbsPath, 'shared_files.json');
+        if (fs.existsSync(sharedFilesJsonPath)) {
+          try {
+            const raw = fs.readFileSync(sharedFilesJsonPath, 'utf-8');
+            let content = JSON.parse(raw);
+            if (Array.isArray(content)) {
+              content = content.map(file => {
+                if (file.filePath && file.filePath.startsWith(oldAbsPath)) {
+                  file.filePath = file.filePath.replace(oldAbsPath, newAbsPath);
+                }
+                return file;
+              });
+              fs.writeFileSync(sharedFilesJsonPath, JSON.stringify(content, null, 2), 'utf-8');
+              console.log(`[ConfigAPI] 已成功将 shared_files.json 中的物理绝对路径替换为新绝对路径。`);
+            }
+          } catch (e) {
+            console.error('[ConfigAPI] 物理自愈对齐 shared_files.json 路径失败:', e);
+          }
+        }
+
+        // 2. 修正 transfer_tasks.json 中的旧绝对物理路径
+        const transferTasksJsonPath = path.join(newAbsPath, 'transfer_tasks.json');
+        if (fs.existsSync(transferTasksJsonPath)) {
+          try {
+            const raw = fs.readFileSync(transferTasksJsonPath, 'utf-8');
+            let content = JSON.parse(raw);
+            if (typeof content === 'object' && content !== null) {
+              Object.keys(content).forEach(key => {
+                const task = content[key];
+                if (task.filePath && task.filePath.startsWith(oldAbsPath)) {
+                  task.filePath = task.filePath.replace(oldAbsPath, newAbsPath);
+                }
+              });
+              fs.writeFileSync(transferTasksJsonPath, JSON.stringify(content, null, 2), 'utf-8');
+              console.log(`[ConfigAPI] 已成功将 transfer_tasks.json 中的物理绝对路径替换为新绝对路径。`);
+            }
+          } catch (e) {
+            console.error('[ConfigAPI] 物理自愈对齐 transfer_tasks.json 路径失败:', e);
+          }
+        }
+        // ====================================================
       } catch (err: any) {
         console.error('[ConfigAPI] 数据迁移失败:', err);
         return NextResponse.json({
