@@ -153,7 +153,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              {isImage && <FileImage size={16} style={{ color: '#6366f1' }} />}
+              {isImage && <FileImage size={16} style={{ color: 'var(--accent-color)' }} />}
               {isVideo && <FileVideo size={16} style={{ color: '#10b981' }} />}
               {isAudio && <FileAudio size={16} style={{ color: '#ec4899' }} />}
               {!isImage && !isVideo && !isAudio && <File size={16} style={{ color: '#a1a1aa' }} />}
@@ -344,7 +344,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
                     width: '40px',
                     height: '40px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                    background: 'linear-gradient(135deg, var(--accent-color), #1d4ed8)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -743,7 +743,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   const getFileIcon = (fileName: string) => {
     const ext = fileName.toLowerCase().split('.').pop() || '';
     if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
-      return <FileImage size={16} style={{ color: '#6366f1' }} />;
+      return <FileImage size={16} style={{ color: 'var(--accent-color)' }} />;
     }
     if (['mp4', 'webm', 'ogg'].includes(ext)) {
       return <FileVideo size={16} style={{ color: '#10b981' }} />;
@@ -893,7 +893,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
               background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15))',
               border: '1px solid rgba(99,102,241,0.2)'
             }}>
-              <FolderOpen size={16} style={{ color: '#6366f1' }} />
+              <FolderOpen size={16} style={{ color: 'var(--accent-color)' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -903,7 +903,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                   fontWeight: 800,
                   padding: '1px 6px',
                   borderRadius: '6px',
-                  background: 'linear-gradient(90deg, #6366f1, #a855f7)',
+                  background: 'linear-gradient(90deg, var(--accent-color), #1d4ed8)',
                   color: '#ffffff',
                   boxShadow: '0 0 8px rgba(99,102,241,0.3)',
                   textTransform: 'uppercase'
@@ -1142,7 +1142,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
               position: 'relative',
               zIndex: 2
             }}>
-              <UploadCloud size={22} className={allowUpload ? 'cloud-upload-icon-anim' : ''} style={{ color: allowUpload ? '#6366f1' : '#ef4444' }} />
+              <UploadCloud size={22} className={allowUpload ? 'cloud-upload-icon-anim' : ''} style={{ color: allowUpload ? 'var(--accent-color)' : '#ef4444' }} />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative', zIndex: 2 }}>
@@ -1209,7 +1209,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                       left: 0,
                       right: 0,
                       height: `${uploadProgress}%`,
-                      background: 'linear-gradient(180deg, #6366f1, #818cf8)',
+                      background: 'linear-gradient(180deg, var(--accent-color), #3b82f6)',
                       transition: 'height 0.2s linear',
                       width: '100%',
                       zIndex: 1
@@ -1251,7 +1251,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                   }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                       <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>闪传速度</span>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#6366f1', fontFamily: 'var(--font-mono)' }}>{uploadSpeed}</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent-color)', fontFamily: 'var(--font-mono)' }}>{uploadSpeed}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                       <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>预计剩余</span>
@@ -1329,7 +1329,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
             display: 'flex',
             gap: '12px',
           }}>
-            <Info size={14} style={{ color: '#6366f1', flexShrink: 0, marginTop: '2px' }} />
+            <Info size={14} style={{ color: 'var(--accent-color)', flexShrink: 0, marginTop: '2px' }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>去中心化局域网广播</span>
               <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
@@ -1553,7 +1553,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                                     transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                                   }}
                                 >
-                                  <Eye size={12} style={{ color: '#6366f1' }} />
+                                  <Eye size={12} style={{ color: 'var(--accent-color)' }} />
                                 </button>
                               )}
 
@@ -1719,7 +1719,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                                   transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                                 }}
                               >
-                                <Eye size={12} style={{ color: '#6366f1' }} />
+                                <Eye size={12} style={{ color: 'var(--accent-color)' }} />
                               </button>
                             )}
 
@@ -1793,7 +1793,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                     <span> - </span>
                     <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{endIndex}</strong>
                     <span> 项，共 </span>
-                    <strong style={{ color: '#6366f1', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{totalItems}</strong>
+                    <strong style={{ color: 'var(--accent-color)', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{totalItems}</strong>
                     <span> 项</span>
                   </div>
 
@@ -2034,12 +2034,12 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         }
         .view-switch-btn.active {
           background: rgba(255, 255, 255, 0.08) !important;
-          color: #6366f1 !important;
+          color: var(--accent-color) !important;
           box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
         }
         [data-theme='light'] .view-switch-btn.active {
           background: #ffffff !important;
-          color: #6366f1 !important;
+          color: var(--accent-color) !important;
           box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
         }
 
@@ -2062,10 +2062,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           color: var(--text-primary) !important;
         }
         .capsule-tab-btn.active {
-          background: rgba(99, 102, 241, 0.12) !important;
-          border-color: rgba(99, 102, 241, 0.25) !important;
-          color: #818cf8 !important;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08) !important;
+          background: rgba(59, 130, 246, 0.12) !important;
+          border-color: rgba(59, 130, 246, 0.25) !important;
+          color: var(--accent-color) !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08) !important;
         }
 
         [data-theme='light'] .capsule-tab-btn {
@@ -2078,10 +2078,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           color: var(--text-primary) !important;
         }
         [data-theme='light'] .capsule-tab-btn.active {
-          background: #6366f1 !important;
-          border-color: #6366f1 !important;
+          background: var(--accent-color) !important;
+          border-color: var(--accent-color) !important;
           color: #ffffff !important;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.18) !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.18) !important;
         }
 
         .hub-sort-select {
@@ -2137,12 +2137,12 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         }
 
         .drop-zone-cabin.drag-over {
-          border-color: #6366f1 !important;
-          box-shadow: 0 0 25px rgba(99, 102, 241, 0.25) !important;
-          background: rgba(99, 102, 241, 0.03) !important;
+          border-color: var(--accent-color) !important;
+          box-shadow: 0 0 25px rgba(59, 130, 246, 0.25) !important;
+          background: rgba(59, 130, 246, 0.03) !important;
         }
         .drop-zone-cabin.drag-over .drop-zone-glow-aura {
-          background: radial-gradient(circle at center, rgba(99,102,241,0.08) 0%, transparent 70%);
+          background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%);
         }
 
         .drop-zone-cabin.drag-over .cloud-upload-icon-anim {
@@ -2150,13 +2150,13 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         }
 
         .cabin-select-btn {
-          background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+          background: linear-gradient(135deg, var(--accent-color), #2563eb) !important;
           color: #ffffff !important;
-          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2) !important;
+          box-shadow: 0 4px 14px rgba(59, 130, 246, 0.2) !important;
         }
         .cabin-select-btn:hover {
           filter: brightness(1.15) !important;
-          box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3) !important;
+          box-shadow: 0 6px 18px rgba(59, 130, 246, 0.3) !important;
           transform: translateY(-1px);
         }
 
@@ -2451,24 +2451,24 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         }
 
         .preview-action-pill {
-          background: rgba(99, 102, 241, 0.1) !important;
-          border: 1px solid rgba(99, 102, 241, 0.2) !important;
-          color: #818cf8 !important;
+          background: rgba(59, 130, 246, 0.1) !important;
+          border: 1px solid rgba(59, 130, 246, 0.2) !important;
+          color: var(--accent-color) !important;
         }
         .preview-action-pill:hover {
-          background: rgba(99, 102, 241, 0.16) !important;
+          background: rgba(59, 130, 246, 0.16) !important;
           color: #ffffff !important;
-          box-shadow: 0 0 10px rgba(99, 102, 241, 0.2) !important;
+          box-shadow: 0 0 10px rgba(59, 130, 246, 0.2) !important;
           transform: translateY(-0.5px);
         }
         [data-theme='light'] .preview-action-pill {
-          background: #6366f1 !important;
-          border-color: #6366f1 !important;
+          background: var(--accent-color) !important;
+          border-color: var(--accent-color) !important;
           color: #ffffff !important;
         }
         [data-theme='light'] .preview-action-pill:hover {
           filter: brightness(1.08) !important;
-          box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2) !important;
+          box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2) !important;
         }
 
         .preview-close-btn-cinema {
@@ -2545,8 +2545,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         }
 
         .audio-disc-neon-container {
-          background: rgba(99, 102, 241, 0.03) !important;
-          border: 1px solid rgba(99, 102, 241, 0.1) !important;
+          background: rgba(59, 130, 246, 0.03) !important;
+          border: 1px solid rgba(59, 130, 246, 0.1) !important;
         }
         .audio-disc-neon-pulse {
           position: absolute;
@@ -2555,7 +2555,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           right: -2px;
           bottom: -2px;
           border-radius: 50%;
-          background: conic-gradient(from 180deg, #6366f1, #a855f7, #3b82f6, #6366f1);
+          background: conic-gradient(from 180deg, var(--accent-color), #3b82f6, #60a5fa, var(--accent-color));
           opacity: 0.15;
           filter: blur(12px);
           animation: spin 8s linear infinite;
@@ -2579,14 +2579,14 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         }
 
         .preview-action-btn-primary {
-          background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+          background: linear-gradient(135deg, var(--accent-color), #2563eb) !important;
           color: #ffffff !important;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
         }
         .preview-action-btn-primary:hover {
           filter: brightness(1.1) !important;
           transform: translateY(-0.5px);
-          box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3) !important;
+          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3) !important;
         }
 
         /* 预览控制条 */
@@ -2744,10 +2744,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           transform: scale(1.05);
         }
         .pagination-num-btn.active {
-          background: linear-gradient(135deg, #6366f1, #818cf8) !important;
-          border-color: #6366f1 !important;
+          background: linear-gradient(135deg, var(--accent-color), #3b82f6) !important;
+          border-color: var(--accent-color) !important;
           color: #ffffff !important;
-          box-shadow: 0 0 10px rgba(99, 102, 241, 0.3) !important;
+          box-shadow: 0 0 10px rgba(59, 130, 246, 0.3) !important;
           transform: scale(1.05);
         }
 
@@ -2761,10 +2761,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           color: var(--text-primary) !important;
         }
         [data-theme='light'] .pagination-num-btn.active {
-          background: #6366f1 !important;
-          border-color: #6366f1 !important;
+          background: var(--accent-color) !important;
+          border-color: var(--accent-color) !important;
           color: #ffffff !important;
-          box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2) !important;
+          box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2) !important;
         }
 
         .pagination-size-select {
