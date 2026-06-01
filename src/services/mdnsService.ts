@@ -13,6 +13,9 @@ export class MdnsService {
   
   private selfId: string = '';
   private localIp: string = '';
+  private selfNickname: string = '超级管理员';
+  private selfAvatar: string = 'avatar-1';
+  private selfWebPort: number = 3000;
 
   private constructor() {
     this.localIp = this.detectLocalIp();
@@ -31,6 +34,10 @@ export class MdnsService {
    * 启动本机的 mDNS 服务广播与局域网节点发现
    */
   public start(nickname: string, avatar: string, webPort: number): void {
+    this.selfNickname = nickname;
+    this.selfAvatar = avatar;
+    this.selfWebPort = webPort;
+
     if (this.bonjour) {
       // 已经启动，则更新广播元数据
       this.updateBroadcast(nickname, avatar);
@@ -103,6 +110,9 @@ export class MdnsService {
    * 更新广播的昵称和头像元数据
    */
   public updateBroadcast(nickname: string, avatar: string): void {
+    this.selfNickname = nickname;
+    this.selfAvatar = avatar;
+
     if (this.publishedService) {
       console.log(`[mDNS] 正在更新本机广播元数据: ${nickname}`);
       // bonjour-service 允许动态更新 TXT 记录
@@ -184,7 +194,28 @@ export class MdnsService {
    * 获取所有在线设备列表
    */
   public getPeers(): Peer[] {
-    return Array.from(this.peers.values());
+    const list = Array.from(this.peers.values());
+
+    let hostOs = 'Windows';
+    const platform = os.platform();
+    if (platform === 'darwin') hostOs = 'macOS';
+    else if (platform === 'win32') hostOs = 'Windows';
+    else if (platform === 'linux') hostOs = 'Linux';
+
+    // 把主机自身作为一个常规 peer 节点拼装进列表在后端 API 中返回，让局域网其他客户端可以通过 API 拉取并正确渲染显示主机在线！
+    const selfPeer: Peer = {
+      id: this.selfId,
+      nickname: this.selfNickname,
+      avatar: this.selfAvatar,
+      ip: this.localIp,
+      port: this.selfWebPort,
+      lastSeen: Date.now(),
+      isSelf: false, // 对于外部访问而言，本机自然不是“自己”
+      os: hostOs
+    };
+
+    list.push(selfPeer);
+    return list;
   }
 
   public getSelfId(): string {
