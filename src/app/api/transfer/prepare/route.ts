@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
     const fileSize = parseInt(searchParams.get('fileSize') || '0', 10);
     const isPublic = searchParams.get('isPublic') === 'true';
     const deviceInfo = searchParams.get('deviceInfo') || '未知设备';
+    const boxId = searchParams.get('boxId') || undefined;
 
     if (!taskId) {
       return NextResponse.json({ success: false, error: '缺少 taskId' }, { status: 400 });
@@ -157,8 +158,8 @@ export async function POST(request: NextRequest) {
       const actualName = path.basename(finalPath);
       
       if (isPublic) {
-        // 向 FileService 注册为公共共享文件，记录设备平台信息并持久化
-        fileService.registerSharedFile(taskId, actualName, fileSize, finalPath, deviceInfo);
+        // 向 FileService 注册为公共共享文件，记录设备平台信息并持久化，支持盒子收纳
+        fileService.registerSharedFile(taskId, actualName, fileSize, finalPath, deviceInfo, boxId);
       } else {
         // 向本地 FileService 注册为允许他人下载的实体
         fileService.registerUpload(taskId, finalPath, actualName, fileSize);
