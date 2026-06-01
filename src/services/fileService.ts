@@ -19,6 +19,15 @@ export interface SharedFile {
   uploadedAt: number;
   deviceInfo: string;
   filePath: string;
+  boxId?: string; // 新增：所属收纳盒ID
+}
+
+export interface SharedBox {
+  id: string;
+  name: string;
+  description?: string;
+  color: string; // 渐变色样式
+  createdAt: number;
 }
 
 export class FileService {
@@ -379,7 +388,7 @@ export class FileService {
   /**
    * 注册一个公共共享文件
    */
-  public registerSharedFile(id: string, fileName: string, fileSize: number, filePath: string, deviceInfo: string): void {
+  public registerSharedFile(id: string, fileName: string, fileSize: number, filePath: string, deviceInfo: string, boxId?: string): void {
     // 1. 先安全读取元数据索引文件，将当前新文件提前登记，解决物理合并落盘瞬时与 getSharedFiles() 产生的 Race Condition
     let indexedFiles: SharedFile[] = [];
     const metaPath = this.getSharedFilesPath();
@@ -398,7 +407,8 @@ export class FileService {
       fileSize,
       uploadedAt: Date.now(),
       deviceInfo,
-      filePath
+      filePath,
+      boxId: boxId || undefined
     };
 
     // 剔除相同 id
@@ -600,5 +610,149 @@ export class FileService {
       this.writeTransferTasks(tasks);
       console.log(`[FileService] 已清空客户端 ${clientId} 所有完结的物理互传任务记录`);
     }
+  }
+
+  /**
+   * 获取共享收纳盒元数据文件路径
+   */
+  private getSharedBoxesPath(): string {
+    const storageDir = ConfigService.getInstance().getStoragePath();
+    return path.join(storageDir, 'shared_boxes.json');
+  }
+
+  /**
+   * 获取所有注册的公共共享收纳盒列表
+   */
+  public getSharedBoxes(): SharedBox[] {
+    const filePath = this.getSharedBoxesPath();
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+    try {
+      const data = fs.readFileSync(filePath, 'utf-8');
+      return JSON.parse(data);
+    } catch (err) {
+      console.error('[FileService] 读取收纳盒元数据失败:', err);
+      return [];
+    }
+  }
+
+  /**
+   * 将收纳盒列表元数据写入 JSON
+   */
+  private writeSharedBoxesMetadata(boxes: SharedBox[]): void {
+    const filePath = this.getSharedBoxesPath();
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(boxes, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('[FileService] 写入收纳盒元数据失败:', err);
+    }
+  }
+
+  /**
+   * 创建一个全新的共享收纳盒
+   */
+  public createSharedBox(name: string, description?: string, color?: string): SharedBox {
+    const boxes = this.getSharedBoxes();
+    const boxId = `box_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    // 默认高质感炫彩渐变色预设 (HSL Tailormade Rich Aesthetics Gradients)
+    const defaultGradients = [
+      'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)', // 熔岩橙
+      'linear-gradient(135deg, #7F00FF 0%, #E100FF 100%)', // 霓虹紫
+      'linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)', // 极光蓝
+      'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', // 翡翠绿
+      'linear-gradient(135deg, #f12711 0%, #f5af19 100%)'  // 日落金
+    ];
+    
+    const selectedColor = color || defaultGradients[boxes.length % defaultGradients.length];
+
+    const newBox: SharedBox = {
+      id: boxId,
+      name,
+      description,
+      color: selectedColor,
+      createdAt: Date.now()
+    };
+
+    boxes.push(newBox);
+    this.writeSharedBoxesMetadata(boxes);
+    
+    console.log(`[FileService] 收纳盒已成功创建并保存: ${name} (${boxId})`);
+
+    // 广播最新的收纳盒列表给局域网所有在线伙伴
+    SocketService.getInstance().broadcast('shared-boxes:update', boxes);
+    
+    return newBox;
+  }
+
+  /**
+   * 物理删除某个共享收纳盒 (非破坏性：仅将属于它的文件移回大厅未分类，防止物理文件丢失)
+   */
+  public deleteSharedBox(boxId: string): boolean {
+    const boxes = this.getSharedBoxes();
+    const filteredBoxes = boxes.filter(b => b.id !== boxId);
+    if (boxes.length === filteredBoxes.length) {
+      return false;
+    }
+
+    // 1. 写回收纳盒元数据
+    this.writeSharedBoxesMetadata(filteredBoxes);
+
+    // 2. 清洗文件元数据：将该盒子下的所有文件安全释放（重置 boxId 为 undefined）
+    const files = this.getSharedFiles();
+    let hasChanges = false;
+    const updatedFiles = files.map(file => {
+      if (file.boxId === boxId) {
+        hasChanges = true;
+        const { boxId: _, ...rest } = file; // 剔除 boxId
+        return rest;
+      }
+      return file;
+    });
+
+    if (hasChanges) {
+      this.writeSharedFilesMetadata(updatedFiles);
+      // 广播更新文件列表
+      SocketService.getInstance().broadcast('shared-files:update', updatedFiles.sort((a, b) => b.uploadedAt - a.uploadedAt));
+    }
+
+    console.log(`[FileService] 收纳盒 ${boxId} 已被成功删除，受影响文件已安全释放回未分类大厅`);
+
+    // 3. 广播更新收纳盒列表
+    SocketService.getInstance().broadcast('shared-boxes:update', filteredBoxes);
+    return true;
+  }
+
+  /**
+   * 将指定的一个或多个共享文件转移到特定收纳盒中 (移出为 null)
+   */
+  public moveFilesToBox(fileIds: string[], boxId: string | null): boolean {
+    const files = this.getSharedFiles();
+    let hasChanges = false;
+    
+    const updatedFiles = files.map(file => {
+      if (fileIds.includes(file.id)) {
+        hasChanges = true;
+        if (boxId) {
+          return { ...file, boxId };
+        } else {
+          const { boxId: _, ...rest } = file;
+          return rest;
+        }
+      }
+      return file;
+    });
+
+    if (hasChanges) {
+      this.writeSharedFilesMetadata(updatedFiles);
+      const sorted = updatedFiles.sort((a, b) => b.uploadedAt - a.uploadedAt);
+      console.log(`[FileService] 成功将 ${fileIds.length} 个文件转移到收纳盒: ${boxId || '未分类大厅'}`);
+      // 广播更新
+      SocketService.getInstance().broadcast('shared-files:update', sorted);
+      return true;
+    }
+    
+    return false;
   }
 }
