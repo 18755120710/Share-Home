@@ -2955,9 +2955,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
 
       {/* 共享文档/文件夹物理删除确认组件库弹窗 */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent className="rounded-xl border-border/70 bg-popover p-0 sm:max-w-[420px]" showCloseButton={true}>
-          <DialogHeader className="gap-0 border-b border-border/50 px-5 py-4">
-            <div className="flex items-center gap-3">
+        <DialogContent className="rounded-xl border-border/70 bg-popover sm:max-w-[420px]" showCloseButton={true}>
+          <DialogHeader>
+            <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-destructive/20 bg-destructive/10 text-destructive">
                 <ShieldAlert size={16} />
               </div>
@@ -2965,14 +2965,14 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
                 <DialogTitle className="text-sm font-bold tracking-tight text-foreground">
                   确认删除
                 </DialogTitle>
-                <DialogDescription className="mt-1 text-xs leading-5 text-muted-foreground">
+                <DialogDescription className="mt-2 text-xs leading-5 text-muted-foreground">
                   {deleteConfirmMsg}
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          <DialogFooter className="border-t border-border/50 px-5 py-4 flex gap-2 justify-end">
+          <DialogFooter className="flex gap-2 justify-end mt-2">
             <ShadcnButton 
               variant="outline" 
               onClick={() => setIsDeleteModalOpen(false)} 
