@@ -795,7 +795,6 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
       const currentBoxId = (selectedBoxId && selectedBoxId !== 'all' && selectedBoxId !== 'lobby') ? selectedBoxId : undefined;
       const success = await uploadPublicFile(file, deviceInfo, (progress) => {
         setUploadProgress(progress);
-      }, currentBoxId);
         
         // 测速核心算法
         const now = Date.now();
@@ -815,7 +814,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
             setRemainingTime('即将完成');
           }
         }
-      });
+      }, currentBoxId);
 
       if (success) {
         setStatus('success');
