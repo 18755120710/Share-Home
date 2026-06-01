@@ -84,6 +84,19 @@ export default function Home() {
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
+  // ==================== 管理员 2FA 两步验证状态 ====================
+  const [admin2faEnabled, setAdmin2faEnabled] = useState(false);
+  const [temp2faSecret, setTemp2faSecret] = useState('');
+  const [temp2faQrUri, setTemp2faQrUri] = useState('');
+  const [totpVerifyCode, setTotpVerifyCode] = useState('');
+  const [totpLoginCode, setTotpLoginCode] = useState('');
+  const [totp2faStatus, setTotp2faStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [totp2faError, setTotp2faError] = useState('');
+  const [use2faLogin, setUse2faLogin] = useState(false);
+  const [disable2faPass, setDisable2faPass] = useState('');
+  const [showDisableModal, setShowDisableModal] = useState(false);
+  const [is2faBindingActive, setIs2faBindingActive] = useState(false);
+
   // 1. 初始化探针会话校验
   const checkSession = async (tokenToCheck?: string) => {
     const activeToken = tokenToCheck || localStorage.getItem('share_home_token') || '';
@@ -94,6 +107,14 @@ export default function Home() {
       });
       const data = await res.json();
       
+      if (data.admin2faEnabled !== undefined) {
+        setAdmin2faEnabled(data.admin2faEnabled);
+        // 如果是首次加载页面，根据是否启用了 2FA 来初始化 use2faLogin 选项
+        if (authStatus === 'loading') {
+          setUse2faLogin(data.admin2faEnabled);
+        }
+      }
+
       if (data.success) {
         setRole(data.role);
         setMyClientId(data.clientId);
@@ -188,12 +209,21 @@ export default function Home() {
 
     try {
       if (loginTab === 'admin') {
-        if (!loginUser || !loginPass) {
-          setLoginError('管理员账号和密码不能为空');
-          setIsLogining(false);
-          return;
+        if (use2faLogin) {
+          if (!totpLoginCode || totpLoginCode.trim().length !== 6) {
+            setLoginError('请输入手机 App 上生成的 6 位 2FA 两步验证码');
+            setIsLogining(false);
+            return;
+          }
+          await handleLoginExecute('', '', 'admin', undefined, totpLoginCode.trim());
+        } else {
+          if (!loginUser || !loginPass) {
+            setLoginError('管理员账号和密码不能为空');
+            setIsLogining(false);
+            return;
+          }
+          await handleLoginExecute(loginUser, loginPass, 'admin');
         }
-        await handleLoginExecute(loginUser, loginPass, 'admin');
       } else {
         if (!loginGuestPass) {
           setLoginError('伙伴通行密钥不能为空');
@@ -208,10 +238,10 @@ export default function Home() {
     }
   };
 
-  const handleLoginExecute = async (user: string, pass: string, targetRole: 'admin' | 'guest', guestPassValue?: string) => {
+  const handleLoginExecute = async (user: string, pass: string, targetRole: 'admin' | 'guest', guestPassValue?: string, totpCodeValue?: string) => {
     try {
       const payload = targetRole === 'admin' 
-        ? { username: user, password: pass }
+        ? (totpCodeValue ? { totpCode: totpCodeValue } : { username: user, password: pass })
         : { guestPassword: guestPassValue };
 
       const res = await fetch('/api/auth/login', {
@@ -230,9 +260,10 @@ export default function Home() {
         setLoginUser('');
         setLoginPass('');
         setLoginGuestPass('');
+        setTotpLoginCode('');
         setIsLogining(false);
       } else {
-        setLoginError(data.error || '认证失败，请重新检查密码或通用密钥。');
+        setLoginError(data.error || '认证失败，请重新检查密码、验证码或通用密钥。');
         setIsLogining(false);
       }
     } catch (e: any) {
@@ -422,6 +453,157 @@ export default function Home() {
     } catch (err: any) {
       setAdminSettingsError(err.message || '网络连接异常');
       setAdminSettingsStatus('error');
+    }
+  };
+
+  // ==================== 管理员 2FA 两步验证交互逻辑 ====================
+
+  /**
+   * 点击开启 Switch 时：生成并展示临时 2FA 绑定信息
+   */
+  const handleGet2FaDetails = async () => {
+    const token = localStorage.getItem('share_home_token') || '';
+    if (!token || role !== 'admin') return;
+
+    setTotp2faStatus('loading');
+    setTotp2faError('');
+
+    try {
+      const res = await fetch('/api/auth/admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'get_2fa' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTemp2faSecret(data.tempSecret);
+        // 使用在线高可用服务渲染二维码链接
+        setTemp2faQrUri(`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data.otpauthUri)}&size=180x180`);
+        setIs2faBindingActive(true);
+        setTotp2faStatus('idle');
+      } else {
+        setTotp2faError(data.error || '获取两步验证绑定秘钥失败');
+        setTotp2faStatus('error');
+      }
+    } catch (err: any) {
+      setTotp2faError(err.message || '网络连接异常');
+      setTotp2faStatus('error');
+    }
+  };
+
+  /**
+   * 输入首个 6 位 TOTP 并进行确认绑定
+   */
+  const handleVerifyAndEnable2Fa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem('share_home_token') || '';
+    if (!token || role !== 'admin') return;
+
+    if (!totpVerifyCode || totpVerifyCode.trim().length !== 6) {
+      setTotp2faError('请输入 6 位动态验证码确认绑定');
+      setTotp2faStatus('error');
+      return;
+    }
+
+    setTotp2faStatus('loading');
+    setTotp2faError('');
+
+    try {
+      const res = await fetch('/api/auth/admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'verify_and_enable_2fa',
+          tempSecret: temp2faSecret,
+          code: totpVerifyCode.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTotp2faStatus('success');
+        setAdmin2faEnabled(true);
+        setIs2faBindingActive(false);
+        setTotpVerifyCode('');
+        setTemp2faSecret('');
+        setTemp2faQrUri('');
+        
+        setNoticeDialog({
+          title: '两步验证绑定成功',
+          description: '管理员专属 2FA 两步验证已正式开启！下次登录时，您可以免输入账号密码，仅凭手机接收器上的验证码即可极速安全登录。',
+          variant: 'info'
+        });
+        setTimeout(() => {
+          setNoticeDialog(null);
+          setTotp2faStatus('idle');
+        }, 3000);
+      } else {
+        setTotp2faError(data.error || '绑定两步验证失败');
+        setTotp2faStatus('error');
+      }
+    } catch (err: any) {
+      setTotp2faError(err.message || '网络连接异常');
+      setTotp2faStatus('error');
+    }
+  };
+
+  /**
+   * 关闭 2FA (校验当前密码)
+   */
+  const handleDisable2Fa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem('share_home_token') || '';
+    if (!token || role !== 'admin') return;
+
+    if (!disable2faPass) {
+      setTotp2faError('验证密码不能为空');
+      setTotp2faStatus('error');
+      return;
+    }
+
+    setTotp2faStatus('loading');
+    setTotp2faError('');
+
+    try {
+      const res = await fetch('/api/auth/admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'disable_2fa',
+          currentPassword: disable2faPass
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTotp2faStatus('success');
+        setAdmin2faEnabled(false);
+        setShowDisableModal(false);
+        setDisable2faPass('');
+        
+        setNoticeDialog({
+          title: '两步验证已成功关闭',
+          description: '您的 2FA 安全手机绑定已成功解除，登录时将恢复为常规账号密码验证。',
+          variant: 'info'
+        });
+        setTimeout(() => {
+          setNoticeDialog(null);
+          setTotp2faStatus('idle');
+        }, 3000);
+      } else {
+        setTotp2faError(data.error || '两步验证解绑失败');
+        setTotp2faStatus('error');
+      }
+    } catch (err: any) {
+      setTotp2faError(err.message || '网络连接异常');
+      setTotp2faStatus('error');
     }
   };
 
@@ -918,29 +1100,72 @@ export default function Home() {
                 </div>
 
                 {loginTab === 'admin' ? (
-                  <>
-                    <label className="flex flex-col gap-2 text-xs font-semibold">
-                      管理员账号
-                      <ShadcnInput
-                        value={loginUser}
-                        onChange={(e) => setLoginUser(e.target.value)}
-                        autoComplete="username"
-                        className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
-                        placeholder="admin"
-                      />
-                    </label>
-                    <label className="flex flex-col gap-2 text-xs font-semibold">
-                      管理员密码
-                      <ShadcnInput
-                        type="password"
-                        value={loginPass}
-                        onChange={(e) => setLoginPass(e.target.value)}
-                        autoComplete="current-password"
-                        className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
-                        placeholder="输入管理员密码"
-                      />
-                    </label>
-                  </>
+                  use2faLogin ? (
+                    <>
+                      <label className="flex flex-col gap-2 text-xs font-semibold animate-in fade-in duration-200">
+                        两步验证动态码 (2FA)
+                        <ShadcnInput
+                          type="text"
+                          value={totpLoginCode}
+                          onChange={(e) => setTotpLoginCode(e.target.value)}
+                          maxLength={6}
+                          className="h-11 rounded-lg border-border/70 bg-background px-3 text-center text-lg font-mono tracking-widest"
+                          placeholder="000000"
+                          required
+                        />
+                      </label>
+                      <div className="flex justify-end mt-1 animate-in fade-in duration-200">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUse2faLogin(false);
+                            setLoginError('');
+                          }}
+                          className="text-[11px] text-primary hover:underline font-semibold"
+                        >
+                          切换回常规密码登录
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <label className="flex flex-col gap-2 text-xs font-semibold animate-in fade-in duration-200">
+                        管理员账号
+                        <ShadcnInput
+                          value={loginUser}
+                          onChange={(e) => setLoginUser(e.target.value)}
+                          autoComplete="username"
+                          className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
+                          placeholder="admin"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-xs font-semibold animate-in fade-in duration-200">
+                        管理员密码
+                        <ShadcnInput
+                          type="password"
+                          value={loginPass}
+                          onChange={(e) => setLoginPass(e.target.value)}
+                          autoComplete="current-password"
+                          className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
+                          placeholder="输入管理员密码"
+                        />
+                      </label>
+                      {admin2faEnabled && (
+                        <div className="flex justify-end mt-1 animate-in fade-in duration-200">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUse2faLogin(true);
+                              setLoginError('');
+                            }}
+                            className="text-[11px] text-primary hover:underline font-semibold"
+                          >
+                            使用 2FA 动态码极速登录
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )
                 ) : (
                   <label className="flex flex-col gap-2 text-xs font-semibold">
                     伙伴通用密钥
@@ -2035,6 +2260,217 @@ export default function Home() {
 
                 </form>
               </section>
+
+              {/* 二级面板：双因子两步验证 (2FA / TOTP) 极客安全中心 */}
+              <section className="w-full flex flex-col gap-5 mt-6 border-t border-border/20 pt-6 animate-in fade-in duration-200">
+                <div className="flex flex-col gap-0.5 border-b border-border/20 pb-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-primary" />
+                    双因子安全两步验证 (2FA)
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">通过手机两步验证接收器（如 Google Authenticator）为管理员账号加锁，开启后支持动态验证码快捷免密登录</p>
+                </div>
+
+                <div className="flex flex-col gap-4 py-2 w-full">
+                  {/* 行：2FA 状态 Switch */}
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between py-4 border-b border-border/10">
+                    <div className="flex-1 pr-4">
+                      <h4 className="text-xs font-bold text-foreground">两步验证 (2FA) 状态</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                        {admin2faEnabled 
+                          ? '当前已开启两步验证，管理员登录时可凭动态 2FA 码进行快捷免密码安全登录' 
+                          : '当前未开启两步验证。开启后将为您的后台管理数据提供工业级安全防护'
+                        }
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      {admin2faEnabled ? (
+                        <ShadcnButton
+                          type="button"
+                          onClick={() => {
+                            setTotp2faError('');
+                            setTotp2faStatus('idle');
+                            setDisable2faPass('');
+                            setShowDisableModal(true);
+                          }}
+                          className="bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-white rounded-lg h-9 text-xs transition-all shadow-sm"
+                        >
+                          关闭两步验证 (2FA)
+                        </ShadcnButton>
+                      ) : (
+                        !is2faBindingActive && (
+                          <ShadcnButton
+                            type="button"
+                            onClick={handleGet2FaDetails}
+                            disabled={totp2faStatus === 'loading'}
+                            className="bg-primary text-primary-foreground hover:bg-primary/95 rounded-lg h-9 text-xs shadow-sm font-semibold transition-all"
+                          >
+                            {totp2faStatus === 'loading' ? '正在生成...' : '立即开启两步验证'}
+                          </ShadcnButton>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 展开：2FA 绑定向导卡片 */}
+                  {is2faBindingActive && !admin2faEnabled && (
+                    <div className="p-5 rounded-xl border border-border/60 bg-muted/20 animate-in slide-in-from-top duration-300 flex flex-col gap-5 w-full">
+                      <div className="flex items-start justify-between border-b border-border/10 pb-3">
+                        <h4 className="text-xs font-bold text-foreground">绑定两步验证接收器</h4>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIs2faBindingActive(false);
+                            setTemp2faSecret('');
+                            setTemp2faQrUri('');
+                            setTotpVerifyCode('');
+                          }}
+                          className="text-muted-foreground hover:text-foreground text-xs font-semibold"
+                        >
+                          取消
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col md:flex-row gap-6 items-center md:items-start justify-between">
+                        <div className="flex-1 flex flex-col gap-3">
+                          <span className="text-[11px] text-muted-foreground leading-relaxed">
+                            <strong>步骤 1</strong>：使用手机端 2FA 接收器 App（如 Google Authenticator、Microsoft Authenticator 等）扫描右侧二维码，或手动输入秘钥进行配对绑定。
+                          </span>
+                          
+                          {/* 物理秘钥文本 */}
+                          <div className="flex flex-col gap-1.5 bg-muted/40 p-3 rounded-lg border border-border/30">
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold">2FA 手动绑定秘钥 (点击可选中复制)</span>
+                            <span className="text-xs font-mono font-bold tracking-wider text-foreground break-all select-all">
+                              {temp2faSecret}
+                            </span>
+                          </div>
+
+                          <span className="text-[11px] text-muted-foreground leading-relaxed mt-1">
+                            <strong>步骤 2</strong>：绑定完成后，在下方输入手机 App 上产生的 6 位数字验证码进行双向确认，校验通过后即可正式激活。
+                          </span>
+                        </div>
+
+                        {/* 二维码显示区 */}
+                        {temp2faQrUri && (
+                          <div className="w-[180px] h-[180px] bg-white p-2 rounded-lg border border-border/40 shrink-0 flex items-center justify-center shadow-md animate-in zoom-in duration-300">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={temp2faQrUri} alt="2FA QR Code" className="w-full h-full object-contain" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 二次绑定确认表单 */}
+                      <form onSubmit={handleVerifyAndEnable2Fa} className="flex gap-3 mt-2 border-t border-border/10 pt-4">
+                        <div className="flex-1">
+                          <ShadcnInput
+                            type="text"
+                            value={totpVerifyCode}
+                            onChange={(e) => {
+                              setTotpVerifyCode(e.target.value);
+                              setTotp2faStatus('idle');
+                              setTotp2faError('');
+                            }}
+                            placeholder="输入 6 位动态验证码确认"
+                            maxLength={6}
+                            className="w-full border-border/80 text-xs font-mono text-center tracking-widest h-9 rounded-lg"
+                            required
+                          />
+                        </div>
+                        <ShadcnButton
+                          type="submit"
+                          disabled={totp2faStatus === 'loading'}
+                          className="bg-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-700 hover:dark:bg-zinc-200 px-4 rounded-lg h-9 text-xs shrink-0 shadow-sm"
+                        >
+                          {totp2faStatus === 'loading' ? '正在验证...' : '确认并激活'}
+                        </ShadcnButton>
+                      </form>
+
+                      {totp2faStatus === 'error' && totp2faError && (
+                        <div className="p-2.5 bg-destructive/10 border border-destructive/15 text-destructive rounded-lg text-[11px] flex items-center gap-2 animate-in fade-in duration-200">
+                          <ShieldAlert size={12} />
+                          绑定校验失败：{totp2faError}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 2FA 状态显示 */}
+                  {totp2faStatus === 'success' && (
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs flex items-center gap-2 animate-in fade-in duration-200 mt-2">
+                      <Check size={14} />
+                      两步验证操作已圆满成功！
+                    </div>
+                  )}
+                  {totp2faStatus === 'error' && totp2faError && !is2faBindingActive && !showDisableModal && (
+                    <div className="p-3 bg-destructive/10 border border-destructive/15 text-destructive rounded-lg text-xs flex items-center gap-2 animate-in fade-in duration-200 mt-2">
+                      <ShieldAlert size={14} />
+                      两步验证操作失败：{totp2faError}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* 模态弹窗：关闭 2FA 时的静态密码校验 Dialog */}
+              {showDisableModal && (
+                <div className="fixed top-0 left-0 right-0 bottom-0 z-[10000] bg-background/80 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-200 p-4">
+                  <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg animate-in zoom-in duration-200 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                      <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                        <Lock size={15} className="text-destructive" />
+                        安全确证：关闭两步验证
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">
+                        为了您的系统安全，注销手机 2FA 绑定前，必须验证当前管理员登录密码。
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleDisable2Fa} className="flex flex-col gap-3 mt-2">
+                      <ShadcnInput
+                        type="password"
+                        value={disable2faPass}
+                        onChange={(e) => {
+                          setDisable2faPass(e.target.value);
+                          setTotp2faStatus('idle');
+                          setTotp2faError('');
+                        }}
+                        placeholder="输入当前管理员密码"
+                        className="w-full border-border/80 text-xs h-9 rounded-lg px-3"
+                        required
+                      />
+
+                      {totp2faStatus === 'error' && totp2faError && (
+                        <div className="p-2.5 bg-destructive/10 border border-destructive/15 text-destructive rounded-lg text-[11px] flex items-center gap-2 animate-in fade-in duration-200">
+                          <ShieldAlert size={12} />
+                          校验失败：{totp2faError}
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-2.5 mt-2 border-t border-border/10 pt-3">
+                        <ShadcnButton
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowDisableModal(false);
+                            setDisable2faPass('');
+                            setTotp2faStatus('idle');
+                            setTotp2faError('');
+                          }}
+                          className="h-8 text-[11px] rounded-lg border-border"
+                        >
+                          取消
+                        </ShadcnButton>
+                        <ShadcnButton
+                          type="submit"
+                          disabled={totp2faStatus === 'loading'}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 text-[11px] rounded-lg px-3"
+                        >
+                          {totp2faStatus === 'loading' ? '正在确证...' : '确认注销绑定'}
+                        </ShadcnButton>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
