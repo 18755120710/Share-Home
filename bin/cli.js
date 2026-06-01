@@ -192,7 +192,10 @@ const readline = require('readline');
 
 async function main() {
   // 0. 宿主首次启动管理员密码拦截配置
-  const confDir = path.join(projectRoot, 'conf');
+  const os = require('os');
+  const homeDir = os.homedir();
+  const appDataDir = path.join(homeDir, '.share-home');
+  const confDir = path.join(appDataDir, 'conf');
   const authFilePath = path.join(confDir, 'auth.json');
   if (!fs.existsSync(authFilePath)) {
     try {
