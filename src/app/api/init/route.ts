@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const globalSymbols = global as any;
   const webPort = getRuntimePort(process.env.SHARE_HOME_WEB_PORT || process.env.PORT, 3000);
   const wsPort = getRuntimePort(process.env.SHARE_HOME_WS_PORT, webPort + 1);
-  const host = process.env.SHARE_HOME_HOST || process.env.HOSTNAME || '127.0.0.1';
+  const host = process.env.SHARE_HOME_HOST || process.env.HOSTNAME || '0.0.0.0';
 
   if (!globalSymbols.__services_initialized__) {
     console.log('[InitAPI] 正在全局初始化局域网后台常驻服务...');

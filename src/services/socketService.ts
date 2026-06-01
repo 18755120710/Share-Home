@@ -21,7 +21,7 @@ export class SocketService {
   /**
    * 在指定端口启动 WebSocket 服务器，服务于本机浏览器前端
    */
-  public start(port: number, host = process.env.SHARE_HOME_HOST || '127.0.0.1'): void {
+  public start(port: number, host = process.env.SHARE_HOME_HOST || '0.0.0.0'): void {
     if (this.isStarted) {
       console.log(`[WebSocket] 通信服务已在运行中，无需重复启动。`);
       return;
