@@ -243,24 +243,35 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`[CLI] 正在极速拉起 Web 协同服务与信道，请稍候...`);
-  console.log(`[CLI] 监听地址: http://${hostname === '0.0.0.0' ? 'localhost' : hostname}:${port}`);
-  console.log(`[CLI] WebSocket 端口: ${wsPort}`);
+  function startNextServer() {
+    console.log(`[CLI] 正在极速拉起 Web 协同服务与信道，请稍候...`);
+    console.log(`[CLI] 监听地址: http://${hostname === '0.0.0.0' ? 'localhost' : hostname}:${port}`);
+    console.log(`[CLI] WebSocket 端口: ${wsPort}`);
 
-  // 启动 Next.js 生产服务
-  const nextStart = fork(nextBin, ['start', '-p', port, '-H', hostname], {
-    cwd: projectRoot,
-    env: {
-      ...process.env,
-      // 强制指定项目的物理存储目录，解决宿主物理存储隔离问题
-      CUSTOM_STORAGE_PATH: userStorageDir
-    }
-  });
+    // 启动 Next.js 生产服务
+    const nextStart = fork(nextBin, ['start', '-p', port, '-H', hostname], {
+      cwd: projectRoot,
+      env: {
+        ...process.env,
+        // 强制指定项目的物理存储目录，解决宿主物理存储隔离问题
+        CUSTOM_STORAGE_PATH: userStorageDir
+      }
+    });
 
-  nextStart.on('exit', (code) => {
-    console.log(`[CLI] Next.js 服务进程已退出，代码: ${code}`);
-    process.exit(code || 0);
-  });
+    nextStart.on('exit', (code) => {
+      console.log(`[CLI] Next.js 服务进程已退出，代码: ${code}`);
+      if (code === 99) {
+        console.log('\x1b[36m%s\x1b[0m', '🔄 [CLI] 检测到系统正在进行在线热更新，正在准备热重启自愈加载新版本...');
+        setTimeout(() => {
+          startNextServer();
+        }, 2000);
+      } else {
+        process.exit(code || 0);
+      }
+    });
+  }
+
+  startNextServer();
 }
 
 main().catch((err) => {

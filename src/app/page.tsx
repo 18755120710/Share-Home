@@ -25,7 +25,7 @@ import {
 import { 
   Radio, RefreshCw, Laptop, Monitor, Smartphone, Edit3, Check, 
   Files, FileText, Settings, ShieldAlert, FolderOpen,
-  Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X,
+  Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X, Bell,
   History, ArrowRight, CheckCircle2, XCircle, Ban,
   ChevronLeft, ChevronRight, ChevronDown, KeyRound, LogOut,
   Users, ShieldCheck, Lock, UserRound, Eye, EyeOff
@@ -687,6 +687,95 @@ export default function Home() {
     }
   }, [role, settingsSubTab]);
 
+  // ==================== 在线一键热升级系统核心状态与逻辑 ====================
+  const [updateInfo, setUpdateInfo] = useState<{ currentVersion: string; latestVersion: string; hasUpdate: boolean; error?: string } | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateLogs, setUpdateLogs] = useState<Array<{ type: 'log' | 'error'; text: string }>>([]);
+  const [isUpdatingSystem, setIsUpdatingSystem] = useState(false);
+  const [systemUpdateStatus, setSystemUpdateStatus] = useState<'idle' | 'updating' | 'reconnecting' | 'success' | 'failed'>('idle');
+
+  // 并发版本在线检测拉取
+  const checkSystemUpdate = async () => {
+    try {
+      const res = await fetch('/api/config/check-update');
+      const data = await res.json();
+      if (data.success) {
+        setUpdateInfo(data);
+      }
+    } catch (err) {
+      console.error('[Update] 检查系统更新失败:', err);
+    }
+  };
+
+  // 延时重连心跳探针
+  const triggerReconnectionHeartbeat = () => {
+    let attempts = 0;
+    const maxAttempts = 15;
+    const interval = window.setInterval(async () => {
+      attempts++;
+      try {
+        const token = localStorage.getItem('share_home_token') || '';
+        const res = await fetch('/api/auth/session', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          window.clearInterval(interval);
+          setSystemUpdateStatus('success');
+          setIsUpdatingSystem(false);
+          // 重新拉取对齐最新版本号
+          await checkSystemUpdate();
+          setTimeout(() => {
+            setShowUpdateModal(false);
+            setSystemUpdateStatus('idle');
+            setUpdateLogs([]);
+          }, 3000);
+        }
+      } catch (e) {
+        if (attempts >= maxAttempts) {
+          window.clearInterval(interval);
+          setSystemUpdateStatus('failed');
+          setIsUpdatingSystem(false);
+          setUpdateLogs(prev => [...prev, { type: 'error', text: '❌ [ERROR] 守护进程热拉起超时，请尝试在终端中手动重启服务。' }]);
+        }
+      }
+    }, 1000);
+  };
+
+  // 发起在线物理一键重装
+  const handleStartSystemUpdate = async () => {
+    if (isUpdatingSystem) return;
+    setIsUpdatingSystem(true);
+    setSystemUpdateStatus('updating');
+    setUpdateLogs([{ type: 'log', text: '⚙️ [SYSTEM] 准备执行物理更新进程...' }]);
+    
+    try {
+      const token = localStorage.getItem('share_home_token') || '';
+      const res = await fetch('/api/config/update-system', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setSystemUpdateStatus('failed');
+        setIsUpdatingSystem(false);
+        setUpdateLogs(prev => [...prev, { type: 'error', text: `❌ [ERROR] 派发更新指令失败: ${data.error || data.message}` }]);
+      }
+    } catch (err: any) {
+      setSystemUpdateStatus('failed');
+      setIsUpdatingSystem(false);
+      setUpdateLogs(prev => [...prev, { type: 'error', text: `❌ [ERROR] 发起更新请求发生异常: ${err.message}` }]);
+    }
+  };
+
+  // 管理员身份激活后，自动执行版本检测
+  useEffect(() => {
+    if (role === 'admin') {
+      checkSystemUpdate();
+    }
+  }, [role]);
+
   // 主题颜色状态
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
@@ -811,8 +900,21 @@ export default function Home() {
       setMigrationProgress(progress);
     });
 
+    // 订阅系统热升级 WebSocket 进度事件
+    const unsubUpdateLog = socket.subscribe('system:update-log', (log: { type: 'log' | 'error'; text: string }) => {
+      setUpdateLogs(prev => [...prev, log]);
+      if (log.type === 'error') {
+        setSystemUpdateStatus('failed');
+        setIsUpdatingSystem(false);
+      } else if (log.text.includes('热升级自愈重启信号')) {
+        setSystemUpdateStatus('reconnecting');
+        triggerReconnectionHeartbeat();
+      }
+    });
+
     return () => {
       unsubMigrationProgress();
+      unsubUpdateLog();
     };
   }, []);
 
@@ -1562,6 +1664,26 @@ export default function Home() {
               <RefreshCw size={14} />
               刷新雷达
             </Button>
+
+            {/* 自动检测升级呼吸铃铛 (仅管理员在登录态后可见) */}
+            {role === 'admin' && updateInfo && (
+              <button
+                onClick={() => {
+                  setShowUpdateModal(true);
+                  setUpdateLogs([]);
+                }}
+                className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-muted/15 rounded-lg border-none bg-transparent cursor-pointer transition-all mr-1 flex items-center justify-center shrink-0"
+                title={updateInfo.hasUpdate ? "发现新版本！点击查看在线升级详情" : "系统已是最新版"}
+              >
+                <Bell size={16} className={updateInfo.hasUpdate ? "animate-pulse text-amber-500" : ""} />
+                {updateInfo.hasUpdate && (
+                  <span className="absolute top-1 right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                  </span>
+                )}
+              </button>
+            )}
 
             <button
               onClick={handleLogout}
@@ -2739,6 +2861,152 @@ export default function Home() {
                     </button>
                   </div>
                 </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 在线一键热升级控制终端模态框 */}
+      {showUpdateModal && updateInfo && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-300">
+          <div className="bg-background border border-border/20 shadow-2xl rounded-2xl w-full max-w-xl overflow-hidden flex flex-col scale-in">
+            
+            {/* 头部高光 */}
+            <div className="bg-gradient-to-r from-accent/5 via-accent/10 to-transparent p-5 border-b border-border/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500 animate-bounce flex items-center justify-center">
+                  <Cpu size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">在线一键热升级系统</h3>
+                  <p className="text-[10px] text-muted-foreground">由极客热重启守护循环与编程式更新引擎驱动</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (!isUpdatingSystem) {
+                    setShowUpdateModal(false);
+                    setUpdateLogs([]);
+                  }
+                }}
+                disabled={isUpdatingSystem}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/10 border-none bg-transparent cursor-pointer disabled:opacity-50 flex items-center justify-center"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* 主体参数展示 */}
+            <div className="p-6 flex flex-col gap-5">
+              <div className="flex items-center justify-around bg-muted/20 border border-border/5 rounded-xl p-4">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">当前部署版本</span>
+                  <span className="text-sm font-black font-mono text-muted-foreground">v{updateInfo.currentVersion}</span>
+                </div>
+                <div className="h-8 w-px bg-border/20"></div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">NPM 最新版本</span>
+                  <span className={`text-sm font-black font-mono ${updateInfo.hasUpdate ? 'text-amber-500 animate-pulse' : 'text-emerald-500'}`}>v{updateInfo.latestVersion}</span>
+                </div>
+              </div>
+
+              {/* 版本状态与指引 */}
+              <div className="text-xs text-muted-foreground text-center leading-relaxed px-4">
+                {updateInfo.hasUpdate ? (
+                  <p>
+                    🎉 发现可用的新版本！本次更新将包含**类似 B+ 树启发式拓扑兄弟链自愈、物理路径隔离、前后端鉴权防火墙和共享中心路径绝对对齐**等重大物理安全特性的合并。建议您立即执行在线一键热更新。
+                  </p>
+                ) : (
+                  <p className="text-emerald-500 font-semibold flex items-center justify-center gap-2">
+                    ✓ 您的 Share Home 系统已是 NPM 官方最新版本，无需执行任何更新操作。
+                  </p>
+                )}
+              </div>
+
+              {/* 黑客更新日志流终端框 (当开始更新时触发显现) */}
+              {(systemUpdateStatus !== 'idle' || updateLogs.length > 0) && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    热升级日志控制台 (NPM Spawner Terminal)
+                  </span>
+                  <div className="bg-zinc-950 border border-border/10 rounded-xl p-4 h-48 overflow-y-auto font-mono text-[10px] text-emerald-400 flex flex-col gap-1.5 select-text leading-relaxed">
+                    {updateLogs.map((log, idx) => (
+                      <div key={idx} className={log.type === 'error' ? 'text-rose-400 font-bold' : ''}>
+                        {log.text}
+                      </div>
+                    ))}
+                    {systemUpdateStatus === 'updating' && (
+                      <div className="text-amber-500 animate-pulse">[NPM] 正在执行包物理依赖拉取并构建，请耐心等待 10 秒左右...</div>
+                    )}
+                    {systemUpdateStatus === 'reconnecting' && (
+                      <div className="text-sky-400 animate-pulse font-semibold">[SYSTEM] 物理子进程重拉起完毕，正在尝试重新握手心跳...</div>
+                    )}
+                    {systemUpdateStatus === 'success' && (
+                      <div className="text-emerald-400 font-bold">✓ [SYSTEM] 心跳重新连接建立成功！系统已是最新版，控制台即刻关闭...</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 尾部控制 */}
+            <div className="p-4 bg-muted/10 border-t border-border/10 flex justify-end gap-3">
+              {updateInfo.hasUpdate && (
+                <button
+                  onClick={() => {
+                    setShowUpdateModal(false);
+                    setUpdateLogs([]);
+                  }}
+                  disabled={isUpdatingSystem}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-muted/20 border-none bg-transparent text-muted-foreground cursor-pointer disabled:opacity-50"
+                >
+                  暂不更新
+                </button>
+              )}
+              
+              {updateInfo.hasUpdate && systemUpdateStatus === 'idle' && (
+                <button
+                  onClick={handleStartSystemUpdate}
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-none cursor-pointer flex items-center gap-2 shadow-lg shadow-amber-500/10"
+                >
+                  <Cpu size={12} />
+                  立即在线一键热升级
+                </button>
+              )}
+
+              {systemUpdateStatus === 'updating' && (
+                <button
+                  disabled
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-amber-500/20 text-amber-500/80 border-none flex items-center gap-2 disabled:opacity-80"
+                >
+                  <span className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
+                  物理更新中...
+                </button>
+              )}
+
+              {systemUpdateStatus === 'reconnecting' && (
+                <button
+                  disabled
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-sky-500/20 text-sky-500/80 border-none flex items-center gap-2 disabled:opacity-80"
+                >
+                  <span className="w-3 h-3 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></span>
+                  热重启握手中...
+                </button>
+              )}
+
+              {(systemUpdateStatus === 'success' || systemUpdateStatus === 'failed' || !updateInfo.hasUpdate) && (
+                <button
+                  onClick={() => {
+                    setShowUpdateModal(false);
+                    setUpdateLogs([]);
+                    setSystemUpdateStatus('idle');
+                  }}
+                  className={`px-5 py-2 text-xs font-bold rounded-xl border-none cursor-pointer text-white ${systemUpdateStatus === 'success' || !updateInfo.hasUpdate ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'}`}
+                >
+                  {systemUpdateStatus === 'success' || !updateInfo.hasUpdate ? '已知晓' : '关闭'}
+                </button>
               )}
             </div>
           </div>
