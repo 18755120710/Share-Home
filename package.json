@@ -1,6 +1,6 @@
 {
   "name": "share-home",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "安全、无压缩的局域网零阻碍点对点极速传输与公共落盘共享空间",
   "bin": {
     "share-home": "bin/cli.js"
