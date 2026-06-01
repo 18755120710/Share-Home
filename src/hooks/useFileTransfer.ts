@@ -439,13 +439,14 @@ export function useFileTransfer(self: any) {
   const uploadPublicFile = async (
     file: File,
     deviceInfo: string,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    boxId?: string
   ): Promise<boolean> => {
     const taskId = generateUUID();
     const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB 一个分片
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
-    console.log(`[useFileTransfer] 正在以上传共享文件: ${file.name}, 总共 ${totalChunks} 分片, 设备: ${deviceInfo}`);
+    console.log(`[useFileTransfer] 正在以上传共享文件: ${file.name}, 总共 ${totalChunks} 分片, 设备: ${deviceInfo}, 盒子: ${boxId || '无'}`);
     
     let isSuccess = true;
     
@@ -462,7 +463,7 @@ export function useFileTransfer(self: any) {
       try {
         const arrayBuffer = await chunk.arrayBuffer();
         const res = await fetch(
-          `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}&isPublic=true&deviceInfo=${encodeURIComponent(deviceInfo)}`,
+          `/api/transfer/prepare?taskId=${taskId}&chunkIndex=${i}&totalChunks=${totalChunks}&fileName=${encodeURIComponent(file.name)}&fileSize=${file.size}&isPublic=true&deviceInfo=${encodeURIComponent(deviceInfo)}${boxId ? `&boxId=${boxId}` : ''}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/octet-stream' },
