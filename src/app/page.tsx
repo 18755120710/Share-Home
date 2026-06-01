@@ -939,7 +939,7 @@ export default function Home() {
   }, [activeTab, isSidebarCollapsed]);
 
   useEffect(() => {
-    if (role !== 'admin' && activeTab === 'users') {
+    if (role !== 'admin' && (activeTab === 'users' || activeTab.startsWith('history-'))) {
       setActiveTab('transfer');
     }
   }, [activeTab, role]);
@@ -1397,79 +1397,81 @@ export default function Home() {
               <span className="sidebar-nav-text">云文档</span>
             </button>
 
-            <div className="flex flex-col w-full">
-              <button
-                onClick={() => {
-                  setIsRecordMenuExpanded(!isRecordMenuExpanded);
-                  if (!activeTab.startsWith('history-')) {
-                    setActiveTab('history-transfer'); // 点击大类默认切换到第一个子菜单
-                  }
-                }}
-                className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
-                  activeTab.startsWith('history-')
-                    ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
-                    : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
-                }`}
-              >
-                <History size={15} className={`flex-shrink-0 ${activeTab.startsWith('history-') ? 'text-primary' : 'text-muted-foreground'}`} />
-                <span className="sidebar-nav-text">记录中心</span>
-                {!isSidebarCollapsed && (
-                  <ChevronDown 
-                    size={12} 
-                    className={`ml-auto opacity-60 transition-transform duration-300 ${
-                      isRecordMenuExpanded ? 'rotate-180' : 'rotate-0'
-                    }`}
-                  />
+            {role === 'admin' && (
+              <div className="flex flex-col w-full">
+                <button
+                  onClick={() => {
+                    setIsRecordMenuExpanded(!isRecordMenuExpanded);
+                    if (!activeTab.startsWith('history-')) {
+                      setActiveTab('history-transfer'); // 点击大类默认切换到第一个子菜单
+                    }
+                  }}
+                  className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
+                    activeTab.startsWith('history-')
+                      ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
+                      : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  <History size={15} className={`flex-shrink-0 ${activeTab.startsWith('history-') ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className="sidebar-nav-text">记录中心</span>
+                  {!isSidebarCollapsed && (
+                    <ChevronDown 
+                      size={12} 
+                      className={`ml-auto opacity-60 transition-transform duration-300 ${
+                        isRecordMenuExpanded ? 'rotate-180' : 'rotate-0'
+                      }`}
+                    />
+                  )}
+                </button>
+
+                {/* 二级侧边导航子菜单 (大厂级莫兰迪缩进美学) */}
+                {isRecordMenuExpanded && !isSidebarCollapsed && (
+                  <div className="flex flex-col gap-1 pl-5 mt-1.5 border-l border-border/40 ml-4 animate-in fade-in duration-200">
+                    <button
+                      onClick={() => setActiveTab('history-transfer')}
+                      className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
+                        activeTab === 'history-transfer'
+                          ? 'text-primary font-semibold'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                      }`}
+                    >
+                      <span className={`w-1 h-1 rounded-full ${
+                        activeTab === 'history-transfer' ? 'bg-primary shadow-[0_0_6px_#3b82f6]' : 'bg-muted-foreground/60'
+                      } inline-block`} />
+                      设备互传历史
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('history-share')}
+                      className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
+                        activeTab === 'history-share'
+                          ? 'text-primary font-semibold'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                      }`}
+                    >
+                      <span className={`w-1 h-1 rounded-full ${
+                        activeTab === 'history-share' ? 'bg-primary shadow-[0_0_6px_#3b82f6]' : 'bg-muted-foreground/60'
+                      } inline-block`} />
+                      共享上传记录
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('history-document')}
+                      className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
+                        activeTab === 'history-document'
+                          ? 'text-primary font-semibold'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                      }`}
+                    >
+                      <span className={`w-1 h-1 rounded-full ${
+                        activeTab === 'history-document' ? 'bg-primary shadow-[0_0_6px_#3b82f6]' : 'bg-muted-foreground/60'
+                      } inline-block`} />
+                      云文档活动日志
+                    </button>
+                  </div>
                 )}
-              </button>
-
-              {/* 二级侧边导航子菜单 (大厂级莫兰迪缩进美学) */}
-              {isRecordMenuExpanded && !isSidebarCollapsed && (
-                <div className="flex flex-col gap-1 pl-5 mt-1.5 border-l border-border/40 ml-4 animate-in fade-in duration-200">
-                  <button
-                    onClick={() => setActiveTab('history-transfer')}
-                    className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
-                      activeTab === 'history-transfer'
-                        ? 'text-primary font-semibold'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                    }`}
-                  >
-                    <span className={`w-1 h-1 rounded-full ${
-                      activeTab === 'history-transfer' ? 'bg-primary shadow-[0_0_6px_#3b82f6]' : 'bg-muted-foreground/60'
-                    } inline-block`} />
-                    设备互传历史
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('history-share')}
-                    className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
-                      activeTab === 'history-share'
-                        ? 'text-primary font-semibold'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                    }`}
-                  >
-                    <span className={`w-1 h-1 rounded-full ${
-                      activeTab === 'history-share' ? 'bg-primary shadow-[0_0_6px_#3b82f6]' : 'bg-muted-foreground/60'
-                    } inline-block`} />
-                    共享上传记录
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('history-document')}
-                    className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
-                      activeTab === 'history-document'
-                        ? 'text-primary font-semibold'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                    }`}
-                  >
-                    <span className={`w-1 h-1 rounded-full ${
-                      activeTab === 'history-document' ? 'bg-primary shadow-[0_0_6px_#3b82f6]' : 'bg-muted-foreground/60'
-                    } inline-block`} />
-                    云文档活动日志
-                  </button>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <button
               onClick={() => setActiveTab('settings')}
