@@ -1441,7 +1441,7 @@ export default function Home() {
                 ) : (
                   <div 
                     onClick={isSidebarCollapsed ? () => setIsSidebarCollapsed(false) : startEditProfile}
-                    className="sidebar-profile-card flex items-center justify-between cursor-pointer bg-muted/20 border border-border/30 px-2.5 py-2 rounded-lg hover:border-border/60 hover:bg-muted/40 transition-all duration-200 overflow-hidden"
+                    className="sidebar-profile-card flex items-center justify-between cursor-pointer bg-transparent px-2.5 py-2 rounded-lg hover:bg-muted/30 transition-all duration-200 overflow-hidden"
                   >
                     <div className="flex items-center gap-2 overflow-hidden min-w-0">
                       {renderSelfAvatar(self.avatar, 13)}
