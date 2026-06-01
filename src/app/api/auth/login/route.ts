@@ -5,7 +5,7 @@ import { MdnsService } from '@/services/mdnsService';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, username, password, guestPassword, adminUsername, adminPassword, guestPass } = body;
+    const { action, username, password, guestPassword, adminUsername, adminPassword, guestPass, totpCode } = body;
     const authService = AuthService.getInstance();
     const mdns = MdnsService.getInstance();
 
@@ -70,6 +70,42 @@ export async function POST(request: NextRequest) {
         error: 'auth_not_initialized', 
         message: '系统尚未进行首次密码初始化设置，请在本地或终端完成初始化。' 
       }, { status: 200 });
+    }
+
+    // 3.5 超级管理员 2FA 两步验证免密快捷登录
+    if (totpCode) {
+      if (!authService.isAdmin2faEnabled()) {
+        return NextResponse.json({ success: false, error: '超级管理员未开启两步验证 (2FA)，请切换至常规密码登录。' }, { status: 400 });
+      }
+      const isOk = authService.verifyAdmin2Fa(totpCode);
+      if (isOk) {
+        const token = authService.createSession('admin', clientIp);
+        const adminUser = authService.getAdminUsername();
+        authService.registerDevice({
+          id: authService.getClientIdFromIp(clientIp),
+          ip: clientIp,
+          nickname: adminUser,
+          avatar: 'avatar-1',
+          os: 'unknown',
+          role: 'admin'
+        });
+        console.log(`[Auth] 超级管理员通过 2FA 两步验证免密极速通道 (${clientIp}) 登录成功。颁发 Session 令牌。`);
+        const response = NextResponse.json({
+          success: true,
+          token,
+          role: 'admin',
+          username: adminUser
+        });
+        response.cookies.set('share_home_token', token, {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60
+        });
+        return response;
+      } else {
+        return NextResponse.json({ success: false, error: '2FA 两步验证码验证失败，请重新确认手机 App 上显示的 6 位验证码。' }, { status: 401 });
+      }
     }
 
     // 4. 超级管理员登录 (账号密码)

@@ -20,13 +20,15 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization') || '';
     const token = authHeader.replace(/^Bearer\s+/i, '').trim() || request.cookies.get('share_home_token')?.value || '';
 
+    const admin2faEnabled = authService.isAdmin2faEnabled();
+
     if (!token) {
-      return NextResponse.json({ success: false, error: 'missing_token', message: '未检测到会话凭证。' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'missing_token', message: '未检测到会话凭证。', admin2faEnabled }, { status: 401 });
     }
 
     const session = authService.verifySession(token);
     if (!session) {
-      return NextResponse.json({ success: false, error: 'invalid_session', message: '会话已过期或已被销毁，请重新验证。' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'invalid_session', message: '会话已过期或已被销毁，请重新验证。', admin2faEnabled }, { status: 401 });
     }
 
     // 3. 动态获取该终端在局域网中的物理 IP 绑定的 clientId
@@ -53,7 +55,8 @@ export async function GET(request: NextRequest) {
       role: session.role,
       clientId,
       ip: clientIp,
-      permissions
+      permissions,
+      admin2faEnabled
     });
 
   } catch (err: any) {

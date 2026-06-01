@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AuthService, DevicePermission } from '@/services/authService';
 import { MdnsService } from '@/services/mdnsService';
 import { SocketService } from '@/services/socketService';
+import crypto from 'crypto';
 
 // 管理员身份拦截拦截器
 function verifyAdminSession(request: NextRequest): boolean {
@@ -130,6 +131,57 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const { action } = body;
+    const authService = AuthService.getInstance();
+
+    // 2FA 两步验证控制动作分支分发
+    if (action) {
+      if (action === 'get_2fa') {
+        const tempSecret = AuthService.base32Encode(crypto.randomBytes(10));
+        const adminUsername = authService.getAdminUsername();
+        const otpauthUri = `otpauth://totp/ShareHome:${adminUsername}?secret=${tempSecret}&issuer=ShareHome`;
+        return NextResponse.json({
+          success: true,
+          tempSecret,
+          otpauthUri
+        });
+      }
+
+      if (action === 'verify_and_enable_2fa') {
+        const { tempSecret, code } = body;
+        if (!tempSecret || !code) {
+          return NextResponse.json({ success: false, error: '暂存密钥和两步验证码不能为空。' }, { status: 400 });
+        }
+        const verified = authService.verifyTemp2Fa(tempSecret, code);
+        if (!verified) {
+          return NextResponse.json({ success: false, error: '两步验证码错误，请重新确认手机 App 上显示的 6 位验证码。' }, { status: 400 });
+        }
+
+        const enabled = authService.enableAdmin2Fa(tempSecret);
+        if (enabled) {
+          return NextResponse.json({ success: true, message: '已成功开启管理员两步验证 (2FA)！' });
+        } else {
+          return NextResponse.json({ success: false, error: '开启两步验证写入磁盘配置失败。' }, { status: 500 });
+        }
+      }
+
+      if (action === 'disable_2fa') {
+        const { currentPassword } = body;
+        if (!currentPassword) {
+          return NextResponse.json({ success: false, error: '确认静态密码不能为空。' }, { status: 400 });
+        }
+        const res = authService.disableAdmin2Fa(currentPassword);
+        if (res.success) {
+          return NextResponse.json({ success: true, message: res.message });
+        } else {
+          return NextResponse.json({ success: false, error: res.message }, { status: 400 });
+        }
+      }
+
+      return NextResponse.json({ success: false, error: '不支持的两步验证操作项' }, { status: 400 });
+    }
+
+    // 兼容并分流至原有的设备权限修改分支
     const { clientId, key, value } = body;
 
     if (!clientId || !key || typeof value !== 'boolean') {
@@ -139,7 +191,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '不支持的权限项' }, { status: 400 });
     }
 
-    const authService = AuthService.getInstance();
     const ok = authService.updateDevicePermission(clientId, key as keyof DevicePermission, value);
 
     if (ok) {
