@@ -97,8 +97,20 @@ setTimeout(() => {
   
   const child = spawn('npm.cmd', ['install', '-g', 'share-home@latest'], {
     shell: true,
-    stdio: 'inherit'
+    stdio: 'pipe'
   });
+
+  if (child.stdout) {
+    child.stdout.on('data', (data) => {
+      try { fs.appendFileSync(logFile, data.toString()); } catch (e) {}
+    });
+  }
+
+  if (child.stderr) {
+    child.stderr.on('data', (data) => {
+      try { fs.appendFileSync(logFile, data.toString()); } catch (e) {}
+    });
+  }
 
   child.on('close', (code) => {
     if (code === 0) {
