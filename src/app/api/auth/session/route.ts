@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // 2. 解析 Header 里的 Bearer Token
     const authHeader = request.headers.get('Authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim() || request.cookies.get('share_home_token')?.value || '';
 
     if (!token) {
       return NextResponse.json({ success: false, error: 'missing_token', message: '未检测到会话凭证。' }, { status: 401 });
@@ -35,7 +35,15 @@ export async function GET(request: NextRequest) {
     if (clientIp === '::1' || clientIp === '127.0.0.1' || clientIp === 'localhost') {
       clientIp = mdns.getLocalIp();
     }
-    const clientId = `peer_${clientIp.replace(/\./g, '_')}`;
+    const clientId = authService.getClientIdFromIp(clientIp);
+    authService.registerDevice({
+      id: clientId,
+      ip: clientIp,
+      nickname: session.role === 'admin' ? '超级管理员' : '局域网伙伴',
+      avatar: 'avatar-1',
+      os: 'unknown',
+      role: session.role
+    });
 
     // 4. 读取该客户端当前受管理员管控的权限列表
     const permissions = authService.getDevicePermission(clientId);

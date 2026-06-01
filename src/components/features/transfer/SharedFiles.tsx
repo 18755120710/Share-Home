@@ -26,6 +26,7 @@ interface SharedFilesProps {
     deviceInfo: string,
     onProgress?: (progress: number) => void
   ) => Promise<boolean>;
+  allowUpload?: boolean;
 }
 
 interface FilePreviewModalProps {
@@ -538,7 +539,7 @@ function getDeviceInfo(): string {
   return '未知设备';
 }
 
-export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) => {
+export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allowUpload = true }) => {
   const [files, setFiles] = useState<SharedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
@@ -638,6 +639,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
   // 核心上传逻辑（植入测速与时间预估算法）
   const handleUpload = async (file: File) => {
     if (!file) return;
+    if (!allowUpload) {
+      alert('您的共享上传/互传文件权限已被超级管理员禁用。');
+      return;
+    }
 
     setUploadingFile(file);
     setUploadProgress(0);
@@ -1068,22 +1073,24 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
           {/* 上传拖拽面板 */}
           <div 
             onClick={() => {
-              if (status !== 'uploading') fileInputRef.current?.click();
+              if (status !== 'uploading' && allowUpload) fileInputRef.current?.click();
             }}
-            className={`drop-zone-cabin ${isDragOver ? 'drag-over' : ''} ${status === 'uploading' ? 'disabled' : ''}`}
+            className={`drop-zone-cabin ${isDragOver && allowUpload ? 'drag-over' : ''} ${(status === 'uploading' || !allowUpload) ? 'disabled' : ''}`}
             style={{
               padding: '40px 24px',
               borderRadius: '20px',
-              border: '2px dashed rgba(99, 102, 241, 0.25)',
+              border: allowUpload ? '2px dashed rgba(99, 102, 241, 0.25)' : '2px dashed rgba(239, 68, 68, 0.3)',
+              background: allowUpload ? 'transparent' : 'rgba(239, 68, 68, 0.02)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               textAlign: 'center',
-              cursor: status === 'uploading' ? 'not-allowed' : 'pointer',
+              cursor: (status === 'uploading' || !allowUpload) ? 'not-allowed' : 'pointer',
               position: 'relative',
               overflow: 'hidden',
-              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              opacity: allowUpload ? 1 : 0.85
             }}
           >
             {/* 炫光水滴流体发光层 */}
@@ -1104,36 +1111,44 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile }) =>
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08))',
-              border: '1px solid rgba(99,102,241,0.15)',
+              background: allowUpload 
+                ? 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08))'
+                : 'rgba(239, 68, 68, 0.08)',
+              border: allowUpload ? '1px solid rgba(99,102,241,0.15)' : '1px solid rgba(239, 68, 68, 0.15)',
               marginBottom: '16px',
               position: 'relative',
               zIndex: 2
             }}>
-              <UploadCloud size={22} className="cloud-upload-icon-anim" style={{ color: '#6366f1' }} />
+              <UploadCloud size={22} className={allowUpload ? 'cloud-upload-icon-anim' : ''} style={{ color: allowUpload ? '#6366f1' : '#ef4444' }} />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative', zIndex: 2 }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                极速闪传投递舱
+                {allowUpload ? '极速闪传投递舱' : '投递舱已停用'}
               </span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                松开文件拖入页面任意处上传
+              <span style={{ fontSize: '0.72rem', color: allowUpload ? 'var(--text-secondary)' : '#ef4444', fontWeight: allowUpload ? 'normal' : 500 }}>
+                {allowUpload ? '松开文件拖入页面任意处上传' : '共享文件上传权限已被超级管理员停用'}
               </span>
             </div>
 
-            <button className="cabin-select-btn" style={{
-              marginTop: '20px',
-              border: 'none',
-              padding: '8px 18px',
-              borderRadius: '10px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              cursor: status === 'uploading' ? 'not-allowed' : 'pointer',
-              zIndex: 2,
-              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}>
-              选择文件投递
+            <button 
+              className="cabin-select-btn" 
+              disabled={status === 'uploading' || !allowUpload}
+              style={{
+                marginTop: '20px',
+                border: 'none',
+                padding: '8px 18px',
+                borderRadius: '10px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: (status === 'uploading' || !allowUpload) ? 'not-allowed' : 'pointer',
+                background: allowUpload ? 'var(--accent-color)' : 'rgba(128, 128, 128, 0.1)',
+                color: allowUpload ? '#ffffff' : 'var(--text-muted)',
+                zIndex: 2,
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
+              {allowUpload ? '选择文件投递' : '权限已禁用'}
             </button>
           </div>
 

@@ -24,20 +24,30 @@ export async function POST(request: Request) {
     }
     const clientId = `peer_${clientIp.replace(/\./g, '_')}`;
 
-    // 校验云文档同步与编辑权限防火墙
+    const doc: KBDocument = await request.json();
+    
+    if (!doc.id || !doc.title) {
+      return NextResponse.json({ success: false, error: '缺少 id 或 title' }, { status: 400 });
+    }
+
+    const isCreate = !DocumentService.getInstance().getDocuments().some(item => item.id === doc.id);
+
+    // 校验云文档同步、新建与编辑权限防火墙
     const perms = authService.getDevicePermission(clientId);
-    if (!perms.allowEditDoc) {
+    if (isCreate && !perms.allowCreateDoc) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'forbidden_create_doc', 
+        message: '您的局域网云文档新建同步权限已被超级管理员禁用。' 
+      }, { status: 403 });
+    }
+
+    if (!isCreate && !perms.allowEditDoc) {
       return NextResponse.json({ 
         success: false, 
         error: 'forbidden_edit_doc', 
         message: '您的局域网云文档编写与同步权限已被超级管理员禁用。' 
       }, { status: 403 });
-    }
-
-    const doc: KBDocument = await request.json();
-    
-    if (!doc.id || !doc.title) {
-      return NextResponse.json({ success: false, error: '缺少 id 或 title' }, { status: 400 });
     }
     
     console.log(`[DocSync] 收到来自 ${doc.senderName} 对文档《${doc.title}》的局域网同步投递`);

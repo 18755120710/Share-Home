@@ -86,9 +86,11 @@ const MarkdownPaste = Extension.create({
 interface KnowledgeBaseProps {
   peers: Peer[];
   self: Peer | null;
+  allowEditDoc?: boolean;
+  allowCreateDoc?: boolean;
 }
 
-export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => {
+export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allowEditDoc = true, allowCreateDoc = true }) => {
   const [documents, setDocuments] = useState<KBDocument[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'split' | 'write' | 'read'>('split');
@@ -449,6 +451,10 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
   const handleCreateFolder = async (targetParentId: string | null = null, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!self) return;
+    if (!allowCreateDoc) {
+      showToast('您的新建云文档权限已被超级管理员停用');
+      return;
+    }
 
     setCreateModalType('folder');
     setCreateModalParentId(targetParentId);
@@ -461,6 +467,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
    */
   const executeCreateFolder = async (name: string, targetParentId: string | null) => {
     if (!self) return;
+    if (!allowCreateDoc) return;
 
     const folderId = generateUUID();
     const newFolder: KBDocument = {
@@ -559,12 +566,13 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         transformCopiedText: true,
       }),
       Placeholder.configure({
-        placeholder: '在这里开始书写飞书般的文档协作体验，输入 Markdown 标识符即时渲染...',
+        placeholder: allowEditDoc ? '在这里开始书写飞书般的文档协作体验，输入 Markdown 标识符即时渲染...' : '您的局域网云文档编写与修改权限已被超级管理员停用，当前为只读只看模式。',
         emptyEditorClass: 'is-editor-empty',
       }),
       MarkdownPaste,
     ],
     content: selectedDoc ? selectedDoc.content : '',
+    editable: allowEditDoc, // 💥 网关级状态协同：初始化关联编辑权限
     editorProps: {
       attributes: {
         class: 'ProseMirror',
@@ -585,6 +593,13 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
       }, 300);
     }
   });
+
+  // 💥 关键联动：当管理员在后台修改了云文档编辑权限时，无刷实时秒级切换富文本编辑器的可读写只读状态！
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(allowEditDoc);
+    }
+  }, [allowEditDoc, editor]);
 
   // 当选择文档改变或物理落盘更新时，将内容双向填充到富文本编辑器
   useEffect(() => {
@@ -983,22 +998,24 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                 {isFolder && (
                   <>
                     <button
+                      disabled={!allowCreateDoc}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCreateDocument(doc.id);
                       }}
                       title="新建子文档"
-                      style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', borderRadius: '2px' }}
+                      style={{ background: 'transparent', border: 'none', color: allowCreateDoc ? 'var(--text-secondary)' : 'var(--text-muted)', cursor: allowCreateDoc ? 'pointer' : 'not-allowed', padding: '2px', borderRadius: '2px', opacity: allowCreateDoc ? 1 : 0.45 }}
                     >
                       <Plus size={11} />
                     </button>
                     <button
+                      disabled={!allowCreateDoc}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCreateFolder(doc.id, e);
                       }}
                       title="新建子文件夹"
-                      style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', borderRadius: '2px' }}
+                      style={{ background: 'transparent', border: 'none', color: allowCreateDoc ? 'var(--text-secondary)' : 'var(--text-muted)', cursor: allowCreateDoc ? 'pointer' : 'not-allowed', padding: '2px', borderRadius: '2px', opacity: allowCreateDoc ? 1 : 0.45 }}
                     >
                       <FolderPlus size={11} />
                     </button>
@@ -1154,13 +1171,17 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
     };
 
     return treeData.map(node => renderNode(node, 0));
-  }, [documents, selectedId, renamingId, renameTitle, expandedFolderIds, movingDocId]);
+  }, [documents, selectedId, renamingId, renameTitle, expandedFolderIds, movingDocId, allowCreateDoc]);
 
   /**
    * 创建一篇新文档
    */
   const handleCreateDocument = async (targetParentId: string | null = null) => {
     if (!self) return;
+    if (!allowCreateDoc) {
+      showToast('您的新建云文档权限已被超级管理员停用');
+      return;
+    }
 
     setCreateModalType('file');
     setCreateModalParentId(targetParentId);
@@ -1173,6 +1194,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
    */
   const executeCreateDocument = async (name: string, targetParentId: string | null) => {
     if (!self) return;
+    if (!allowCreateDoc) return;
 
     const docId = generateUUID();
     const newDoc: KBDocument = {
@@ -1720,17 +1742,27 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
         {/* 极致审美：横向并排的 50-50 大胶囊新建按钮 */}
         <div className="flex gap-2 px-4 pb-3 border-b border-border">
           <button 
+            disabled={!allowCreateDoc}
             onClick={() => handleCreateDocument(null)} 
-            className="flex-1 h-[32px] rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-sm hover:shadow-md hover:shadow-blue-500/10 active:scale-95 transition-all duration-200 cursor-pointer"
+            className={`flex-1 h-[32px] rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-200 ${
+              allowCreateDoc 
+                ? 'bg-primary hover:bg-primary/90 text-primary-foreground active:scale-95 cursor-pointer'
+                : 'bg-muted/15 border border-border/40 text-muted-foreground cursor-not-allowed opacity-50'
+            }`}
           >
-            <Plus size={13} className="text-white" />
+            <Plus size={13} className={allowCreateDoc ? 'text-primary-foreground' : 'text-muted-foreground'} />
             新建文档
           </button>
           <button
+            disabled={!allowCreateDoc}
             onClick={(e) => handleCreateFolder(null, e)}
-            className="flex-1 h-[32px] rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 hover:border-amber-500/50 hover:shadow-sm hover:shadow-amber-500/5 active:scale-95 transition-all duration-200 cursor-pointer"
+            className={`flex-1 h-[32px] rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-200 ${
+              allowCreateDoc 
+                ? 'bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 hover:border-amber-500/50 hover:shadow-sm hover:shadow-amber-500/5 active:scale-95 cursor-pointer'
+                : 'bg-muted/15 border border-border/40 text-muted-foreground cursor-not-allowed opacity-50'
+            }`}
           >
-            <FolderPlus size={13} />
+            <FolderPlus size={13} className={allowCreateDoc ? '' : 'text-muted-foreground'} />
             新建文件夹
           </button>
         </div>
@@ -1875,6 +1907,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Button 
                     variant="primary" 
+                    disabled={!allowCreateDoc}
                     onClick={() => handleCreateDocument(selectedDoc.id)}
                     style={{ 
                       padding: '6px 12px', 
@@ -1883,11 +1916,12 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
-                      background: 'linear-gradient(135deg, var(--accent-color), #2563EB)',
-                      boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)',
+                      background: allowCreateDoc ? 'var(--accent-color)' : 'var(--bg-item)',
+                      boxShadow: 'none',
                       border: 'none',
-                      color: '#FFF',
-                      cursor: 'pointer'
+                      color: allowCreateDoc ? '#FFF' : 'var(--text-muted)',
+                      cursor: allowCreateDoc ? 'pointer' : 'not-allowed',
+                      opacity: allowCreateDoc ? 1 : 0.5
                     }}
                   >
                     <Plus size={13} />
@@ -1895,12 +1929,13 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                   </Button>
                   
                   <button
+                    disabled={!allowCreateDoc}
                     onClick={(e) => handleCreateFolder(selectedDoc.id, e)}
                     style={{
-                      background: 'rgba(234, 179, 8, 0.08)',
-                      border: '1px solid rgba(234, 179, 8, 0.2)',
-                      color: '#EAB308',
-                      cursor: 'pointer',
+                      background: allowCreateDoc ? 'rgba(234, 179, 8, 0.08)' : 'var(--bg-item)',
+                      border: allowCreateDoc ? '1px solid rgba(234, 179, 8, 0.2)' : '1px solid var(--border-color)',
+                      color: allowCreateDoc ? '#EAB308' : 'var(--text-muted)',
+                      cursor: allowCreateDoc ? 'pointer' : 'not-allowed',
                       padding: '0 12px',
                       borderRadius: 'var(--radius-sm)',
                       display: 'flex',
@@ -1967,6 +2002,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                       type="text"
                       value={titleInput}
                       onChange={handleTitleChange}
+                      disabled={!allowEditDoc}
                       placeholder="未命名云文件夹"
                       style={{
                         fontSize: '1.75rem',
@@ -2024,6 +2060,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                         <div style={{ display: 'flex', gap: '10px' }}>
                           <Button 
                             variant="primary" 
+                            disabled={!allowCreateDoc}
                             onClick={() => handleCreateDocument(selectedDoc.id)}
                             style={{ 
                               padding: '6px 14px', 
@@ -2032,22 +2069,24 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                               display: 'flex',
                               alignItems: 'center',
                               gap: '4px',
-                              background: 'linear-gradient(135deg, var(--accent-color), #2563EB)',
+                              background: allowCreateDoc ? 'var(--accent-color)' : 'var(--bg-item)',
                               border: 'none',
-                              color: '#FFF',
-                              cursor: 'pointer'
+                              color: allowCreateDoc ? '#FFF' : 'var(--text-muted)',
+                              cursor: allowCreateDoc ? 'pointer' : 'not-allowed',
+                              opacity: allowCreateDoc ? 1 : 0.5
                             }}
                           >
                             <Plus size={12} />
                             创建第一篇文档
                           </Button>
                           <button
+                            disabled={!allowCreateDoc}
                             onClick={(e) => handleCreateFolder(selectedDoc.id, e)}
                             style={{
-                              background: 'rgba(234, 179, 8, 0.08)',
-                              border: '1px solid rgba(234, 179, 8, 0.2)',
-                              color: '#EAB308',
-                              cursor: 'pointer',
+                              background: allowCreateDoc ? 'rgba(234, 179, 8, 0.08)' : 'var(--bg-item)',
+                              border: allowCreateDoc ? '1px solid rgba(234, 179, 8, 0.2)' : '1px solid var(--border-color)',
+                              color: allowCreateDoc ? '#EAB308' : 'var(--text-muted)',
+                              cursor: allowCreateDoc ? 'pointer' : 'not-allowed',
                               padding: '0 14px',
                               borderRadius: 'var(--radius-sm)',
                               display: 'flex',
@@ -2487,7 +2526,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self }) => 
                 type="text"
                 value={titleInput}
                 onChange={handleTitleChange}
-                disabled={viewMode === 'read'}
+                disabled={viewMode === 'read' || !allowEditDoc}
                 placeholder="请输入文档标题..."
                 style={{
                   fontSize: '1.75rem',

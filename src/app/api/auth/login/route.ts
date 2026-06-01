@@ -77,13 +77,28 @@ export async function POST(request: NextRequest) {
       const isOk = authService.verifyAdmin(username, password);
       if (isOk) {
         const token = authService.createSession('admin', clientIp);
+        authService.registerDevice({
+          id: authService.getClientIdFromIp(clientIp),
+          ip: clientIp,
+          nickname: username,
+          avatar: 'avatar-1',
+          os: 'unknown',
+          role: 'admin'
+        });
         console.log(`[Auth] 超级管理员 ${username} (${clientIp}) 登录成功。颁发 Session 令牌。`);
-        return NextResponse.json({
+        const response = NextResponse.json({
           success: true,
           token,
           role: 'admin',
           username
         });
+        response.cookies.set('share_home_token', token, {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60
+        });
+        return response;
       } else {
         return NextResponse.json({ success: false, error: '管理员账号或密码错误。' }, { status: 401 });
       }
@@ -94,12 +109,27 @@ export async function POST(request: NextRequest) {
       const isOk = authService.verifyGuest(guestPassword);
       if (isOk) {
         const token = authService.createSession('guest', clientIp);
+        authService.registerDevice({
+          id: authService.getClientIdFromIp(clientIp),
+          ip: clientIp,
+          nickname: '局域网伙伴',
+          avatar: 'avatar-1',
+          os: 'unknown',
+          role: 'guest'
+        });
         console.log(`[Auth] 局域网伙伴 (${clientIp}) 通过通用密钥验证登录成功。颁发 Guest 令牌。`);
-        return NextResponse.json({
+        const response = NextResponse.json({
           success: true,
           token,
           role: 'guest'
         });
+        response.cookies.set('share_home_token', token, {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60
+        });
+        return response;
       } else {
         return NextResponse.json({ success: false, error: '登录密钥无效，验证失败。' }, { status: 401 });
       }
@@ -107,6 +137,26 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: false, error: '缺少必需的登录凭证参数。' }, { status: 400 });
 
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('Authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim() || request.cookies.get('share_home_token')?.value || '';
+    if (token) {
+      AuthService.getInstance().destroySession(token);
+    }
+    const response = NextResponse.json({ success: true });
+    response.cookies.set('share_home_token', '', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0
+    });
+    return response;
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

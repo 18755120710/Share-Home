@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MdnsService } from '@/services/mdnsService';
 import { SocketService } from '@/services/socketService';
+import { AuthService } from '@/services/authService';
 
 const getRuntimePort = (value: string | undefined, fallback: number) => {
   const parsed = Number(value);
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
   }
 
   const mdns = MdnsService.getInstance();
+  const authService = AuthService.getInstance();
   const { searchParams } = new URL(request.url);
   
   // 优先获取客户端透传的本地个性化属性
@@ -70,6 +72,17 @@ export async function GET(request: NextRequest) {
       mdns.registerWebPeer(clientId, clientIp, nickname, avatar, webPort, os);
   }
 
+  if (authService.isInitialized()) {
+    authService.registerDevice({
+      id: clientId,
+      ip: clientIp,
+      nickname,
+      avatar,
+      os,
+      role: 'guest'
+    });
+  }
+
   return NextResponse.json({
     status: 'ready',
     clientId,
@@ -94,6 +107,7 @@ export async function POST(request: Request) {
     }
     
     const mdns = MdnsService.getInstance();
+    const authService = AuthService.getInstance();
     
     // 解析 IP 并重新计算出此 IP 强绑定的物理 ID
     let clientIp = '127.0.0.1';
@@ -119,6 +133,17 @@ export async function POST(request: Request) {
     } else {
       // 远端浏览器访问的是这台主机的控制台，因此资料更新应作用于主机广播身份。
       mdns.updateBroadcast(nickname, avatar);
+    }
+
+    if (authService.isInitialized()) {
+      authService.registerDevice({
+        id: calculatedClientId,
+        ip: clientIp,
+        nickname,
+        avatar,
+        os: os || 'Windows',
+        role: 'guest'
+      });
     }
     
     return NextResponse.json({ success: true, nickname, avatar });

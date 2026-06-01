@@ -14,17 +14,340 @@ import Card from '@/components/ui/LegacyCard';
 import { Button as ShadcnButton } from '@/components/ui/button';
 import { Card as ShadcnCard, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input as ShadcnInput } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { 
   Radio, RefreshCw, Laptop, Monitor, Smartphone, Edit3, Check, 
   Files, FileText, Settings, ShieldAlert, FolderOpen,
   Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X,
   History, ArrowRight, CheckCircle2, XCircle, Ban,
-  ChevronLeft, ChevronRight, ChevronDown
+  ChevronLeft, ChevronRight, ChevronDown, KeyRound, LogOut,
+  Users, ShieldCheck, Lock, UserRound
 } from 'lucide-react';
 
-type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history-transfer' | 'history-share' | 'history-document';
+type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history-transfer' | 'history-share' | 'history-document' | 'users';
 
 export default function Home() {
+  // ==================== 局域网安全与权限管理状态 ====================
+  const [authStatus, setAuthStatus] = useState<'loading' | 'uninitialized' | 'unauthorized' | 'authorized'>('loading');
+  const [role, setRole] = useState<'admin' | 'guest' | null>(null);
+  const [myClientId, setMyClientId] = useState<string | null>(null);
+  const [myPermissions, setMyPermissions] = useState<{ allowUpload: boolean; allowEditDoc: boolean; allowCreateDoc: boolean }>({
+    allowUpload: true,
+    allowEditDoc: true,
+    allowCreateDoc: true
+  });
+
+  // 网页自愈配置状态
+  const [initAdminUser, setInitAdminUser] = useState('admin');
+  const [initAdminPass, setInitAdminPass] = useState('');
+  const [initGuestPass, setInitGuestPass] = useState('');
+  const [initIsLocal, setInitIsLocal] = useState(true); // 判定是否为回环
+  const [initError, setInitError] = useState('');
+
+  // 双通道登录页状态
+  const [loginTab, setLoginTab] = useState<'guest' | 'admin'>('guest');
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginGuestPass, setLoginGuestPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLogining, setIsLogining] = useState(false);
+
+  // 用户管理特权面板状态
+  const [devicesList, setDevicesList] = useState<any[]>([]);
+  const [isUpdatingDevicePerm, setIsUpdatingDevicePerm] = useState<string | null>(null);
+  const [newGuestKeyInput, setNewGuestKeyInput] = useState('');
+  const [guestKeyStatus, setGuestKeyStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [guestKeyError, setGuestKeyError] = useState('');
+  const [noticeDialog, setNoticeDialog] = useState<{
+    title: string;
+    description?: string;
+    variant: 'info' | 'error';
+    permissions?: { allowUpload: boolean; allowEditDoc: boolean; allowCreateDoc: boolean };
+  } | null>(null);
+
+  // 1. 初始化探针会话校验
+  const checkSession = async (tokenToCheck?: string) => {
+    const activeToken = tokenToCheck || localStorage.getItem('share_home_token') || '';
+    
+    try {
+      const res = await fetch('/api/auth/session', {
+        headers: activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {}
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setRole(data.role);
+        setMyClientId(data.clientId);
+        setMyPermissions(data.permissions);
+        setAuthStatus('authorized');
+        // 同步 LocalStorage client_id
+        if (data.clientId) {
+          localStorage.setItem('share_home_client_id', data.clientId);
+        }
+      } else {
+        // 校验失败
+        if (data.error === 'auth_not_initialized') {
+          // 安全检测：检查当前客户端是否为本地回环以决定是否允许在网页初始化
+          const requestIp = data.ip || '127.0.0.1';
+          const isLocal = requestIp === '127.0.0.1' || requestIp === '::1' || requestIp === 'localhost';
+          setInitIsLocal(isLocal);
+          setAuthStatus('uninitialized');
+        } else {
+          localStorage.removeItem('share_home_token');
+          setAuthStatus('unauthorized');
+        }
+      }
+    } catch (err) {
+      console.error('[Session] 会话鉴权异常，默认退避到登录状态:', err);
+      setAuthStatus('unauthorized');
+    }
+  };
+
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  useEffect(() => {
+    // 🌟 【网关级秒级权限变更订阅】：订阅 WebSocket 发送的 permissions:update 广播！
+    const socket = SocketClient.getInstance();
+    const unsubPermsUpdate = socket.subscribe('permissions:update', (data: any) => {
+      // 这里的 data 结构为 { clientId, permissions }
+      if (myClientId && data.clientId === myClientId) {
+        console.log('[WebSocket] 监听到超级管理员实时更新了您的设备权限:', data.permissions);
+        setMyPermissions(data.permissions);
+        
+        setNoticeDialog({
+          title: '您的操作权限已更新',
+          description: '超级管理员刚刚调整了这台设备的可用功能。',
+          variant: 'info',
+          permissions: data.permissions
+        });
+      }
+    });
+
+    return () => {
+      unsubPermsUpdate();
+    };
+  }, [myClientId]);
+
+  // 2. 触发网页密码初始化配置
+  const handleInitAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!initAdminPass || !initGuestPass) {
+      setInitError('密码和通用密钥均不能为空。');
+      return;
+    }
+    setInitError('');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'init',
+          adminUsername: initAdminUser,
+          adminPassword: initAdminPass,
+          guestPass: initGuestPass
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        // 初始化成功，自动帮该管理员进行一次登录，体验极其丝滑！
+        await handleLoginExecute(initAdminUser, initAdminPass, 'admin');
+      } else {
+        setInitError(data.error || '写入物理密码配置失败，请检查写入权限。');
+      }
+    } catch (err: any) {
+      setInitError(err.message || '网络连接异常');
+    }
+  };
+
+  // 3. 执行登录请求
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLogining(true);
+
+    try {
+      if (loginTab === 'admin') {
+        if (!loginUser || !loginPass) {
+          setLoginError('管理员账号和密码不能为空');
+          setIsLogining(false);
+          return;
+        }
+        await handleLoginExecute(loginUser, loginPass, 'admin');
+      } else {
+        if (!loginGuestPass) {
+          setLoginError('伙伴通行密钥不能为空');
+          setIsLogining(false);
+          return;
+        }
+        await handleLoginExecute('', '', 'guest', loginGuestPass);
+      }
+    } catch (err: any) {
+      setLoginError(err.message || '登录异常');
+      setIsLogining(false);
+    }
+  };
+
+  const handleLoginExecute = async (user: string, pass: string, targetRole: 'admin' | 'guest', guestPassValue?: string) => {
+    try {
+      const payload = targetRole === 'admin' 
+        ? { username: user, password: pass }
+        : { guestPassword: guestPassValue };
+
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (data.success && data.token) {
+        localStorage.setItem('share_home_token', data.token);
+        // 验证会话并拉取最新的身份及 client_id 绑定
+        await checkSession(data.token);
+        
+        // 重置登录表单状态
+        setLoginUser('');
+        setLoginPass('');
+        setLoginGuestPass('');
+        setIsLogining(false);
+      } else {
+        setLoginError(data.error || '认证失败，请重新检查密码或通用密钥。');
+        setIsLogining(false);
+      }
+    } catch (e: any) {
+      setLoginError(e.message || '服务器接口握手发生异常');
+      setIsLogining(false);
+    }
+  };
+
+  // 4. 超级管理员：获取网内活跃与持久化绑定的设备列表
+  const fetchDevicesList = async () => {
+    const token = localStorage.getItem('share_home_token') || '';
+    if (!token || role !== 'admin') return;
+
+    try {
+      const res = await fetch('/api/auth/admin', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDevicesList(data.devices || []);
+      }
+    } catch (err) {
+      console.error('[Admin] 获取网内设备权限表失败:', err);
+    }
+  };
+
+  // 5. 超级管理员：更新特定设备权限 Switch
+  const handleUpdateDevicePermission = async (clientId: string, key: 'allowUpload' | 'allowEditDoc' | 'allowCreateDoc', value: boolean) => {
+    const token = localStorage.getItem('share_home_token') || '';
+    if (!token || role !== 'admin') return;
+
+    setIsUpdatingDevicePerm(`${clientId}_${key}`);
+    try {
+      const res = await fetch('/api/auth/admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ clientId, key, value })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDevicesList(prev => prev.map(d => {
+          if (d.id === clientId) {
+            return {
+              ...d,
+              permissions: {
+                ...d.permissions,
+                [key]: value
+              }
+            };
+          }
+          return d;
+        }));
+      } else {
+        setNoticeDialog({
+          title: '更新权限失败',
+          description: data.error || '权限写入失败，请稍后重试。',
+          variant: 'error'
+        });
+      }
+    } catch (err: any) {
+      setNoticeDialog({
+        title: '更新权限异常',
+        description: err.message || '服务器接口握手发生异常。',
+        variant: 'error'
+      });
+    } finally {
+      setIsUpdatingDevicePerm(null);
+    }
+  };
+
+  // 6. 超级管理员：在线修改伙伴通用登录密钥
+  const handleUpdateGuestKeySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem('share_home_token') || '';
+    if (!token || role !== 'admin') return;
+
+    if (!newGuestKeyInput.trim() || newGuestKeyInput.trim().length < 6) {
+      setGuestKeyError('局域网通用密码必须为至少 6 位的有效字符');
+      setGuestKeyStatus('error');
+      return;
+    }
+
+    setGuestKeyStatus('saving');
+    setGuestKeyError('');
+
+    try {
+      const res = await fetch('/api/auth/admin', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ newGuestPass: newGuestKeyInput.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGuestKeyStatus('success');
+        setNewGuestKeyInput('');
+        setTimeout(() => setGuestKeyStatus('idle'), 3000);
+      } else {
+        setGuestKeyError(data.error || '写入通用密码文件失败');
+        setGuestKeyStatus('error');
+      }
+    } catch (err: any) {
+      setGuestKeyError(err.message || '网络连接异常');
+      setGuestKeyStatus('error');
+    }
+  };
+
+  // 7. 登出
+  const handleLogout = () => {
+    const token = localStorage.getItem('share_home_token') || '';
+    if (token) {
+      fetch('/api/auth/login', {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    }
+    localStorage.removeItem('share_home_token');
+    setRole(null);
+    setAuthStatus('unauthorized');
+    setActiveTab('transfer');
+  };
+
   // 1. 初始化局域网在线节点发现逻辑
   const { peers, self, isConnected, updateProfile, refreshPeers } = useMdnsPeers();
 
@@ -60,6 +383,25 @@ export default function Home() {
 
   // 页面当前激活的大 Tab
   const [activeTab, setActiveTab] = useState<ActiveTab>('transfer');
+
+  useEffect(() => {
+    if (activeTab === 'users' && role === 'admin') {
+      fetchDevicesList();
+    }
+  }, [activeTab, role]);
+
+  useEffect(() => {
+    if (authStatus !== 'authorized') return;
+
+    const heartbeat = window.setInterval(() => {
+      checkSession();
+      if (role === 'admin' && activeTab === 'users') {
+        fetchDevicesList();
+      }
+    }, 30 * 1000);
+
+    return () => window.clearInterval(heartbeat);
+  }, [authStatus, role, activeTab]);
 
   // 系统设置局部二级 Tab 导航状态
   const [settingsSubTab, setSettingsSubTab] = useState<'storage' | 'profile' | 'network' | 'guidelines'>('storage');
@@ -194,6 +536,12 @@ export default function Home() {
       setIsRecordMenuExpanded(true);
     }
   }, [activeTab, isSidebarCollapsed]);
+
+  useEffect(() => {
+    if (role !== 'admin' && activeTab === 'users') {
+      setActiveTab('transfer');
+    }
+  }, [activeTab, role]);
 
   const renderSelfAvatar = (avatar: string, size = 13) => {
     switch (avatar) {
@@ -332,6 +680,211 @@ export default function Home() {
     t => t.status === 'transferring' || t.status === 'pending'
   ).length;
   const totalTasksCount = Object.values(tasks).length;
+
+  const renderAuthShell = () => {
+    const isInit = authStatus === 'uninitialized';
+    const isLoading = authStatus === 'loading';
+
+    return (
+      <div className="min-h-screen w-full bg-[var(--bg-app)] text-[var(--text-primary)] px-5 py-8 sm:px-8 lg:px-12">
+        <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-[1180px] gap-8 lg:grid-cols-[1fr_420px] lg:items-center lg:gap-12">
+          <section className="flex flex-col justify-center">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/10">
+                <Radio size={21} className="text-primary" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-3xl font-extrabold tracking-[-0.02em] leading-tight sm:text-4xl">Share Home</h1>
+                <p className="mt-1 text-sm text-muted-foreground">局域网协作平台安全入口</p>
+              </div>
+            </div>
+
+            <p className="mt-8 max-w-[62ch] text-sm leading-7 text-muted-foreground sm:text-base sm:leading-8">
+              文件投递、共享中心和云文档在本地网络内工作。进入工作台前完成身份验证，管理员负责发放伙伴密钥并管理每台设备权限。
+            </p>
+
+            <div className="mt-8 max-w-[720px] border-y border-border/60">
+              {[
+                { code: 'ADMIN', label: '账号密码', detail: '管理员可修改伙伴密钥、设备权限和系统配置', Icon: ShieldCheck },
+                { code: 'GUEST', label: '通用密钥', detail: '普通伙伴输入密钥即可进入协作工作台', Icon: KeyRound },
+                { code: 'DEVICE', label: 'IP 绑定', detail: '同一 IP 固定为同一个设备身份，便于权限追踪', Icon: Lock },
+              ].map(({ code, label, detail, Icon }, index) => (
+                <div key={code} className={`grid grid-cols-[22px_88px_1fr] items-center gap-3 py-4 ${index > 0 ? 'border-t border-border/40' : ''}`}>
+                  <Icon size={15} className="text-primary" />
+                  <div className="font-mono text-[10px] font-semibold text-muted-foreground">{code}</div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold">{label}</div>
+                    <div className="mt-0.5 text-xs leading-5 text-muted-foreground">{detail}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="flex flex-col justify-center border-t border-border/70 pt-8 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
+            <div className="mb-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/10">
+                  {isInit ? <ShieldCheck size={17} className="text-primary" /> : <Lock size={17} className="text-primary" />}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold tracking-tight">
+                    {isLoading ? '正在校验会话' : isInit ? '首次启动初始化' : '验证身份'}
+                  </h2>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {isInit ? '设置管理员账号，并创建普通伙伴通用密钥' : loginTab === 'admin' ? '使用管理员账号进入管理模式' : '使用管理员发放的密钥进入工作台'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center gap-3 border-y border-border/50 py-5 text-sm text-muted-foreground">
+                <RefreshCw size={16} className="animate-spin text-primary" />
+                <span>正在读取本地授权状态...</span>
+              </div>
+            ) : isInit ? (
+              <form onSubmit={handleInitAuthSubmit} className="flex flex-col gap-4">
+                <label className="flex flex-col gap-2 text-xs font-semibold">
+                  超级管理员账号
+                  <ShadcnInput
+                    value={initAdminUser}
+                    onChange={(e) => setInitAdminUser(e.target.value)}
+                    autoComplete="username"
+                    className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
+                    placeholder="admin"
+                  />
+                </label>
+                <label className="flex flex-col gap-2 text-xs font-semibold">
+                  超级管理员密码
+                  <ShadcnInput
+                    type="password"
+                    value={initAdminPass}
+                    onChange={(e) => setInitAdminPass(e.target.value)}
+                    autoComplete="new-password"
+                    className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
+                    placeholder="输入管理员密码"
+                  />
+                </label>
+                <label className="flex flex-col gap-2 text-xs font-semibold">
+                  伙伴通用登录密钥
+                  <ShadcnInput
+                    type="password"
+                    value={initGuestPass}
+                    onChange={(e) => setInitGuestPass(e.target.value)}
+                    autoComplete="new-password"
+                    className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
+                    placeholder="例如 123456"
+                  />
+                </label>
+                {initError && (
+                  <div className="flex items-start gap-2 rounded-lg border border-destructive/15 bg-destructive/10 px-3 py-2 text-xs leading-5 text-destructive">
+                    <ShieldAlert size={14} className="mt-0.5 shrink-0" />
+                    <span>{initError}</span>
+                  </div>
+                )}
+                {!initIsLocal && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                    <Info size={14} className="mt-0.5 shrink-0" />
+                    <span>非本机访问不能初始化管理员密码，请在宿主机器打开本页面或使用 `share-home` 终端初始化。</span>
+                  </div>
+                )}
+                <ShadcnButton type="submit" disabled={!initIsLocal} className="mt-1 h-11 rounded-lg text-sm font-semibold">
+                  <ShieldCheck size={14} />
+                  初始化并登录
+                </ShadcnButton>
+              </form>
+            ) : (
+              <form onSubmit={handleLoginSubmit} className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-1 rounded-lg border border-border/50 bg-muted/20 p-1">
+                  <button
+                    type="button"
+                    aria-pressed={loginTab === 'guest'}
+                    onClick={() => setLoginTab('guest')}
+                    className={`h-10 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                      loginTab === 'guest'
+                        ? 'bg-background text-foreground border border-border/60 shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
+                  >
+                    <KeyRound size={13} />
+                    伙伴密钥
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={loginTab === 'admin'}
+                    onClick={() => setLoginTab('admin')}
+                    className={`h-10 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                      loginTab === 'admin'
+                        ? 'bg-background text-foreground border border-border/60 shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
+                  >
+                    <ShieldCheck size={13} />
+                    超级管理员
+                  </button>
+                </div>
+
+                {loginTab === 'admin' ? (
+                  <>
+                    <label className="flex flex-col gap-2 text-xs font-semibold">
+                      管理员账号
+                      <ShadcnInput
+                        value={loginUser}
+                        onChange={(e) => setLoginUser(e.target.value)}
+                        autoComplete="username"
+                        className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
+                        placeholder="admin"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-2 text-xs font-semibold">
+                      管理员密码
+                      <ShadcnInput
+                        type="password"
+                        value={loginPass}
+                        onChange={(e) => setLoginPass(e.target.value)}
+                        autoComplete="current-password"
+                        className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
+                        placeholder="输入管理员密码"
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <label className="flex flex-col gap-2 text-xs font-semibold">
+                    伙伴通用密钥
+                    <ShadcnInput
+                      type="password"
+                      value={loginGuestPass}
+                      onChange={(e) => setLoginGuestPass(e.target.value)}
+                      autoComplete="current-password"
+                      className="h-11 rounded-lg border-border/70 bg-background px-3 text-sm"
+                      placeholder="输入管理员发放的密钥"
+                    />
+                  </label>
+                )}
+
+                {loginError && (
+                  <div className="flex items-start gap-2 rounded-lg border border-destructive/15 bg-destructive/10 px-3 py-2 text-xs leading-5 text-destructive">
+                    <ShieldAlert size={14} className="mt-0.5 shrink-0" />
+                    <span>{loginError}</span>
+                  </div>
+                )}
+
+                <ShadcnButton type="submit" disabled={isLogining} className="mt-1 h-11 rounded-lg text-sm font-semibold">
+                  {isLogining ? <RefreshCw size={14} className="animate-spin" /> : <ArrowRight size={14} />}
+                  {isLogining ? '正在验证' : '进入工作台'}
+                </ShadcnButton>
+              </form>
+            )}
+          </section>
+        </div>
+      </div>
+    );
+  };
+
+  if (authStatus !== 'authorized') {
+    return renderAuthShell();
+  }
 
   return (
     <div className="app-container">
@@ -488,6 +1041,20 @@ export default function Home() {
               <Settings size={15} className={`flex-shrink-0 ${activeTab === 'settings' ? 'text-primary' : 'text-muted-foreground'}`} />
               <span className="sidebar-nav-text">系统配置</span>
             </button>
+
+            {role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
+                  activeTab === 'users'
+                    ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
+                    : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                }`}
+              >
+                <Users size={15} className={`flex-shrink-0 ${activeTab === 'users' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className="sidebar-nav-text">用户管理</span>
+              </button>
+            )}
           </nav>
         </div>
 
@@ -585,6 +1152,7 @@ export default function Home() {
               {activeTab === 'knowledge' && '知识协作云文档'}
               {activeTab.startsWith('history-') && '操作与协作记录中心'}
               {activeTab === 'settings' && '全局系统配置'}
+              {activeTab === 'users' && '用户与权限管理'}
             </h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
               {activeTab === 'transfer' && '安全、无压缩的局域网零阻碍点对点极速传输'}
@@ -592,6 +1160,7 @@ export default function Home() {
               {activeTab === 'knowledge' && '支持富文本与代码的局域网去中心化物理落盘云文档'}
               {activeTab.startsWith('history-') && '局域网互传历史、共享上传审计以及云协作审计日志'}
               {activeTab === 'settings' && '修改默认存储路径以及查看本端硬件和网络特征'}
+              {activeTab === 'users' && '管理普通伙伴登录密钥以及每台设备的共享与文档权限'}
             </p>
           </div>
 
@@ -678,6 +1247,15 @@ export default function Home() {
               <RefreshCw size={14} />
               刷新雷达
             </Button>
+
+            <button
+              onClick={handleLogout}
+              title="退出当前登录"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border/60 bg-muted/20 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all"
+            >
+              <LogOut size={14} />
+              <span>{role === 'admin' ? '管理员' : '伙伴'}</span>
+            </button>
           </div>
         </header>
 
@@ -708,14 +1286,14 @@ export default function Home() {
               flexDirection: 'column',
               gap: '24px'
             }} className="fade-in">
-              <SharedFiles uploadPublicFile={uploadPublicFile} />
+              <SharedFiles uploadPublicFile={uploadPublicFile} allowUpload={myPermissions.allowUpload} />
             </div>
           )}
 
           {/* TAB 2: 去中心化知识库云文档 */}
           {activeTab === 'knowledge' && (
             <div className="fade-in">
-              <KnowledgeBase peers={peers} self={self} />
+              <KnowledgeBase peers={peers} self={self} allowEditDoc={myPermissions.allowEditDoc} allowCreateDoc={myPermissions.allowCreateDoc} />
             </div>
           )}
 
@@ -1031,6 +1609,145 @@ export default function Home() {
             </div>
           )}
 
+          {activeTab === 'users' && role === 'admin' && (
+            <div className="fade-in flex flex-col gap-6 mt-2">
+              <section className="rounded-xl border border-border/60 bg-muted/10 p-5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                      <KeyRound size={16} className="text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground">普通伙伴通用登录密钥</h3>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        普通用户首次访问只需要输入此密钥。密钥会以加盐哈希形式保存到根目录 `conf/auth.json`。
+                      </p>
+                    </div>
+                  </div>
+                  <form onSubmit={handleUpdateGuestKeySubmit} className="flex w-full md:w-auto gap-2 md:min-w-[360px]">
+                    <ShadcnInput
+                      type="password"
+                      value={newGuestKeyInput}
+                      onChange={(e) => {
+                        setNewGuestKeyInput(e.target.value);
+                        setGuestKeyStatus('idle');
+                        setGuestKeyError('');
+                      }}
+                      placeholder="输入新的伙伴密钥，至少 6 位"
+                      className="rounded-lg border-border/70 bg-background"
+                    />
+                    <ShadcnButton type="submit" disabled={guestKeyStatus === 'saving'} className="rounded-lg shrink-0">
+                      {guestKeyStatus === 'saving' ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
+                      保存密钥
+                    </ShadcnButton>
+                  </form>
+                </div>
+                {guestKeyStatus === 'success' && (
+                  <div className="mt-4 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/15 rounded-lg px-3 py-2">
+                    普通伙伴登录密钥已更新，新登录用户将使用新密钥验证。
+                  </div>
+                )}
+                {guestKeyStatus === 'error' && guestKeyError && (
+                  <div className="mt-4 text-xs text-destructive bg-destructive/10 border border-destructive/15 rounded-lg px-3 py-2">
+                    {guestKeyError}
+                  </div>
+                )}
+              </section>
+
+              <section className="flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">设备权限表</h3>
+                    <p className="text-xs text-muted-foreground mt-1">同一 IP 会固定绑定为同一个设备 ID，默认权限全部开放。</p>
+                  </div>
+                  <ShadcnButton variant="outline" onClick={fetchDevicesList} className="rounded-lg">
+                    <RefreshCw size={14} />
+                    刷新列表
+                  </ShadcnButton>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-border/60">
+                  <table className="w-full min-w-[760px] text-sm">
+                    <thead className="bg-muted/20 text-muted-foreground">
+                      <tr>
+                        <th className="text-left px-4 py-3 text-[11px] font-bold">设备</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-bold">IP / 系统</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-bold">身份</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-bold">权限</th>
+                        <th className="text-right px-4 py-3 text-[11px] font-bold">状态</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {devicesList.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-10 text-center text-xs text-muted-foreground">
+                            暂无已登记设备。普通伙伴登录或访问工作台后会出现在这里。
+                          </td>
+                        </tr>
+                      ) : devicesList.map((device) => (
+                        <tr key={device.id} className="border-t border-border/40">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-muted/30 border border-border/50 flex items-center justify-center">
+                                <UserRound size={14} className="text-primary" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-foreground truncate max-w-[180px]">{device.nickname || '局域网伙伴'}</div>
+                                <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[220px]">{device.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-xs text-foreground font-mono">{device.ip}</div>
+                            <div className="text-[10px] text-muted-foreground mt-1">{device.os || 'unknown'}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-bold ${
+                              device.role === 'admin'
+                                ? 'border-primary/20 bg-primary/10 text-primary'
+                                : 'border-border/60 bg-muted/20 text-muted-foreground'
+                            }`}>
+                              {device.role === 'admin' ? <ShieldCheck size={11} /> : <KeyRound size={11} />}
+                              {device.role === 'admin' ? '超级管理员' : '普通伙伴'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                ['allowUpload', '共享上传', device.permissions?.allowUpload],
+                                ['allowEditDoc', '文档编写', device.permissions?.allowEditDoc],
+                                ['allowCreateDoc', '新建文档', device.permissions?.allowCreateDoc],
+                              ].map(([key, label, enabled]) => (
+                                <button
+                                  key={String(key)}
+                                  onClick={() => handleUpdateDevicePermission(device.id, key as 'allowUpload' | 'allowEditDoc' | 'allowCreateDoc', !enabled)}
+                                  disabled={isUpdatingDevicePerm === `${device.id}_${key}`}
+                                  className={`h-7 px-2.5 rounded-md border text-[11px] font-semibold transition-all ${
+                                    enabled
+                                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                      : 'bg-muted/20 border-border/60 text-muted-foreground'
+                                  }`}
+                                >
+                                  {isUpdatingDevicePerm === `${device.id}_${key}` ? '保存中' : `${label} ${enabled ? '开' : '关'}`}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${device.online ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${device.online ? 'bg-emerald-500' : 'bg-muted-foreground/50'}`} />
+                              {device.online ? '在线' : '离线'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -1317,6 +2034,62 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <Dialog open={!!noticeDialog} onOpenChange={(open) => !open && setNoticeDialog(null)}>
+        <DialogContent className="rounded-xl border-border/70 bg-popover p-0 sm:max-w-[420px]" showCloseButton={false}>
+          <DialogHeader className="gap-0 border-b border-border/50 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${
+                noticeDialog?.variant === 'error'
+                  ? 'border-destructive/20 bg-destructive/10 text-destructive'
+                  : 'border-primary/20 bg-primary/10 text-primary'
+              }`}>
+                {noticeDialog?.variant === 'error' ? <ShieldAlert size={16} /> : <ShieldCheck size={16} />}
+              </div>
+              <div className="min-w-0">
+                <DialogTitle className="text-sm font-bold tracking-tight">
+                  {noticeDialog?.title}
+                </DialogTitle>
+                {noticeDialog?.description && (
+                  <DialogDescription className="mt-1 text-xs leading-5">
+                    {noticeDialog.description}
+                  </DialogDescription>
+                )}
+              </div>
+            </div>
+          </DialogHeader>
+
+          {noticeDialog?.permissions && (
+            <div className="px-5 py-4">
+              <div className="grid gap-2">
+                {[
+                  ['文件上传/分享', noticeDialog.permissions.allowUpload],
+                  ['文档编写', noticeDialog.permissions.allowEditDoc],
+                  ['新建云文档', noticeDialog.permissions.allowCreateDoc],
+                ].map(([label, enabled]) => (
+                  <div key={String(label)} className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
+                    <span className="text-xs font-semibold text-foreground">{label}</span>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+                      enabled
+                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                        : 'border-destructive/20 bg-destructive/10 text-destructive'
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${enabled ? 'bg-emerald-500' : 'bg-destructive'}`} />
+                      {enabled ? '已启用' : '已禁用'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="border-t border-border/50 px-5 py-4">
+            <ShadcnButton onClick={() => setNoticeDialog(null)} className="rounded-lg">
+              知道了
+            </ShadcnButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

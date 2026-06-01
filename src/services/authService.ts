@@ -8,6 +8,17 @@ export interface DevicePermission {
   allowCreateDoc: boolean;
 }
 
+export interface KnownDevice {
+  id: string;
+  ip: string;
+  nickname: string;
+  avatar: string;
+  os: string;
+  role: 'admin' | 'guest';
+  firstSeen: number;
+  lastSeen: number;
+}
+
 export interface AuthConfig {
   adminUsername: string;
   adminSalt: string;
@@ -15,6 +26,7 @@ export interface AuthConfig {
   guestSalt: string;
   guestHash: string;
   devicePermissions: Record<string, DevicePermission>;
+  knownDevices?: Record<string, KnownDevice>;
 }
 
 export interface UserSession {
@@ -108,7 +120,8 @@ export class AuthService {
       adminHash: adminHashObj.hash,
       guestSalt: guestHashObj.salt,
       guestHash: guestHashObj.hash,
-      devicePermissions: {}
+      devicePermissions: {},
+      knownDevices: {}
     };
 
     return this.saveConfig(config);
@@ -169,6 +182,40 @@ export class AuthService {
     return token;
   }
 
+  public getClientIdFromIp(ip: string): string {
+    return `peer_${ip.replace(/\./g, '_')}`;
+  }
+
+  public getActiveSessionDevices(maxIdleMs = 90 * 1000): Array<{ clientId: string; role: 'admin' | 'guest'; ip: string; lastActive: number }> {
+    const globalSymbols = global as any;
+    const sessionsMap = globalSymbols.__sessions__ as Map<string, UserSession>;
+    const now = Date.now();
+    const activeDevices = new Map<string, { clientId: string; role: 'admin' | 'guest'; ip: string; lastActive: number }>();
+
+    for (const [token, session] of sessionsMap.entries()) {
+      if (now - session.lastActive > 7 * 24 * 60 * 60 * 1000) {
+        sessionsMap.delete(token);
+        continue;
+      }
+      if (now - session.lastActive > maxIdleMs) {
+        continue;
+      }
+
+      const clientId = this.getClientIdFromIp(session.ip);
+      const previous = activeDevices.get(clientId);
+      if (!previous || session.lastActive > previous.lastActive) {
+        activeDevices.set(clientId, {
+          clientId,
+          role: session.role,
+          ip: session.ip,
+          lastActive: session.lastActive
+        });
+      }
+    }
+
+    return Array.from(activeDevices.values());
+  }
+
   /**
    * 验证会话 Token 有效性
    */
@@ -223,6 +270,46 @@ export class AuthService {
   public getDevicePermissions(): Record<string, DevicePermission> {
     const config = this.readConfig();
     return config?.devicePermissions || {};
+  }
+
+  public getKnownDevices(): Record<string, KnownDevice> {
+    const config = this.readConfig();
+    return config?.knownDevices || {};
+  }
+
+  public registerDevice(device: Omit<KnownDevice, 'firstSeen' | 'lastSeen'>): boolean {
+    const config = this.readConfig();
+    if (!config) return false;
+
+    if (!config.knownDevices) {
+      config.knownDevices = {};
+    }
+
+    const previous = config.knownDevices[device.id];
+    const now = Date.now();
+    config.knownDevices[device.id] = {
+      ...previous,
+      ...device,
+      nickname: device.nickname === '局域网伙伴' && previous?.nickname ? previous.nickname : device.nickname,
+      avatar: device.avatar === 'avatar-1' && previous?.avatar ? previous.avatar : device.avatar,
+      os: device.os === 'unknown' && previous?.os ? previous.os : device.os,
+      role: previous && device.os !== 'unknown' ? previous.role : device.role,
+      firstSeen: previous?.firstSeen || now,
+      lastSeen: now
+    };
+
+    if (!config.devicePermissions) {
+      config.devicePermissions = {};
+    }
+    if (!config.devicePermissions[device.id]) {
+      config.devicePermissions[device.id] = {
+        allowUpload: true,
+        allowEditDoc: true,
+        allowCreateDoc: true
+      };
+    }
+
+    return this.saveConfig(config);
   }
 
   /**
