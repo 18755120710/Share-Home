@@ -9,7 +9,7 @@ import {
   Eye, FileImage, FileVideo, FileAudio, RotateCw, ZoomIn, 
   ZoomOut, RefreshCw, X, Music, Search, ArrowUpDown, 
   LayoutGrid, List, Sparkles, FolderOpen, Calendar, HardDrive, Info,
-  ShieldAlert
+  ShieldAlert, Plus
 } from 'lucide-react';
 import {
   Dialog,
@@ -43,7 +43,8 @@ interface SharedFilesProps {
   uploadPublicFile: (
     file: File,
     deviceInfo: string,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    boxId?: string
   ) => Promise<boolean>;
   allowUpload?: boolean;
 }
@@ -52,6 +53,8 @@ interface FilePreviewModalProps {
   file: SharedFile;
   onClose: () => void;
 }
+
+const SHARED_FILE_DRAG_TYPE = 'application/x-share-home-shared-file-id';
 
 const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) => {
   const [zoom, setZoom] = useState(1);
@@ -571,6 +574,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteFileId, setDeleteFileId] = useState<string | null>(null);
 
+  // 新增：拖拽收纳盒目标悬停状态
+  const [dragOverBoxId, setDragOverBoxId] = useState<string | null>(null);
+  const [draggedFileId, setDraggedFileId] = useState<string | null>(null);
+
   // 替换原生 alert/confirm UI 的 Shadcn Dialog 状态
   const [noticeModal, setNoticeModal] = useState<{
     open: boolean;
@@ -820,17 +827,31 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   }, []);
 
   // 拖拽处理
+  const isSharedFileDrag = (e: React.DragEvent) => {
+    return Array.from(e.dataTransfer.types).includes(SHARED_FILE_DRAG_TYPE);
+  };
+
+  const isNativeFileDrag = (e: React.DragEvent) => {
+    return Array.from(e.dataTransfer.types).includes('Files');
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
+    if (isSharedFileDrag(e)) return;
     e.preventDefault();
     setIsDragOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
+    if (isSharedFileDrag(e)) return;
     e.preventDefault();
     setIsDragOver(false);
   };
 
   const handleDrop = async (e: React.DragEvent) => {
+    if (isSharedFileDrag(e)) {
+      setDragOverBoxId(null);
+      return;
+    }
     e.preventDefault();
     setIsDragOver(false);
     
@@ -839,6 +860,60 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
     const droppedFiles = e.dataTransfer.files;
     if (droppedFiles && droppedFiles.length > 0) {
       handleUpload(droppedFiles[0]);
+    }
+  };
+
+  const handleFileDragStart = (e: React.DragEvent, fileId: string) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData(SHARED_FILE_DRAG_TYPE, fileId);
+    e.dataTransfer.setData('text/plain', fileId);
+    setDraggedFileId(fileId);
+    setActiveMoveMenuFileId(null);
+  };
+
+  const handleFileDragEnd = () => {
+    setDraggedFileId(null);
+    setDragOverBoxId(null);
+  };
+
+  const handleBoxDragOver = (e: React.DragEvent, boxId: string | null) => {
+    if (!isSharedFileDrag(e) && !isNativeFileDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = isSharedFileDrag(e) ? 'move' : 'copy';
+    setIsDragOver(false);
+    setDragOverBoxId(boxId ?? 'lobby');
+  };
+
+  const handleBoxDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const nextTarget = e.relatedTarget instanceof Node ? e.relatedTarget : null;
+    if (!e.currentTarget.contains(nextTarget)) {
+      setDragOverBoxId(null);
+    }
+  };
+
+  const handleBoxDrop = async (e: React.DragEvent, targetBoxId: string | null) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    setDragOverBoxId(null);
+
+    const fileId = e.dataTransfer.getData(SHARED_FILE_DRAG_TYPE);
+    if (fileId) {
+      const targetKey = targetBoxId ?? null;
+      const sourceFile = files.find(file => file.id === fileId);
+      if (sourceFile && (sourceFile.boxId ?? null) !== targetKey) {
+        await handleMoveFile(fileId, targetKey);
+      }
+      setDraggedFileId(null);
+      return;
+    }
+
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles && droppedFiles.length > 0) {
+      handleUpload(droppedFiles[0], targetBoxId ?? undefined);
     }
   };
 
@@ -851,7 +926,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   };
 
   // 核心上传逻辑（植入测速与时间预估算法）
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (file: File, targetBoxId?: string) => {
     if (!file) return;
     if (!allowUpload) {
       showNotice('上传权限被禁用', '您的共享上传/互传文件权限已被超级管理员禁用。');
@@ -868,7 +943,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
 
     try {
       const deviceInfo = getDeviceInfo();
-      const currentBoxId = (selectedBoxId && selectedBoxId !== 'all' && selectedBoxId !== 'lobby') ? selectedBoxId : undefined;
+      const currentBoxId = targetBoxId ?? ((selectedBoxId && selectedBoxId !== 'all' && selectedBoxId !== 'lobby') ? selectedBoxId : undefined);
       const success = await uploadPublicFile(file, deviceInfo, (progress) => {
         setUploadProgress(progress);
         
@@ -1623,8 +1698,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           {/* 1. 收纳盒卡片网格 (Interactive Box Decks) */}
           <div className="boxes-deck-grid" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-            gap: '12px',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+            gap: '14px',
             width: '100%',
             marginBottom: '4px'
           }}>
@@ -1633,80 +1708,88 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
               onClick={() => setSelectedBoxId('all')}
               className={`box-deck-card ${selectedBoxId === 'all' ? 'active' : ''}`}
               style={{
-                background: selectedBoxId === 'all' 
-                  ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%)' 
-                  : 'rgba(255, 255, 255, 0.02)',
-                border: selectedBoxId === 'all'
-                  ? '1px solid rgba(99, 102, 241, 0.4)'
-                  : '1px solid rgba(255, 255, 255, 0.05)',
-                borderRadius: '14px',
-                padding: '12px 16px',
+                background: selectedBoxId === 'all' ? 'rgba(59, 130, 246, 0.08)' : 'var(--bg-card)',
+                border: selectedBoxId === 'all' ? '1px solid rgba(59, 130, 246, 0.38)' : '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                minHeight: '112px',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '6px',
+                justifyContent: 'space-between',
+                gap: '12px',
                 position: 'relative',
                 transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: selectedBoxId === 'all' ? '0 8px 24px rgba(99, 102, 241, 0.15)' : 'none'
+                boxShadow: selectedBoxId === 'all' ? '0 0 0 3px rgba(59, 130, 246, 0.08)' : 'none'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <span style={{ fontSize: '1.1rem' }}>🌐</span>
+                <span className="box-icon-shell all">
+                  <HardDrive size={17} />
+                </span>
                 <span className="box-files-count-tag" style={{
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.08)',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: '999px',
                   color: 'var(--text-primary)'
                 }}>
                   {files.length} 个文件
                 </span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>全部共享文件</span>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>大厅中所有伙伴的文件</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 750, color: 'var(--text-primary)' }}>全部共享文件</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>大厅中所有伙伴的文件</span>
               </div>
             </div>
 
             {/* 1.2 "未分类大厅" 盒子 */}
             <div 
               onClick={() => setSelectedBoxId('lobby')}
-              className={`box-deck-card ${selectedBoxId === 'lobby' ? 'active' : ''}`}
+              onDragOver={(e) => handleBoxDragOver(e, null)}
+              onDragEnter={() => setDragOverBoxId('lobby')}
+              onDragLeave={handleBoxDragLeave}
+              onDrop={(e) => handleBoxDrop(e, null)}
+              className={`box-deck-card drop-target ${selectedBoxId === 'lobby' ? 'active' : ''} ${dragOverBoxId === 'lobby' ? 'drop-ready' : ''}`}
               style={{
                 background: selectedBoxId === 'lobby' 
-                  ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)' 
-                  : 'rgba(255, 255, 255, 0.02)',
-                border: selectedBoxId === 'lobby'
-                  ? '1px solid rgba(255, 255, 255, 0.2)'
-                  : '1px solid rgba(255, 255, 255, 0.05)',
-                borderRadius: '14px',
-                padding: '12px 16px',
+                  ? 'rgba(255, 255, 255, 0.055)'
+                  : 'var(--bg-card)',
+                border: dragOverBoxId === 'lobby'
+                  ? '1px solid rgba(59, 130, 246, 0.55)'
+                  : (selectedBoxId === 'lobby' ? '1px solid var(--border-color-hover)' : '1px solid var(--border-color)'),
+                borderRadius: '12px',
+                padding: '14px 16px',
+                minHeight: '112px',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '6px',
+                justifyContent: 'space-between',
+                gap: '12px',
                 position: 'relative',
                 transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: selectedBoxId === 'lobby' ? '0 8px 24px rgba(255, 255, 255, 0.06)' : 'none'
+                boxShadow: dragOverBoxId === 'lobby'
+                  ? '0 0 0 3px rgba(59, 130, 246, 0.12)'
+                  : (selectedBoxId === 'lobby' ? '0 0 0 3px rgba(255, 255, 255, 0.04)' : 'none')
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <span style={{ fontSize: '1.1rem' }}>📦</span>
+                <span className="box-icon-shell lobby">
+                  <FolderOpen size={17} />
+                </span>
                 <span className="box-files-count-tag" style={{
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.08)',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: '999px',
                   color: 'var(--text-primary)'
                 }}>
                   {files.filter(f => !f.boxId).length} 个文件
                 </span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>未分类大厅</span>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>尚未装箱的共享文件</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 750, color: 'var(--text-primary)' }}>未分类大厅</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>拖入这里可释放回大厅</span>
               </div>
             </div>
 
@@ -1719,44 +1802,54 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                 <div 
                   key={box.id}
                   onClick={() => setSelectedBoxId(box.id)}
-                  className={`box-deck-card ${isActive ? 'active' : ''}`}
+                  onDragOver={(e) => handleBoxDragOver(e, box.id)}
+                  onDragEnter={() => setDragOverBoxId(box.id)}
+                  onDragLeave={handleBoxDragLeave}
+                  onDrop={(e) => handleBoxDrop(e, box.id)}
+                  className={`box-deck-card drop-target ${isActive ? 'active' : ''} ${dragOverBoxId === box.id ? 'drop-ready' : ''}`}
                   style={{
-                    background: box.color,
-                    border: isActive
-                      ? '1px solid rgba(255, 255, 255, 0.6)'
-                      : '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
-                    padding: '12px 16px',
+                    '--box-accent': box.color,
+                    background: isActive ? 'rgba(59, 130, 246, 0.07)' : 'var(--bg-card)',
+                    border: dragOverBoxId === box.id
+                      ? '1px solid rgba(59, 130, 246, 0.55)'
+                      : (isActive ? '1px solid rgba(59, 130, 246, 0.32)' : '1px solid var(--border-color)'),
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    minHeight: '112px',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '6px',
+                    justifyContent: 'space-between',
+                    gap: '12px',
                     position: 'relative',
                     overflow: 'hidden',
                     transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                    boxShadow: isActive ? '0 10px 28px rgba(0,0,0,0.3)' : 'none'
-                  }}
+                    boxShadow: dragOverBoxId === box.id
+                      ? '0 0 0 3px rgba(59, 130, 246, 0.12)'
+                      : (isActive ? '0 0 0 3px rgba(59, 130, 246, 0.08)' : 'none')
+                  } as React.CSSProperties}
                 >
+                  <div className="box-accent-rail" />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', position: 'relative', zIndex: 2 }}>
-                    <span style={{ fontSize: '1.1rem' }}>📁</span>
+                    <span className="box-icon-shell custom">
+                      <FolderOpen size={17} />
+                    </span>
                     <span className="box-files-count-tag" style={{
-                      fontSize: '0.65rem',
-                      fontWeight: 800,
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      background: 'rgba(255, 255, 255, 0.15)',
-                      color: '#ffffff',
-                      backdropFilter: 'blur(4px)'
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: '999px',
+                      color: 'var(--text-primary)'
                     }}>
                       {boxFiles.length} 个文件
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px', position: 'relative', zIndex: 2 }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative', zIndex: 2 }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 750, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                       {box.name}
                     </span>
-                    <span style={{ fontSize: '0.62rem', color: 'rgba(255, 255, 255, 0.7)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                       {box.description || '无简短说明'}
                     </span>
                   </div>
@@ -1770,11 +1863,11 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                       position: 'absolute',
                       right: '8px',
                       bottom: '8px',
-                      width: '22px',
-                      height: '22px',
+                      width: '24px',
+                      height: '24px',
                       borderRadius: '6px',
-                      border: 'none',
-                      background: 'rgba(0, 0, 0, 0.2)',
+                      border: '1px solid rgba(239, 68, 68, 0.18)',
+                      background: 'rgba(239, 68, 68, 0.08)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1794,22 +1887,24 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
               onClick={() => setIsCreateBoxModalOpen(true)}
               className="box-create-trigger-card"
               style={{
-                border: '1.5px dashed rgba(255, 255, 255, 0.12)',
-                borderRadius: '14px',
-                padding: '12px 16px',
+                border: '1px dashed var(--border-color-hover)',
+                borderRadius: '12px',
+                padding: '14px 16px',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
-                background: 'rgba(255, 255, 255, 0.005)',
+                gap: '8px',
+                background: 'transparent',
                 transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                minHeight: '94px'
+                minHeight: '112px'
               }}
             >
-              <span style={{ fontSize: '1.25rem', color: 'var(--text-muted)', fontWeight: 300 }}>+</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>新建收纳盒</span>
+              <span className="box-create-icon-shell">
+                <Plus size={18} />
+              </span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>新建收纳盒</span>
             </div>
           </div>
 
@@ -1865,14 +1960,18 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                     return (
                       <div
                         key={file.id}
-                        className="orbit-grid-card"
+                        draggable="true"
+                        onDragStart={(e) => handleFileDragStart(e, file.id)}
+                        onDragEnd={handleFileDragEnd}
+                        className={`orbit-grid-card ${draggedFileId === file.id ? 'dragging-file' : ''}`}
                         style={{
                           borderRadius: '16px',
                           display: 'flex',
                           flexDirection: 'column',
-                          overflow: 'hidden',
+                          overflow: 'visible',
                           position: 'relative',
                           transition: 'all 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
+                          zIndex: activeMoveMenuFileId === file.id ? 50 : 1,
                         }}
                       >
                         {/* 上半部：毛玻璃底图与格式图标展示区 */}
@@ -1888,7 +1987,9 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                             justifyContent: 'center',
                             position: 'relative',
                             cursor: isPreviewable ? 'pointer' : 'default',
-                            overflow: 'hidden'
+                            overflow: 'hidden',
+                            borderTopLeftRadius: '16px',
+                            borderTopRightRadius: '16px',
                           }}
                         >
                           {/* 缩略图毛玻璃背景（如果是图片则直接流式拉取） */}
@@ -1953,7 +2054,9 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '10px',
-                          flex: 1
+                          flex: 1,
+                          borderBottomLeftRadius: '16px',
+                          borderBottomRightRadius: '16px',
                         }}>
                           {/* 文件名 */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
@@ -2017,22 +2120,23 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                                 {activeMoveMenuFileId === file.id && (
                                   <div 
                                     onClick={e => e.stopPropagation()}
-                                    className="box-move-popup-menu"
+                                    className="box-move-popup-menu animate-fade-in"
                                     style={{
                                       position: 'absolute',
-                                      bottom: '34px',
+                                      bottom: '100%',
                                       right: '0',
-                                      width: '180px',
+                                      marginBottom: '8px',
+                                      width: '160px',
                                       borderRadius: '12px',
                                       padding: '6px',
                                       display: 'flex',
                                       flexDirection: 'column',
                                       gap: '4px',
-                                      zIndex: 100,
-                                      background: 'rgba(30, 30, 35, 0.9)',
+                                      zIndex: 500,
+                                      background: 'rgba(30, 30, 35, 0.95)',
                                       backdropFilter: 'blur(20px)',
-                                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                                      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
                                       animation: 'preview-scale-up-elastic 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                                     }}
                                   >
@@ -2085,7 +2189,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                                             transition: 'all 0.15s'
                                           }}
                                         >
-                                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: box.color, marginRight: '6px', shrink: 0 }} />
+                                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: box.color, marginRight: '6px', flexShrink: 0 }} />
                                           <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>{box.name}</span>
                                         </button>
                                       );
@@ -2191,7 +2295,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                     return (
                       <div
                         key={file.id}
-                        className="orbit-list-row"
+                        draggable="true"
+                        onDragStart={(e) => handleFileDragStart(e, file.id)}
+                        onDragEnd={handleFileDragEnd}
+                        className={`orbit-list-row ${draggedFileId === file.id ? 'dragging-file' : ''}`}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -2200,6 +2307,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                           borderRadius: '12px',
                           transition: 'all 0.24s cubic-bezier(0.16, 1, 0.3, 1)',
                           cursor: isPreviewable ? 'pointer' : 'default',
+                          position: 'relative',
+                          zIndex: activeMoveMenuFileId === file.id ? 50 : 1,
                         }}
                         onClick={() => {
                           if (isPreviewable) setPreviewFile(file);
@@ -2293,22 +2402,23 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                               {activeMoveMenuFileId === file.id && (
                                 <div 
                                   onClick={e => e.stopPropagation()}
-                                  className="box-move-popup-menu"
+                                  className="box-move-popup-menu animate-fade-in"
                                   style={{
                                     position: 'absolute',
-                                    bottom: '34px',
+                                    bottom: '100%',
                                     right: '0',
-                                    width: '180px',
+                                    marginBottom: '8px',
+                                    width: '160px',
                                     borderRadius: '12px',
                                     padding: '6px',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '4px',
-                                    zIndex: 100,
-                                    background: 'rgba(30, 30, 35, 0.9)',
+                                    zIndex: 500,
+                                    background: 'rgba(30, 30, 35, 0.95)',
                                     backdropFilter: 'blur(20px)',
-                                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                                    boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
                                     animation: 'preview-scale-up-elastic 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                                   }}
                                 >
@@ -2325,16 +2435,18 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                                         borderRadius: '8px',
                                         background: 'transparent',
                                         color: '#ffffff',
-                                        fontSize: '0.72rem',
+                                        fontSize: '0.7rem',
                                         fontWeight: 600,
                                         cursor: 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
                                         textAlign: 'left',
+                                        gap: '6px',
                                         transition: 'all 0.15s'
                                       }}
                                     >
-                                      <span>📦 释放至大厅 (未分类)</span>
+                                      <span>📦</span>
+                                      <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>释放至大厅</span>
                                     </button>
                                   )}
 
@@ -2352,16 +2464,17 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                                           borderRadius: '8px',
                                           background: 'transparent',
                                           color: '#ffffff',
-                                          fontSize: '0.72rem',
+                                          fontSize: '0.7rem',
                                           fontWeight: 600,
                                           cursor: 'pointer',
                                           display: 'flex',
                                           alignItems: 'center',
                                           textAlign: 'left',
+                                          gap: '6px',
                                           transition: 'all 0.15s'
                                         }}
                                       >
-                                        <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: box.color, marginRight: '6px', shrink: 0 }} />
+                                        <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: box.color, marginRight: '2px', flexShrink: 0 }} />
                                         <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>{box.name}</span>
                                       </button>
                                     );
@@ -2749,7 +2862,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
               </div>
             </DialogHeader>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', py: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '4px', paddingBottom: '4px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>收纳盒名称</label>
                 <input 
@@ -3154,26 +3267,69 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         .box-deck-card {
           position: relative;
           overflow: hidden;
-        }
-        .box-card-glow-bg {
-          position: absolute;
-          top: -30px;
-          right: -30px;
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.08);
-          filter: blur(15px);
-          pointer-events: none;
-          z-index: 1;
+          isolation: isolate;
         }
         .box-deck-card:hover {
-          transform: translateY(-2.5px);
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
-          border-color: rgba(255, 255, 255, 0.15) !important;
+          transform: translateY(-2px);
+          border-color: var(--border-color-hover) !important;
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.16) !important;
         }
         .box-deck-card.active {
-          transform: scale(1.02);
+          transform: none;
+        }
+        .box-deck-card.drop-ready {
+          background: rgba(59, 130, 246, 0.1) !important;
+          border-color: rgba(59, 130, 246, 0.55) !important;
+        }
+        .box-deck-card.drop-ready::after {
+          content: "松开移动到这里";
+          position: absolute;
+          inset: auto 12px 10px 12px;
+          height: 24px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(59, 130, 246, 0.14);
+          border: 1px solid rgba(59, 130, 246, 0.22);
+          color: var(--accent-color);
+          font-size: 0.68rem;
+          font-weight: 700;
+          z-index: 4;
+          pointer-events: none;
+        }
+        .box-icon-shell,
+        .box-create-icon-shell {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid var(--border-color);
+          background: rgba(255, 255, 255, 0.035);
+          color: var(--text-secondary);
+        }
+        .box-icon-shell.all {
+          color: var(--accent-color);
+          background: rgba(59, 130, 246, 0.1);
+          border-color: rgba(59, 130, 246, 0.18);
+        }
+        .box-icon-shell.custom {
+          color: var(--text-primary);
+        }
+        .box-accent-rail {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: var(--box-accent);
+          z-index: 2;
+        }
+        .box-files-count-tag {
+          background: rgba(255, 255, 255, 0.055) !important;
+          border: 1px solid rgba(255, 255, 255, 0.07) !important;
         }
         .box-deck-card:hover .box-delete-icon-btn {
           opacity: 1 !important;
@@ -3188,24 +3344,43 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           background: rgba(239, 68, 68, 0.25) !important;
         }
         [data-theme='light'] .box-deck-card:not(.active) {
-          background: rgba(0, 0, 0, 0.02) !important;
-          border-color: rgba(0, 0, 0, 0.05) !important;
+          background: rgba(255, 255, 255, 0.74) !important;
+          border-color: rgba(15, 23, 42, 0.08) !important;
         }
         [data-theme='light'] .box-deck-card:not(.active):hover {
-          background: rgba(0, 0, 0, 0.04) !important;
-          border-color: rgba(0, 0, 0, 0.08) !important;
+          background: #ffffff !important;
+          border-color: rgba(37, 99, 235, 0.22) !important;
+          box-shadow: 0 6px 12px rgba(15, 23, 42, 0.05) !important;
+        }
+        [data-theme='light'] .box-deck-card.drop-ready {
+          background: rgba(37, 99, 235, 0.06) !important;
+          border-color: rgba(37, 99, 235, 0.38) !important;
+        }
+        [data-theme='light'] .box-icon-shell,
+        [data-theme='light'] .box-create-icon-shell {
+          background: rgba(15, 23, 42, 0.03);
+          border-color: rgba(15, 23, 42, 0.08);
+        }
+        [data-theme='light'] .box-files-count-tag {
+          background: rgba(15, 23, 42, 0.035) !important;
+          border-color: rgba(15, 23, 42, 0.06) !important;
         }
         .box-create-trigger-card:hover {
           border-color: var(--accent-color) !important;
-          background: rgba(99, 102, 241, 0.015) !important;
-          transform: translateY(-1.5px);
+          background: rgba(59, 130, 246, 0.045) !important;
+          transform: translateY(-2px);
         }
         [data-theme='light'] .box-create-trigger-card {
-          border-color: rgba(0, 0, 0, 0.08) !important;
+          border-color: rgba(15, 23, 42, 0.12) !important;
         }
         [data-theme='light'] .box-create-trigger-card:hover {
           border-color: var(--accent-color) !important;
-          background: rgba(99, 102, 241, 0.02) !important;
+          background: rgba(37, 99, 235, 0.04) !important;
+        }
+        .dragging-file {
+          opacity: 0.55;
+          transform: scale(0.985) !important;
+          cursor: grabbing !important;
         }
 
         /* ================= 移入盒子气泡菜单 ================= */
