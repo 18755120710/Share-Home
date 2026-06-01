@@ -571,6 +571,71 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteFileId, setDeleteFileId] = useState<string | null>(null);
 
+  // 替换原生 alert/confirm UI 的 Shadcn Dialog 状态
+  const [noticeModal, setNoticeModal] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+  }>({
+    open: false,
+    title: '',
+    description: ''
+  });
+
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {}
+  });
+
+  const showNotice = (title: string, description: string) => {
+    setNoticeModal({ open: true, title, description });
+  };
+
+  const showConfirm = (title: string, description: string, onConfirm: () => void) => {
+    setConfirmModal({ open: true, title, description, onConfirm });
+  };
+
+  // 收纳盒自定义颜色与渐变调色板状态
+  const [customColorStart, setCustomColorStart] = useState('#FF6B6B');
+  const [customColorEnd, setCustomColorEnd] = useState('#FF8E53');
+  const [colorMode, setColorMode] = useState<'preset' | 'custom'>('preset');
+
+  // 科学发光随机生成好看渐变色的算法
+  const generateRandomGradient = () => {
+    const h1 = Math.floor(Math.random() * 360);
+    const h2 = (h1 + 40 + Math.floor(Math.random() * 60)) % 360; 
+    const s1 = 75 + Math.floor(Math.random() * 15); // 75% ~ 90%
+    const l1 = 50 + Math.floor(Math.random() * 15); // 50% ~ 65%
+    const s2 = 75 + Math.floor(Math.random() * 15);
+    const l2 = 50 + Math.floor(Math.random() * 15);
+    
+    const hslToHex = (h: number, s: number, l: number) => {
+      l /= 100;
+      const a = s * Math.min(l, 1 - l) / 100;
+      const f = (n: number) => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+      };
+      return `#${f(0)}${f(8)}${f(4)}`;
+    };
+    
+    const hex1 = hslToHex(h1, s1, l1);
+    const hex2 = hslToHex(h2, s2, l2);
+    
+    setCustomColorStart(hex1);
+    setCustomColorEnd(hex2);
+    setColorMode('custom');
+    setNewBoxColor(`linear-gradient(135deg, ${hex1} 0%, ${hex2} 100%)`);
+  };
+
   // 重构新增：状态与多维筛选过滤
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'image' | 'video' | 'audio' | 'document'>('all');
@@ -633,6 +698,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
     e.preventDefault();
     if (!newBoxName.trim()) return;
 
+    const boxColor = colorMode === 'custom'
+      ? `linear-gradient(135deg, ${customColorStart} 0%, ${customColorEnd} 100%)`
+      : (newBoxColor || 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)');
+
     try {
       const res = await fetch('/api/transfer/shared/boxes', {
         method: 'POST',
@@ -640,7 +709,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         body: JSON.stringify({
           name: newBoxName.trim(),
           description: newBoxDescription.trim() || undefined,
-          color: newBoxColor || undefined
+          color: boxColor
         })
       });
       const data = await res.json();
@@ -649,37 +718,44 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         setNewBoxName('');
         setNewBoxDescription('');
         setNewBoxColor('');
+        setColorMode('preset');
+        setCustomColorStart('#FF6B6B');
+        setCustomColorEnd('#FF8E53');
         fetchSharedBoxes();
       } else {
-        alert(`创建收纳盒失败: ${data.error}`);
+        showNotice('创建收纳盒失败', data.error || '未知错误');
       }
     } catch (err: any) {
-      alert(`创建收纳盒异常: ${err.message}`);
+      showNotice('创建收纳盒异常', err.message);
     }
   };
 
   // 删除收纳盒
   const handleDeleteBox = async (boxId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('您确定要删除该收纳盒吗？\n物理文件不会被删除，它们将安全释放回到“未分类大厅”中。')) return;
-
-    try {
-      const res = await fetch(`/api/transfer/shared/boxes?id=${boxId}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (selectedBoxId === boxId) {
-          setSelectedBoxId('all');
+    showConfirm(
+      '确认删除收纳盒',
+      '您确定要删除该收纳盒吗？物理文件不会被删除，它们将安全释放回到“未分类大厅”中。',
+      async () => {
+        try {
+          const res = await fetch(`/api/transfer/shared/boxes?id=${boxId}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json();
+          if (data.success) {
+            if (selectedBoxId === boxId) {
+              setSelectedBoxId('all');
+            }
+            fetchSharedBoxes();
+            fetchSharedFiles();
+          } else {
+            showNotice('删除收纳盒失败', data.error || '未知错误');
+          }
+        } catch (err: any) {
+          showNotice('删除收纳盒异常', err.message);
         }
-        fetchSharedBoxes();
-        fetchSharedFiles();
-      } else {
-        alert(`删除收纳盒失败: ${data.error}`);
       }
-    } catch (err: any) {
-      alert(`删除收纳盒异常: ${err.message}`);
-    }
+    );
   };
 
   // 转移文件至目标收纳盒
@@ -698,10 +774,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         setActiveMoveMenuFileId(null);
         fetchSharedFiles();
       } else {
-        alert(`转移文件失败: ${data.error}`);
+        showNotice('转移文件失败', data.error || '未知错误');
       }
     } catch (err: any) {
-      alert(`转移文件异常: ${err.message}`);
+      showNotice('转移文件异常', err.message);
     }
   };
 
@@ -778,7 +854,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   const handleUpload = async (file: File) => {
     if (!file) return;
     if (!allowUpload) {
-      alert('您的共享上传/互传文件权限已被超级管理员禁用。');
+      showNotice('上传权限被禁用', '您的共享上传/互传文件权限已被超级管理员禁用。');
       return;
     }
 
@@ -855,10 +931,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
       if (data.success) {
         fetchSharedFiles();
       } else {
-        alert(`删除失败: ${data.error}`);
+        showNotice('删除失败', data.error || '未知错误');
       }
     } catch (err: any) {
-      alert(`删除异常: ${err.message}`);
+      showNotice('删除异常', err.message);
     } finally {
       setDeleteFileId(null);
     }
@@ -2539,6 +2615,75 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         />
       )}
 
+      {/* 替换全局 alert 的组件库高档通知弹窗 */}
+      <Dialog open={noticeModal.open} onOpenChange={(open) => setNoticeModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="rounded-xl border border-white/10 bg-popover/80 backdrop-blur-xl sm:max-w-[400px] shadow-2xl" showCloseButton={true}>
+          <DialogHeader>
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.15)] animate-pulse">
+                <Info size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-sm font-bold tracking-tight text-foreground">
+                  {noticeModal.title}
+                </DialogTitle>
+                <DialogDescription className="mt-2.5 text-[0.78rem] leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                  {noticeModal.description}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 justify-end mt-4">
+            <ShadcnButton 
+              variant="outline" 
+              onClick={() => setNoticeModal(prev => ({ ...prev, open: false }))} 
+              className="rounded-lg h-8 px-4 text-xs font-semibold bg-zinc-800/50 hover:bg-zinc-800 text-zinc-200 border-white/5"
+            >
+              我知道了
+            </ShadcnButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 替换全局 confirm 的组件库高档确认弹窗 */}
+      <Dialog open={confirmModal.open} onOpenChange={(open) => setConfirmModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="rounded-xl border border-white/10 bg-popover/80 backdrop-blur-xl sm:max-w-[420px] shadow-2xl" showCloseButton={true}>
+          <DialogHeader>
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
+                <HelpCircle size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-sm font-bold tracking-tight text-foreground">
+                  {confirmModal.title}
+                </DialogTitle>
+                <DialogDescription className="mt-2.5 text-[0.78rem] leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                  {confirmModal.description}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 justify-end mt-4">
+            <ShadcnButton 
+              variant="outline" 
+              onClick={() => setConfirmModal(prev => ({ ...prev, open: false }))} 
+              className="rounded-lg h-8 px-4 text-xs font-semibold bg-transparent border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+            >
+              取消
+            </ShadcnButton>
+            <ShadcnButton 
+              onClick={() => {
+                setConfirmModal(prev => ({ ...prev, open: false }));
+                confirmModal.onConfirm();
+              }} 
+              className="rounded-lg h-8 px-4 text-xs font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-indigo-500/25 border-0"
+            >
+              确认执行
+            </ShadcnButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 共享文件物理删除确认组件库弹窗 */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="rounded-xl border-border/70 bg-popover sm:max-w-[420px]" showCloseButton={true}>
@@ -2647,38 +2792,209 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                 />
               </div>
 
-              {/* 预设 HSL 极客渐变配色挑选仓 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>专属极客渐变配色</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
-                  {[
-                    'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)', // 熔岩橙
-                    'linear-gradient(135deg, #7F00FF 0%, #E100FF 100%)', // 霓虹紫
-                    'linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)', // 极光蓝
-                    'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', // 翡翠绿
-                    'linear-gradient(135deg, #f12711 0%, #f5af19 100%)'  // 日落金
-                  ].map((gradient, index) => {
-                    const isSelected = newBoxColor === gradient || (newBoxColor === '' && index === 0);
-                    return (
-                      <button
-                        type="button"
-                        key={gradient}
-                        onClick={() => setNewBoxColor(gradient)}
+              {/* 专属渐变配色挑选与调色板自定义区 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>专属极客渐变配色</label>
+                  
+                  {/* 模式切换 Tabs */}
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '2px', 
+                    background: 'rgba(0,0,0,0.2)', 
+                    padding: '2px', 
+                    borderRadius: '6px',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => { setColorMode('preset'); setNewBoxColor('linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)'); }}
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        borderRadius: '4px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: colorMode === 'preset' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                        color: colorMode === 'preset' ? '#ffffff' : 'var(--text-secondary)',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      预设
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setColorMode('custom'); }}
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        borderRadius: '4px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: colorMode === 'custom' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                        color: colorMode === 'custom' ? '#ffffff' : 'var(--text-secondary)',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      调色板
+                    </button>
+                  </div>
+                </div>
+
+                {/* 渐变效果实时预览条 */}
+                <div style={{
+                  height: '38px',
+                  borderRadius: '8px',
+                  background: colorMode === 'custom' 
+                    ? `linear-gradient(135deg, ${customColorStart} 0%, ${customColorEnd} 100%)` 
+                    : (newBoxColor || 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)'),
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.08)'
+                }}>
+                  {newBoxName ? `「${newBoxName}」` : '新收纳舱'} 配色效果预览
+                </div>
+
+                {/* 选项内容区 */}
+                {colorMode === 'preset' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between', marginTop: '2px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {[
+                        'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)', // 熔岩橙
+                        'linear-gradient(135deg, #7F00FF 0%, #E100FF 100%)', // 霓虹紫
+                        'linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)', // 极光蓝
+                        'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', // 翡翠绿
+                        'linear-gradient(135deg, #f12711 0%, #f5af19 100%)'  // 日落金
+                      ].map((gradient, index) => {
+                        const isSelected = newBoxColor === gradient || (newBoxColor === '' && index === 0);
+                        return (
+                          <button
+                            type="button"
+                            key={gradient}
+                            onClick={() => setNewBoxColor(gradient)}
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '50%',
+                              background: gradient,
+                              border: isSelected ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.15)',
+                              cursor: 'pointer',
+                              boxShadow: isSelected ? '0 0 10px rgba(255,255,255,0.4)' : 'none',
+                              transform: isSelected ? 'scale(1.1)' : 'none',
+                              transition: 'all 0.2s'
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                    
+                    {/* 🎲 随机生成按钮 */}
+                    <button
+                      type="button"
+                      onClick={generateRandomGradient}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        background: 'rgba(99, 102, 241, 0.15)',
+                        border: '1px solid rgba(99, 102, 241, 0.25)',
+                        color: '#a5b4fc',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.25)';
+                        e.currentTarget.style.boxShadow = '0 0 8px rgba(99, 102, 241, 0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <span>🎲</span>
+                      <span>随机配色</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '2px', background: 'rgba(0,0,0,0.12)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>渐变起点</span>
+                      <input 
+                        type="color" 
+                        value={customColorStart}
+                        onChange={(e) => setCustomColorStart(e.target.value)}
                         style={{
                           width: '28px',
-                          height: '28px',
-                          borderRadius: '50%',
-                          background: gradient,
-                          border: isSelected ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.15)',
-                          cursor: 'pointer',
-                          boxShadow: isSelected ? '0 0 10px rgba(255,255,255,0.4)' : 'none',
-                          transform: isSelected ? 'scale(1.15)' : 'none',
-                          transition: 'all 0.2s'
+                          height: '24px',
+                          border: 'none',
+                          outline: 'none',
+                          background: 'transparent',
+                          cursor: 'pointer'
                         }}
                       />
-                    );
-                  })}
-                </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>渐变终点</span>
+                      <input 
+                        type="color" 
+                        value={customColorEnd}
+                        onChange={(e) => setCustomColorEnd(e.target.value)}
+                        style={{
+                          width: '28px',
+                          height: '24px',
+                          border: 'none',
+                          outline: 'none',
+                          background: 'transparent',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={generateRandomGradient}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
+                          background: 'rgba(99, 102, 241, 0.15)',
+                          border: '1px solid rgba(99, 102, 241, 0.25)',
+                          color: '#a5b4fc',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(99, 102, 241, 0.25)';
+                          e.currentTarget.style.boxShadow = '0 0 8px rgba(99, 102, 241, 0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <span>🎲</span>
+                        <span>再随机</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
