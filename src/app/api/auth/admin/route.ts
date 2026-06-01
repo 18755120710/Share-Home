@@ -111,7 +111,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      devices: Array.from(mergedDevicesMap.values())
+      devices: Array.from(mergedDevicesMap.values()),
+      adminUsername: authService.getAdminUsername()
     });
 
   } catch (err: any) {
@@ -170,20 +171,40 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { newGuestPass } = body;
-
-    if (!newGuestPass || newGuestPass.trim().length < 6) {
-      return NextResponse.json({ success: false, error: '普通伙伴密钥格式错误，长度必须不小于 6 位。' }, { status: 400 });
-    }
-
+    const { type } = body;
     const authService = AuthService.getInstance();
-    const ok = authService.updateGuestPassword(newGuestPass.trim());
 
-    if (ok) {
-      console.log(`[AdminAuth] 超级管理员已成功将局域网伙伴登录密钥更新密文落盘。`);
-      return NextResponse.json({ success: true });
+    if (type === 'admin') {
+      const { currentPassword, newUsername, newPassword } = body;
+      if (!currentPassword) {
+        return NextResponse.json({ success: false, error: '请输入当前密码以验证身份。' }, { status: 400 });
+      }
+      if (!newUsername || newUsername.trim().length === 0) {
+        return NextResponse.json({ success: false, error: '管理员用户名不能为空。' }, { status: 400 });
+      }
+
+      const res = authService.updateAdminAuth(currentPassword, newUsername, newPassword);
+      if (res.success) {
+        return NextResponse.json({ success: true, message: res.message });
+      } else {
+        return NextResponse.json({ success: false, error: res.message }, { status: 400 });
+      }
     } else {
-      return NextResponse.json({ success: false, error: '密钥密文写入磁盘失败' }, { status: 500 });
+      // 兼容原有的伙伴密钥更新
+      const { newGuestPass } = body;
+
+      if (!newGuestPass || newGuestPass.trim().length < 6) {
+        return NextResponse.json({ success: false, error: '普通伙伴密钥格式错误，长度必须不小于 6 位。' }, { status: 400 });
+      }
+
+      const ok = authService.updateGuestPassword(newGuestPass.trim());
+
+      if (ok) {
+        console.log(`[AdminAuth] 超级管理员已成功将局域网伙伴登录密钥更新密文落盘。`);
+        return NextResponse.json({ success: true });
+      } else {
+        return NextResponse.json({ success: false, error: '密钥密文写入磁盘失败' }, { status: 500 });
+      }
     }
 
   } catch (err: any) {
