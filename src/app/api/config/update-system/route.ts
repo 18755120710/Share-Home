@@ -3,6 +3,8 @@ import { AuthService } from '@/services/authService';
 import { SocketService } from '@/services/socketService';
 import { spawn } from 'child_process';
 import os from 'os';
+import path from 'path';
+import fs from 'fs';
 
 export async function POST(request: Request) {
   try {
@@ -30,13 +32,157 @@ export async function POST(request: Request) {
         text: '⚙️ [SYSTEM] 正在连接 NPM 全局仓库进行一键物理重装...'
       });
 
-      // 根据平台判断命令 (Windows 下需要以 cmd.exe 包装 shell 运行)
+      // 根据平台判断命令
       const platform = os.platform();
+      
+      // Windows 平台下会发生 EBUSY 文件独占锁报错，必须启用外部升级器接管自愈模式
+      if (platform === 'win32') {
+        console.log('[SystemUpdate] 检测到处于 Windows 平台，启动外部自愈升级模式');
+        
+        socketService.broadcast('system:update-log', {
+          type: 'log',
+          text: '🔄 [SYSTEM] 检测到当前系统运行在 Windows 平台，为防文件占用导致升级失败...'
+        });
+        socketService.broadcast('system:update-log', {
+          type: 'log',
+          text: '⚙️ [SYSTEM] 正在系统临时目录部署独立的外部自愈更新器接管升级逻辑...'
+        });
+        socketService.broadcast('system:update-log', {
+          type: 'log',
+          text: '🔌 [SYSTEM] 协同服务与信道即将在 1.5 秒后优雅下线并释放全局包文件锁...'
+        });
+        socketService.broadcast('system:update-log', {
+          type: 'log',
+          text: '⏳ [SYSTEM] 外部更新器会在后台重新装配最新全局包并以原参数自愈拉起平台，请耐心等待 10-15 秒后页面自动重连。'
+        });
+
+        try {
+          const tempDir = os.tmpdir();
+          const upgradeScriptPath = path.join(tempDir, 'share-home-upgrade.js');
+          const logFilePath = path.join(tempDir, 'share-home-upgrade.log');
+
+          // 清理旧日志文件
+          if (fs.existsSync(logFilePath)) {
+            try { fs.unlinkSync(logFilePath); } catch (e) {}
+          }
+
+          const upgradeScriptContent = `
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const tempDir = "${tempDir.replace(/\\/g, '\\\\')}";
+const logFile = path.join(tempDir, 'share-home-upgrade.log');
+
+function log(msg) {
+  const line = '[' + new Date().toISOString() + '] ' + msg + '\\n';
+  fs.appendFileSync(logFile, line, 'utf-8');
+  console.log(msg);
+}
+
+log('=== Share Home 外部自愈升级器已拉起 ===');
+
+const launcherPath = process.env.LAUNCHER_PATH || '';
+const launcherArgsStr = process.env.LAUNCHER_ARGS || '[]';
+let launcherArgs = [];
+try {
+  launcherArgs = JSON.parse(launcherArgsStr);
+} catch (e) {
+  log('解析启动参数失败: ' + e.message);
+}
+
+log('正在睡眠 2 秒等待父进程树优雅退出释放全部全局包文件锁...');
+setTimeout(() => {
+  log('开始执行全局包物理重装 npm install -g share-home@latest...');
+  
+  const child = spawn('npm.cmd', ['install', '-g', 'share-home@latest'], {
+    shell: true,
+    stdio: 'inherit'
+  });
+
+  child.on('close', (code) => {
+    if (code === 0) {
+      log('🎉 全局包物理重装合并完成！成功退出码 0');
+      log('正在使用原启动参数拉起新版本主协同服务...');
+      
+      let sub;
+      if (launcherPath && fs.existsSync(launcherPath)) {
+        log('执行自愈拉起指令: node "' + launcherPath + '" ' + launcherArgs.join(' '));
+        sub = spawn('node', [launcherPath, ...launcherArgs], {
+          shell: true,
+          detached: true,
+          stdio: 'ignore'
+        });
+      } else {
+        log('未找到 LAUNCHER_PATH 环境变量，回退到全局命令拉起: share-home ' + launcherArgs.join(' '));
+        sub = spawn('share-home', launcherArgs, {
+          shell: true,
+          detached: true,
+          stdio: 'ignore'
+        });
+      }
+
+      if (sub) {
+        sub.unref();
+        log('🎉 协同平台已成功拉起，独立升级器任务结束并退出。');
+      } else {
+        log('❌ 拉起协同平台失败。');
+      }
+      process.exit(0);
+    } else {
+      log('❌ NPM 物理重装失败，退出码: ' + code);
+      log('💡 升级失败大概率是由于系统当前登录账户对 npm 全局安装目录缺乏写入权限所致。请尝试在终端中以管理员身份手动运行: npm install -g share-home@latest 进行升级。');
+      process.exit(code);
+    }
+  });
+
+  child.on('error', (err) => {
+    log('❌ 唤起物理更新进程发生严重系统异常: ' + err.message);
+    process.exit(1);
+  });
+}, 2000);
+`;
+
+          fs.writeFileSync(upgradeScriptPath, upgradeScriptContent.trim(), 'utf-8');
+          console.log('[SystemUpdate] 外部升级器脚本已成功部署至:', upgradeScriptPath);
+
+          const launcherPath = process.env.LAUNCHER_PATH || '';
+          const launcherArgs = process.env.LAUNCHER_ARGS || '[]';
+
+          const child = spawn('node', [upgradeScriptPath], {
+            detached: true,
+            stdio: 'ignore',
+            env: {
+              ...process.env,
+              LAUNCHER_PATH: launcherPath,
+              LAUNCHER_ARGS: launcherArgs
+            }
+          });
+          child.unref();
+          console.log('[SystemUpdate] 外部自愈升级器进程已脱钩启动。');
+
+          // 延迟 1.5 秒退出 Next.js 服务进程，交由外壳 cli.js 优雅自我终结
+          setTimeout(() => {
+            console.log('[SystemUpdate] 正在以退出码 98 退出 Next.js 进程以完全释放文件锁...');
+            process.exit(98);
+          }, 1500);
+
+        } catch (err: any) {
+          console.error('[SystemUpdate] 部署/启动外部升级器失败:', err);
+          socketService.broadcast('system:update-log', {
+            type: 'error',
+            text: `❌ [ERROR] 部署/拉起外部自愈升级器发生严重异常: ${err.message}`
+          });
+        }
+        return;
+      }
+
+      // Unix 平台（Darwin, Linux 等）继续使用原有原地高效率热更新
       const cmd = 'npm';
       const args = ['install', '-g', 'share-home@latest'];
 
       const child = spawn(cmd, args, {
-        shell: platform === 'win32' || platform === 'darwin' || true
+        shell: platform === 'darwin' || true
       });
 
       child.stdout.on('data', (data) => {

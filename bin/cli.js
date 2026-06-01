@@ -255,7 +255,10 @@ async function main() {
         ...process.env,
         PROJECT_ROOT: projectRoot,
         // 强制指定项目的物理存储目录，解决宿主物理存储隔离问题
-        CUSTOM_STORAGE_PATH: userStorageDir
+        CUSTOM_STORAGE_PATH: userStorageDir,
+        // 注入当前 cli.js 的路径以及启动参数，以便更新路由能在 Windows 下执行外部独立升级
+        LAUNCHER_PATH: process.argv[1],
+        LAUNCHER_ARGS: JSON.stringify(process.argv.slice(2))
       }
     });
 
@@ -266,6 +269,9 @@ async function main() {
         setTimeout(() => {
           startNextServer();
         }, 2000);
+      } else if (code === 98) {
+        console.log('\x1b[36m%s\x1b[0m', '🔄 [CLI] 检测到系统正在通过外部升级器进行在线更新，外壳进程将主动退出以释放文件锁...');
+        process.exit(0);
       } else {
         process.exit(code || 0);
       }
