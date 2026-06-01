@@ -8,8 +8,18 @@ import {
   Smartphone, Cpu, HelpCircle, CheckCircle2, AlertCircle,
   Eye, FileImage, FileVideo, FileAudio, RotateCw, ZoomIn, 
   ZoomOut, RefreshCw, X, Music, Search, ArrowUpDown, 
-  LayoutGrid, List, Sparkles, FolderOpen, Calendar, HardDrive, Info
+  LayoutGrid, List, Sparkles, FolderOpen, Calendar, HardDrive, Info,
+  ShieldAlert
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button as ShadcnButton } from '@/components/ui/button';
 
 interface SharedFile {
   id: string;
@@ -548,6 +558,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   const [errorMsg, setErrorMsg] = useState('');
   const [previewFile, setPreviewFile] = useState<SharedFile | null>(null);
 
+  // 共享文件删除确认弹窗状态
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteFileId, setDeleteFileId] = useState<string | null>(null);
+
   // 重构新增：状态与多维筛选过滤
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'image' | 'video' | 'audio' | 'document'>('all');
@@ -698,11 +712,18 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   };
 
   // 删除文件逻辑
-  const handleDelete = async (id: string) => {
-    if (!confirm('确认要物理删除此共享文件吗？删除后局域网其他伙伴将无法下载。')) return;
+  const handleDelete = (id: string) => {
+    setDeleteFileId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  // 实际执行物理删除文件
+  const executeDelete = async () => {
+    setIsDeleteModalOpen(false);
+    if (!deleteFileId) return;
 
     try {
-      const res = await fetch(`/api/transfer/shared?id=${id}`, {
+      const res = await fetch(`/api/transfer/shared?id=${deleteFileId}`, {
         method: 'DELETE'
       });
       const data = await res.json();
@@ -713,6 +734,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
       }
     } catch (err: any) {
       alert(`删除异常: ${err.message}`);
+    } finally {
+      setDeleteFileId(null);
     }
   };
 
@@ -1920,6 +1943,44 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           onClose={() => setPreviewFile(null)} 
         />
       )}
+
+      {/* 共享文件物理删除确认组件库弹窗 */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="rounded-xl border-border/70 bg-popover p-0 sm:max-w-[420px]" showCloseButton={true}>
+          <DialogHeader className="gap-0 border-b border-border/50 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-destructive/20 bg-destructive/10 text-destructive">
+                <ShieldAlert size={16} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-sm font-bold tracking-tight text-foreground">
+                  确认删除
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-xs leading-5 text-muted-foreground">
+                  确认要物理删除此共享文件吗？删除后局域网其他伙伴将无法下载。
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <DialogFooter className="border-t border-border/50 px-5 py-4 flex gap-2 justify-end">
+            <ShadcnButton 
+              variant="outline" 
+              onClick={() => setIsDeleteModalOpen(false)} 
+              className="rounded-lg h-8 text-xs"
+            >
+              取消
+            </ShadcnButton>
+            <ShadcnButton 
+              variant="destructive" 
+              onClick={executeDelete} 
+              className="rounded-lg h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
+            >
+              确定删除
+            </ShadcnButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 亮暗双色主题高精美 Glassmorphism 全局及微交互 CSS */}
       <style jsx global>{`
