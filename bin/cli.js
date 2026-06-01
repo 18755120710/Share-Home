@@ -253,6 +253,7 @@ async function main() {
       cwd: projectRoot,
       env: {
         ...process.env,
+        PROJECT_ROOT: projectRoot,
         // 强制指定项目的物理存储目录，解决宿主物理存储隔离问题
         CUSTOM_STORAGE_PATH: userStorageDir
       }
