@@ -702,6 +702,13 @@ export default function Home() {
   const [newAvatar, setNewAvatar] = useState('avatar-1');
   const isProfileInitialized = useRef(false);
 
+  // 智能自愈：当侧边栏被收起时，自动强制退出个人资料编辑模式，防止排版溢出和布局破碎
+  useEffect(() => {
+    if (isSidebarCollapsed) {
+      setIsEditingProfile(false);
+    }
+  }, [isSidebarCollapsed]);
+
   // 3. 系统参数配置相关状态
   const [storagePath, setStoragePath] = useState('');
   const [absolutePath, setAbsolutePath] = useState('');
@@ -1392,8 +1399,8 @@ export default function Home() {
         {/* 侧边栏底部本端身份管理与主题切换区 */}
         <div className="p-4 border-t border-border/40">
           {self && (
-            <div className="flex items-center gap-2">
-              <div className="flex-1 min-w-0">
+            <div className={`flex ${isSidebarCollapsed ? 'flex-col items-center gap-3' : 'flex-row items-center gap-2'}`}>
+              <div className="flex-1 min-w-0 w-full flex justify-center">
                 {isEditingProfile ? (
                   <div className="flex flex-col gap-2 p-2.5 bg-muted/30 border border-border/40 rounded-lg animate-in fade-in duration-200">
                     <ShadcnInput
@@ -1433,7 +1440,7 @@ export default function Home() {
                   </div>
                 ) : (
                   <div 
-                    onClick={startEditProfile}
+                    onClick={isSidebarCollapsed ? () => setIsSidebarCollapsed(false) : startEditProfile}
                     className="sidebar-profile-card flex items-center justify-between cursor-pointer bg-muted/20 border border-border/30 px-2.5 py-2 rounded-lg hover:border-border/60 hover:bg-muted/40 transition-all duration-200 overflow-hidden"
                   >
                     <div className="flex items-center gap-2 overflow-hidden min-w-0">
