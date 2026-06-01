@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import os from 'os';
 
 export interface DevicePermission {
   allowUpload: boolean;
@@ -42,12 +43,11 @@ export class AuthService {
   private authFilePath: string;
 
   private constructor() {
-    // 兼容本地开发及 CLI 生产物理路径
-    const projectRoot = path.join(process.cwd());
-    this.confDir = path.join(projectRoot, 'conf');
+    const homeDir = os.homedir();
+    const appDataDir = path.join(homeDir, '.share-home');
+    this.confDir = path.join(appDataDir, 'conf');
     this.authFilePath = path.join(this.confDir, 'auth.json');
 
-    // 挂载全局共享 Session Map，跨热更新与 API 路由保持单例会话状态
     const globalSymbols = global as any;
     if (!globalSymbols.__sessions__) {
       globalSymbols.__sessions__ = new Map<string, UserSession>();

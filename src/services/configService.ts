@@ -1,16 +1,23 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 interface AppConfig {
   storagePath: string;
 }
 
 export class ConfigService {
+  private appDataDir: string;
   private configFilePath: string;
   private currentConfig: AppConfig;
 
   private constructor() {
-    this.configFilePath = path.join(process.cwd(), 'config-settings.json');
+    const homeDir = os.homedir();
+    this.appDataDir = path.join(homeDir, '.share-home');
+    if (!fs.existsSync(this.appDataDir)) {
+      fs.mkdirSync(this.appDataDir, { recursive: true });
+    }
+    this.configFilePath = path.join(this.appDataDir, 'config-settings.json');
     this.currentConfig = this.loadConfig();
   }
 
@@ -20,6 +27,13 @@ export class ConfigService {
       globalSymbols.__config_service_instance__ = new ConfigService();
     }
     return globalSymbols.__config_service_instance__;
+  }
+
+  /**
+   * 获取应用在用户主目录下的绝对物理根路径，用以消除相对路径解析时的漂移风险
+   */
+  public getAppDataDir(): string {
+    return this.appDataDir;
   }
 
   /**
@@ -90,7 +104,7 @@ export class ConfigService {
     if (path.isAbsolute(rawPath)) {
       resolvedPath = rawPath;
     } else {
-      resolvedPath = path.resolve(process.cwd(), rawPath);
+      resolvedPath = path.resolve(this.appDataDir, rawPath);
     }
 
     // 确保物理目录存在
@@ -119,7 +133,7 @@ export class ConfigService {
     if (path.isAbsolute(sanitizedPath)) {
       testPath = sanitizedPath;
     } else {
-      testPath = path.resolve(process.cwd(), sanitizedPath);
+      testPath = path.resolve(this.appDataDir, sanitizedPath);
     }
 
     try {

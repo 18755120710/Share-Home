@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ConfigService } from '@/services/configService';
 import { SocketService } from '@/services/socketService';
+import { AuthService } from '@/services/authService';
 import fs from 'fs';
 import path from 'path';
 
@@ -105,8 +106,22 @@ function moveCrossDevice(src: string, dest: string) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // 后端管理员鉴权
+    const authService = AuthService.getInstance();
+    const authHeader = request.headers.get('Authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim() || '';
+    const session = authService.verifySession(token);
+    
+    if (!session || session.role !== 'admin') {
+      return NextResponse.json({
+        success: false,
+        error: 'forbidden',
+        message: '权限不足，仅管理员有权访问系统配置'
+      }, { status: 403 });
+    }
+
     const configService = ConfigService.getInstance();
     const config = configService.getConfig();
     const absolutePath = configService.getStoragePath();
@@ -123,6 +138,20 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // 后端管理员鉴权
+    const authService = AuthService.getInstance();
+    const authHeader = request.headers.get('Authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim() || '';
+    const session = authService.verifySession(token);
+    
+    if (!session || session.role !== 'admin') {
+      return NextResponse.json({
+        success: false,
+        error: 'forbidden',
+        message: '权限不足，仅管理员有权修改系统配置'
+      }, { status: 403 });
+    }
+
     const { storagePath, migrate } = await request.json();
     
     if (!storagePath) {
@@ -139,7 +168,8 @@ export async function POST(request: Request) {
     if (path.isAbsolute(sanitizedPath)) {
       newAbsPath = sanitizedPath;
     } else {
-      newAbsPath = path.resolve(process.cwd(), sanitizedPath);
+      // 强锁基准为 App 物理根目录，杜绝 process.cwd 路径漂移风险
+      newAbsPath = path.resolve(configService.getAppDataDir(), sanitizedPath);
     }
     
     // 2. 校验新路径读写权限（通过 updateStoragePath 的写测试，但不修改配置，先做预测试）

@@ -680,6 +680,13 @@ export default function Home() {
   // 系统设置局部二级 Tab 导航状态
   const [settingsSubTab, setSettingsSubTab] = useState<'storage' | 'profile' | 'network' | 'guidelines'>('storage');
 
+  // 智能避错：如果非管理员试图查看或加载存储路径，则将其静默重定向到极客头像 Tab
+  useEffect(() => {
+    if (role && role !== 'admin' && settingsSubTab === 'storage') {
+      setSettingsSubTab('profile');
+    }
+  }, [role, settingsSubTab]);
+
   // 主题颜色状态
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
@@ -1617,7 +1624,9 @@ export default function Home() {
               
               {/* 左侧：极简二级配置导航 (Inner Borderless Settings Nav) */}
               <div className="flex flex-row md:flex-col gap-1 w-full md:w-[180px] shrink-0 border-b md:border-b-0 md:border-r border-border/10 pb-4 md:pb-0 md:pr-4">
-                {(['storage', 'profile', 'network', 'guidelines'] as const).map((sub) => {
+                {(['storage', 'profile', 'network', 'guidelines'] as const)
+                  .filter((sub) => sub !== 'storage' || role === 'admin')
+                  .map((sub) => {
                   const label = {
                     storage: '基础存储',
                     profile: '极客头像',

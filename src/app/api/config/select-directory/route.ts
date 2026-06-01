@@ -1,8 +1,22 @@
 import { NextResponse } from 'next/server';
+import { AuthService } from '@/services/authService';
 import { exec } from 'child_process';
 import os from 'os';
 
-export async function POST(): Promise<Response> {
+export async function POST(request: Request): Promise<Response> {
+  const authService = AuthService.getInstance();
+  const authHeader = request.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim() || '';
+  const session = authService.verifySession(token);
+
+  if (!session || session.role !== 'admin') {
+    return NextResponse.json({
+      success: false,
+      error: 'forbidden',
+      message: '权限不足，仅管理员有权访问系统目录选择器'
+    }, { status: 403 });
+  }
+
   return new Promise<Response>((resolve) => {
     const platform = os.platform();
     let cmd = '';
