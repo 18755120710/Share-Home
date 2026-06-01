@@ -165,6 +165,51 @@ export class AuthService {
   }
 
   /**
+   * 获取管理员的用户名
+   */
+  public getAdminUsername(): string {
+    const config = this.readConfig();
+    return config?.adminUsername || 'admin';
+  }
+
+  /**
+   * 验证并修改管理员账号密码
+   */
+  public updateAdminAuth(currentPass: string, newUsername: string, newPassword?: string): { success: boolean; message: string } {
+    const config = this.readConfig();
+    if (!config) return { success: false, message: '配置未初始化' };
+
+    // 1. 验证当前密码是否正确
+    const { hash: currentHash } = this.hashPassword(currentPass, config.adminSalt);
+    if (currentHash !== config.adminHash) {
+      return { success: false, message: '当前管理员密码验证失败，请重新输入。' };
+    }
+
+    // 2. 更新用户名
+    if (!newUsername.trim()) {
+      return { success: false, message: '管理员用户名不能为空。' };
+    }
+    config.adminUsername = newUsername.trim();
+
+    // 3. 如果需要修改密码
+    if (newPassword && newPassword.trim().length > 0) {
+      if (newPassword.trim().length < 6) {
+        return { success: false, message: '新密码长度不能小于 6 位。' };
+      }
+      const { salt, hash } = this.hashPassword(newPassword.trim());
+      config.adminSalt = salt;
+      config.adminHash = hash;
+    }
+
+    const saved = this.saveConfig(config);
+    if (saved) {
+      return { success: true, message: '管理员账号及密码更新成功。' };
+    } else {
+      return { success: false, message: '配置写入磁盘失败。' };
+    }
+  }
+
+  /**
    * 创建登录会话
    */
   public createSession(role: 'admin' | 'guest', ip: string): string {
