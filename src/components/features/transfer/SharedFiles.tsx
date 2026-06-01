@@ -28,6 +28,15 @@ interface SharedFile {
   uploadedAt: number;
   deviceInfo: string;
   filePath: string;
+  boxId?: string; // 新增：所属收纳盒ID
+}
+
+interface SharedBox {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  createdAt: number;
 }
 
 interface SharedFilesProps {
@@ -568,14 +577,23 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   const [sortBy, setSortBy] = useState<'time-desc' | 'time-asc' | 'size-desc' | 'size-asc'>('time-desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  // 收纳盒状态
+  const [boxes, setBoxes] = useState<SharedBox[]>([]);
+  const [selectedBoxId, setSelectedBoxId] = useState<string | null>('all'); // 'all', 'lobby', or boxId
+  const [isCreateBoxModalOpen, setIsCreateBoxModalOpen] = useState(false);
+  const [newBoxName, setNewBoxName] = useState('');
+  const [newBoxDescription, setNewBoxDescription] = useState('');
+  const [newBoxColor, setNewBoxColor] = useState('');
+  const [activeMoveMenuFileId, setActiveMoveMenuFileId] = useState<string | null>(null);
+
   // 分页相关状态
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12); // 默认每页展示 12 个
 
-  // 联动自愈重置：当模糊搜索、文件分类、排序方式或单页大小发生改变时，自动秒级重置当前页码为 1
+  // 联动自愈重置：当模糊搜索、文件分类、排序方式、单页大小或收纳盒改变时，自动秒级重置当前页码为 1
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedType, sortBy, pageSize]);
+  }, [searchQuery, selectedType, sortBy, pageSize, selectedBoxId]);
   
   // 重构新增：上传测速
   const [uploadSpeed, setUploadSpeed] = useState('');
@@ -597,8 +615,99 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
     }
   };
 
+  // 拉取收纳盒列表
+  const fetchSharedBoxes = async () => {
+    try {
+      const res = await fetch('/api/transfer/shared/boxes');
+      const data = await res.json();
+      if (data.success) {
+        setBoxes(data.boxes);
+      }
+    } catch (err) {
+      console.error('[SharedFiles] 拉取公共收纳盒列表失败:', err);
+    }
+  };
+
+  // 创建收纳盒
+  const handleCreateBox = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBoxName.trim()) return;
+
+    try {
+      const res = await fetch('/api/transfer/shared/boxes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newBoxName.trim(),
+          description: newBoxDescription.trim() || undefined,
+          color: newBoxColor || undefined
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsCreateBoxModalOpen(false);
+        setNewBoxName('');
+        setNewBoxDescription('');
+        setNewBoxColor('');
+        fetchSharedBoxes();
+      } else {
+        alert(`创建收纳盒失败: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`创建收纳盒异常: ${err.message}`);
+    }
+  };
+
+  // 删除收纳盒
+  const handleDeleteBox = async (boxId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('您确定要删除该收纳盒吗？\n物理文件不会被删除，它们将安全释放回到“未分类大厅”中。')) return;
+
+    try {
+      const res = await fetch(`/api/transfer/shared/boxes?id=${boxId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (selectedBoxId === boxId) {
+          setSelectedBoxId('all');
+        }
+        fetchSharedBoxes();
+        fetchSharedFiles();
+      } else {
+        alert(`删除收纳盒失败: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`删除收纳盒异常: ${err.message}`);
+    }
+  };
+
+  // 转移文件至目标收纳盒
+  const handleMoveFile = async (fileId: string, targetBoxId: string | null) => {
+    try {
+      const res = await fetch('/api/transfer/shared/boxes/move', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileIds: [fileId],
+          boxId: targetBoxId
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActiveMoveMenuFileId(null);
+        fetchSharedFiles();
+      } else {
+        alert(`转移文件失败: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`转移文件异常: ${err.message}`);
+    }
+  };
+
   useEffect(() => {
     fetchSharedFiles();
+    fetchSharedBoxes();
 
     // 订阅局域网公共文件列表更新 WebSocket 事件 (所有伙伴共享)
     const socket = SocketClient.getInstance();
@@ -607,15 +716,30 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
       setFiles(updatedFiles);
     });
 
+    // 订阅局域网公共收纳盒列表更新 WebSocket 事件 (所有伙伴共享)
+    const unsubBoxesUpdate = socket.subscribe('shared-boxes:update', (updatedBoxes: SharedBox[]) => {
+      console.log('[SharedFiles] 收到局域网公共收纳盒列表广播更新:', updatedBoxes);
+      setBoxes(updatedBoxes);
+    });
+
     const handleStoragePathChanged = () => {
       console.log('[SharedFiles] 监听到物理存储路径发生变更，正在秒级自动重载...');
       fetchSharedFiles();
+      fetchSharedBoxes();
     };
     window.addEventListener('storage-path-changed', handleStoragePathChanged);
 
+    // 点击页面其他地方自动关闭文件转移气泡菜单
+    const handleGlobalClick = () => {
+      setActiveMoveMenuFileId(null);
+    };
+    window.addEventListener('click', handleGlobalClick);
+
     return () => {
       unsubSharedUpdate();
+      unsubBoxesUpdate();
       window.removeEventListener('storage-path-changed', handleStoragePathChanged);
+      window.removeEventListener('click', handleGlobalClick);
     };
   }, []);
 
@@ -668,8 +792,10 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
 
     try {
       const deviceInfo = getDeviceInfo();
+      const currentBoxId = (selectedBoxId && selectedBoxId !== 'all' && selectedBoxId !== 'lobby') ? selectedBoxId : undefined;
       const success = await uploadPublicFile(file, deviceInfo, (progress) => {
         setUploadProgress(progress);
+      }, currentBoxId);
         
         // 测速核心算法
         const now = Date.now();
@@ -876,6 +1002,13 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   // 前端过滤与排序实现
   const filteredFiles = files
     .filter(file => {
+      // 0. 收纳盒分类过滤
+      if (selectedBoxId === 'lobby') {
+        if (file.boxId) return false;
+      } else if (selectedBoxId && selectedBoxId !== 'all') {
+        if (file.boxId !== selectedBoxId) return false;
+      }
+
       // 1. 模糊搜索匹配
       const matchesSearch = file.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             file.deviceInfo.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1412,6 +1545,199 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           gap: '16px'
         }}>
           
+          {/* 1. 收纳盒卡片网格 (Interactive Box Decks) */}
+          <div className="boxes-deck-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+            gap: '12px',
+            width: '100%',
+            marginBottom: '4px'
+          }}>
+            {/* 1.1 "全部文件" 盒子 */}
+            <div 
+              onClick={() => setSelectedBoxId('all')}
+              className={`box-deck-card ${selectedBoxId === 'all' ? 'active' : ''}`}
+              style={{
+                background: selectedBoxId === 'all' 
+                  ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%)' 
+                  : 'rgba(255, 255, 255, 0.02)',
+                border: selectedBoxId === 'all'
+                  ? '1px solid rgba(99, 102, 241, 0.4)'
+                  : '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: '14px',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                position: 'relative',
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: selectedBoxId === 'all' ? '0 8px 24px rgba(99, 102, 241, 0.15)' : 'none'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <span style={{ fontSize: '1.1rem' }}>🌐</span>
+                <span className="box-files-count-tag" style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: 'var(--text-primary)'
+                }}>
+                  {files.length} 个文件
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>全部共享文件</span>
+                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>大厅中所有伙伴的文件</span>
+              </div>
+            </div>
+
+            {/* 1.2 "未分类大厅" 盒子 */}
+            <div 
+              onClick={() => setSelectedBoxId('lobby')}
+              className={`box-deck-card ${selectedBoxId === 'lobby' ? 'active' : ''}`}
+              style={{
+                background: selectedBoxId === 'lobby' 
+                  ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)' 
+                  : 'rgba(255, 255, 255, 0.02)',
+                border: selectedBoxId === 'lobby'
+                  ? '1px solid rgba(255, 255, 255, 0.2)'
+                  : '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: '14px',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                position: 'relative',
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: selectedBoxId === 'lobby' ? '0 8px 24px rgba(255, 255, 255, 0.06)' : 'none'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <span style={{ fontSize: '1.1rem' }}>📦</span>
+                <span className="box-files-count-tag" style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: 'var(--text-primary)'
+                }}>
+                  {files.filter(f => !f.boxId).length} 个文件
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>未分类大厅</span>
+                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>尚未装箱的共享文件</span>
+              </div>
+            </div>
+
+            {/* 1.3 用户创建的所有物理收纳盒 */}
+            {boxes.map(box => {
+              const isActive = selectedBoxId === box.id;
+              const boxFiles = files.filter(f => f.boxId === box.id);
+              
+              return (
+                <div 
+                  key={box.id}
+                  onClick={() => setSelectedBoxId(box.id)}
+                  className={`box-deck-card ${isActive ? 'active' : ''}`}
+                  style={{
+                    background: box.color,
+                    border: isActive
+                      ? '1px solid rgba(255, 255, 255, 0.6)'
+                      : '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '14px',
+                    padding: '12px 16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                    boxShadow: isActive ? '0 10px 28px rgba(0,0,0,0.3)' : 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', position: 'relative', zIndex: 2 }}>
+                    <span style={{ fontSize: '1.1rem' }}>📁</span>
+                    <span className="box-files-count-tag" style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.15)',
+                      color: '#ffffff',
+                      backdropFilter: 'blur(4px)'
+                    }}>
+                      {boxFiles.length} 个文件
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px', position: 'relative', zIndex: 2 }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      {box.name}
+                    </span>
+                    <span style={{ fontSize: '0.62rem', color: 'rgba(255, 255, 255, 0.7)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      {box.description || '无简短说明'}
+                    </span>
+                  </div>
+
+                  {/* 悬停删除小垃圾桶 */}
+                  <button 
+                    onClick={(e) => handleDeleteBox(box.id, e)}
+                    className="box-delete-icon-btn"
+                    title="注销并删除该收纳盒"
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      bottom: '8px',
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: 'rgba(0, 0, 0, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      zIndex: 3,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <Trash2 size={10} style={{ color: '#ff8a8a' }} />
+                  </button>
+                </div>
+              );
+            })}
+
+            {/* 1.4 "新建收纳盒" 虚线按钮卡片 */}
+            <div 
+              onClick={() => setIsCreateBoxModalOpen(true)}
+              className="box-create-trigger-card"
+              style={{
+                border: '1.5px dashed rgba(255, 255, 255, 0.12)',
+                borderRadius: '14px',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                background: 'rgba(255, 255, 255, 0.005)',
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                minHeight: '94px'
+              }}
+            >
+              <span style={{ fontSize: '1.25rem', color: 'var(--text-muted)', fontWeight: 300 }}>+</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>新建收纳盒</span>
+            </div>
+          </div>
+
           {filteredFiles.length === 0 ? (
             <div className="orbit-empty-state" style={{ 
               display: 'flex', 
@@ -1587,6 +1913,116 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                             {renderDeviceBadge(file.deviceInfo)}
                             
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {/* 移入收纳盒按钮与气泡菜单 */}
+                              <div style={{ position: 'relative' }}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMoveMenuFileId(activeMoveMenuFileId === file.id ? null : file.id);
+                                  }}
+                                  title="移入收纳盒"
+                                  className="action-btn-circle box-glow"
+                                  style={{
+                                    border: 'none',
+                                    width: '26px',
+                                    height: '26px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    background: activeMoveMenuFileId === file.id ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                                  }}
+                                >
+                                  <FolderOpen size={12} style={{ color: '#e5c07b' }} />
+                                </button>
+
+                                {/* 移入盒子气泡菜单 */}
+                                {activeMoveMenuFileId === file.id && (
+                                  <div 
+                                    onClick={e => e.stopPropagation()}
+                                    className="box-move-popup-menu"
+                                    style={{
+                                      position: 'absolute',
+                                      bottom: '34px',
+                                      right: '0',
+                                      width: '180px',
+                                      borderRadius: '12px',
+                                      padding: '6px',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '4px',
+                                      zIndex: 100,
+                                      background: 'rgba(30, 30, 35, 0.9)',
+                                      backdropFilter: 'blur(20px)',
+                                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                                      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                                      animation: 'preview-scale-up-elastic 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '0.65rem', color: '#8e8e93', padding: '4px 8px', fontWeight: 700, display: 'block' }}>整理收纳至：</span>
+                                    
+                                    {file.boxId && (
+                                      <button 
+                                        onClick={() => handleMoveFile(file.id, null)}
+                                        className="box-move-item-btn"
+                                        style={{
+                                          border: 'none',
+                                          width: '100%',
+                                          padding: '6px 8px',
+                                          borderRadius: '8px',
+                                          background: 'transparent',
+                                          color: '#ffffff',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 600,
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          textAlign: 'left',
+                                          transition: 'all 0.15s'
+                                        }}
+                                      >
+                                        <span>📦 释放至大厅 (未分类)</span>
+                                      </button>
+                                    )}
+
+                                    {boxes.map(box => {
+                                      if (box.id === file.boxId) return null;
+                                      return (
+                                        <button 
+                                          key={box.id}
+                                          onClick={() => handleMoveFile(file.id, box.id)}
+                                          className="box-move-item-btn"
+                                          style={{
+                                            border: 'none',
+                                            width: '100%',
+                                            padding: '6px 8px',
+                                            borderRadius: '8px',
+                                            background: 'transparent',
+                                            color: '#ffffff',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            textAlign: 'left',
+                                            transition: 'all 0.15s'
+                                          }}
+                                        >
+                                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: box.color, marginRight: '6px', shrink: 0 }} />
+                                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>{box.name}</span>
+                                        </button>
+                                      );
+                                    })}
+
+                                    {boxes.length === 0 && !file.boxId && (
+                                      <span style={{ fontSize: '0.7rem', color: '#8e8e93', padding: '6px 8px', textAlign: 'center', display: 'block' }}>暂无可用的收纳盒</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
                               {isPreviewable && (
                                 <button
                                   onClick={() => setPreviewFile(file)}
@@ -1753,6 +2189,115 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                           {renderDeviceBadge(file.deviceInfo)}
                           
                           <div className="list-row-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {/* 移入收纳盒按钮与气泡菜单 */}
+                            <div style={{ position: 'relative' }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMoveMenuFileId(activeMoveMenuFileId === file.id ? null : file.id);
+                                }}
+                                title="移入收纳盒"
+                                className="action-btn-circle box-glow"
+                                style={{
+                                  border: 'none',
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  background: activeMoveMenuFileId === file.id ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                                }}
+                              >
+                                <FolderOpen size={12} style={{ color: '#e5c07b' }} />
+                              </button>
+
+                              {/* 移入盒子气泡菜单 */}
+                              {activeMoveMenuFileId === file.id && (
+                                <div 
+                                  onClick={e => e.stopPropagation()}
+                                  className="box-move-popup-menu"
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: '34px',
+                                    right: '0',
+                                    width: '180px',
+                                    borderRadius: '12px',
+                                    padding: '6px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                    zIndex: 100,
+                                    background: 'rgba(30, 30, 35, 0.9)',
+                                    backdropFilter: 'blur(20px)',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                                    boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                                    animation: 'preview-scale-up-elastic 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                  }}
+                                >
+                                  <span style={{ fontSize: '0.65rem', color: '#8e8e93', padding: '4px 8px', fontWeight: 700, display: 'block' }}>整理收纳至：</span>
+                                  
+                                  {file.boxId && (
+                                    <button 
+                                      onClick={() => handleMoveFile(file.id, null)}
+                                      className="box-move-item-btn"
+                                      style={{
+                                        border: 'none',
+                                        width: '100%',
+                                        padding: '6px 8px',
+                                        borderRadius: '8px',
+                                        background: 'transparent',
+                                        color: '#ffffff',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        textAlign: 'left',
+                                        transition: 'all 0.15s'
+                                      }}
+                                    >
+                                      <span>📦 释放至大厅 (未分类)</span>
+                                    </button>
+                                  )}
+
+                                  {boxes.map(box => {
+                                    if (box.id === file.boxId) return null;
+                                    return (
+                                      <button 
+                                        key={box.id}
+                                        onClick={() => handleMoveFile(file.id, box.id)}
+                                        className="box-move-item-btn"
+                                        style={{
+                                          border: 'none',
+                                          width: '100%',
+                                          padding: '6px 8px',
+                                          borderRadius: '8px',
+                                          background: 'transparent',
+                                          color: '#ffffff',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 600,
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          textAlign: 'left',
+                                          transition: 'all 0.15s'
+                                        }}
+                                      >
+                                        <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: box.color, marginRight: '6px', shrink: 0 }} />
+                                        <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>{box.name}</span>
+                                      </button>
+                                    );
+                                  })}
+
+                                  {boxes.length === 0 && !file.boxId && (
+                                    <span style={{ fontSize: '0.7rem', color: '#8e8e93', padding: '6px 8px', textAlign: 'center', display: 'block' }}>暂无可用的收纳盒</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                             {isPreviewable && (
                               <button
                                 onClick={() => setPreviewFile(file)}
@@ -2033,6 +2578,131 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         </DialogContent>
       </Dialog>
 
+      {/* 2. 新建收纳盒极客弹框组件 (Box Creation Deck Dialog) */}
+      <Dialog open={isCreateBoxModalOpen} onOpenChange={setIsCreateBoxModalOpen}>
+        <DialogContent className="rounded-xl border-border/70 bg-popover sm:max-w-[440px]" showCloseButton={true}>
+          <form onSubmit={handleCreateBox} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <DialogHeader>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15))',
+                  border: '1px solid rgba(99,102,241,0.2)'
+                }}>
+                  <FolderOpen size={16} style={{ color: 'var(--accent-color)' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                  <DialogTitle style={{ fontSize: '0.92rem', fontWeight: 800 }}>建立新收纳盒</DialogTitle>
+                  <DialogDescription style={{ fontSize: '0.7rem', marginTop: '2px' }}>
+                    在公共共享空间中建立独立的文件夹分类收纳舱
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', py: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>收纳盒名称</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="例如：视觉UI稿、前端周报"
+                  value={newBoxName}
+                  onChange={(e) => setNewBoxName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'rgba(0,0,0,0.15)',
+                    color: 'var(--text-primary)',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>盒子描述 (可选)</label>
+                <textarea 
+                  placeholder="简单描述一下这个盒子的分类用途..."
+                  value={newBoxDescription}
+                  onChange={(e) => setNewBoxDescription(e.target.value)}
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'rgba(0,0,0,0.15)',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    resize: 'none'
+                  }}
+                />
+              </div>
+
+              {/* 预设 HSL 极客渐变配色挑选仓 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>专属极客渐变配色</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  {[
+                    'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)', // 熔岩橙
+                    'linear-gradient(135deg, #7F00FF 0%, #E100FF 100%)', // 霓虹紫
+                    'linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)', // 极光蓝
+                    'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', // 翡翠绿
+                    'linear-gradient(135deg, #f12711 0%, #f5af19 100%)'  // 日落金
+                  ].map((gradient, index) => {
+                    const isSelected = newBoxColor === gradient || (newBoxColor === '' && index === 0);
+                    return (
+                      <button
+                        type="button"
+                        key={gradient}
+                        onClick={() => setNewBoxColor(gradient)}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          background: gradient,
+                          border: isSelected ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.15)',
+                          cursor: 'pointer',
+                          boxShadow: isSelected ? '0 0 10px rgba(255,255,255,0.4)' : 'none',
+                          transform: isSelected ? 'scale(1.15)' : 'none',
+                          transition: 'all 0.2s'
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '12px' }}>
+              <ShadcnButton 
+                type="button"
+                variant="outline" 
+                onClick={() => setIsCreateBoxModalOpen(false)} 
+                className="rounded-lg h-8 text-xs"
+              >
+                取消
+              </ShadcnButton>
+              <ShadcnButton 
+                type="submit" 
+                className="rounded-lg h-8 text-xs bg-zinc-800 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-700 hover:dark:bg-zinc-200 shadow-sm"
+              >
+                一键创建
+              </ShadcnButton>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* 亮暗双色主题高精美 Glassmorphism 全局及微交互 CSS */}
       <style jsx global>{`
         /* ================= 1. 顶部 Control Hub 配色与特效 ================= */
@@ -2163,6 +2833,91 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           background: rgba(0, 0, 0, 0.03) !important;
           color: var(--text-secondary) !important;
           border: 1px solid rgba(0, 0, 0, 0.04) !important;
+        }
+
+        /* ================= 收纳盒卡片仓 (Box Decks Deck) ================= */
+        .box-deck-card {
+          position: relative;
+          overflow: hidden;
+        }
+        .box-card-glow-bg {
+          position: absolute;
+          top: -30px;
+          right: -30px;
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.08);
+          filter: blur(15px);
+          pointer-events: none;
+          z-index: 1;
+        }
+        .box-deck-card:hover {
+          transform: translateY(-2.5px);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+          border-color: rgba(255, 255, 255, 0.15) !important;
+        }
+        .box-deck-card.active {
+          transform: scale(1.02);
+        }
+        .box-deck-card:hover .box-delete-icon-btn {
+          opacity: 1 !important;
+          transform: scale(1);
+        }
+        .box-delete-icon-btn {
+          opacity: 0 !important;
+          transform: scale(0.9);
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .box-delete-icon-btn:hover {
+          background: rgba(239, 68, 68, 0.25) !important;
+        }
+        [data-theme='light'] .box-deck-card:not(.active) {
+          background: rgba(0, 0, 0, 0.02) !important;
+          border-color: rgba(0, 0, 0, 0.05) !important;
+        }
+        [data-theme='light'] .box-deck-card:not(.active):hover {
+          background: rgba(0, 0, 0, 0.04) !important;
+          border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+        .box-create-trigger-card:hover {
+          border-color: var(--accent-color) !important;
+          background: rgba(99, 102, 241, 0.015) !important;
+          transform: translateY(-1.5px);
+        }
+        [data-theme='light'] .box-create-trigger-card {
+          border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+        [data-theme='light'] .box-create-trigger-card:hover {
+          border-color: var(--accent-color) !important;
+          background: rgba(99, 102, 241, 0.02) !important;
+        }
+
+        /* ================= 移入盒子气泡菜单 ================= */
+        .box-move-popup-menu {
+          background: rgba(30, 30, 35, 0.92) !important;
+          backdrop-filter: blur(20px) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
+        }
+        [data-theme='light'] .box-move-popup-menu {
+          background: rgba(255, 255, 255, 0.95) !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.12) !important;
+        }
+        .box-move-item-btn {
+          transition: all 0.15s;
+        }
+        .box-move-item-btn:hover {
+          background: rgba(255, 255, 255, 0.06) !important;
+          color: var(--accent-color) !important;
+        }
+        [data-theme='light'] .box-move-item-btn {
+          color: #1f2937 !important;
+        }
+        [data-theme='light'] .box-move-item-btn:hover {
+          background: rgba(99, 102, 241, 0.05) !important;
+          color: var(--accent-color) !important;
         }
 
         /* ================= 2. 左侧闪传投递舱 (Upload Cabin) ================= */
