@@ -1,7 +1,7 @@
 # 🏠 Share Home (局域网极客协作平台)
 
 <p align="center">
-  <img src="./docs/images/share_home_banner.png" alt="Share Home Banner" width="800" style="border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.35);" />
+  <img src="./docs/images/share_home_banner.png" alt="Share Home Banner" width="380" style="border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.35);" />
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@
 我们将云文档系统由传统的“小文件全盘扫描”重构为**大厂数据库级 B+ 树关系驱动架构**：
 
 <p align="center">
-  <img src="./docs/images/geek_bplus_tree.png" alt="Geek B+ Index Tree Concept" width="600" style="border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.3);" />
+  <img src="./docs/images/geek_bplus_tree.png" alt="Geek B+ Index Tree Concept" width="420" style="border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.3);" />
 </p>
 
 > [!TIP]
@@ -65,27 +65,48 @@
 
 ## 🚀 快速启动
 
-在开始之前，请确保本地已安装 [Node.js](https://nodejs.org/)。本项目全面支持经典的 **npm** 以及推荐的 **pnpm** 包管理器。
+在开始之前，请确保本地已安装 [Node.js](https://nodejs.org/)。为了最大程度地方便您使用，本项目提供了 **全局 CLI 命令行安装（极速推荐）** 与 **源码克隆启动** 两种方式：
 
-### 1. 克隆并安装依赖
+### 📥 方式一：NPM 全局 CLI 命令行一键安装（极致极客 🌟）
+
+本项目已打包并发布为全局 NPM 命令行工具，您无需手动克隆克隆源码，只需在终端中运行以下三行指令，即可瞬间在您的电脑上拉起局域网协作平台：
+
+```bash
+# 1. 全局一键下载并安装 share-home 命令行工具
+npm i -g share-home
+
+# 2. 验证安装版本是否成功
+share-home --version
+
+# 3. 瞬间拉起并运行局域网极客协作平台！
+share-home
+```
+
+---
+
+### 💻 方式二：本地源码克隆启动（供二次开发与极客探索 🛠️）
+
+如果您需要查看源码、进行二次功能定制，可以拉取源码仓库进行本地开发启动：
+
+#### 1. 克隆并安装依赖
 ```bash
 # 复制项目到本地
 git clone https://github.com/18755120710/Share-Home.git
 cd Share-Home
 
-# 方式 A：使用经典的 npm 安装依赖
+# 选项 A：使用经典的 npm 安装依赖
 npm install
 
-# 方式 B：使用推荐的 pnpm 安装依赖
+# 选项 B：使用推荐的 pnpm 安装依赖
 pnpm install
 ```
 
-### 2. 启动开发服务器
+#### 2. 启动开发服务器
 ```bash
-# 方式 A：使用经典的 npm 启动开发服务
+# 选项 A：使用经典的 npm 启动开发服务
 npm run dev
 
-# 方式 B：使用推荐的 pnpm 启动开发服务
+# 选项 B：使用推荐的 pnpm 启动开发服务
 pnpm dev
 ```
 启动后，控制台将输出本端设备在局域网中的监听端口及 Web 访问地址。打开浏览器访问对应的 `http://localhost:3000` 或本地分配的 IP（如 `http://192.168.1.100:3000`）即可进入平台。
