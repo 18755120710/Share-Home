@@ -773,6 +773,70 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
     return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg'].includes(ext);
   };
 
+  // 🌲 资深前端工程师级：极客多态后缀名图标渲染 (Polymorphic Suffix Badge Generator)
+  const renderFileExtIcon = (fileName: string) => {
+    const ext = fileName.toLowerCase().split('.').pop() || 'file';
+    const displayExt = ext.toUpperCase().slice(0, 4);
+
+    let bgColor = 'rgba(161, 161, 170, 0.08)'; // 钛合金默认灰
+    let textColor = 'var(--text-secondary)';
+
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+      bgColor = 'rgba(245, 158, 11, 0.08)';
+      textColor = '#f59e0b';
+    } else if (['pdf'].includes(ext)) {
+      bgColor = 'rgba(239, 68, 68, 0.08)';
+      textColor = '#ef4444';
+    } else if (['doc', 'docx'].includes(ext)) {
+      bgColor = 'rgba(59, 130, 246, 0.08)';
+      textColor = '#3b82f6';
+    } else if (['xls', 'xlsx', 'csv'].includes(ext)) {
+      bgColor = 'rgba(16, 185, 129, 0.08)';
+      textColor = '#10b981';
+    } else if (['ppt', 'pptx'].includes(ext)) {
+      bgColor = 'rgba(249, 115, 22, 0.08)';
+      textColor = '#f97316';
+    } else if (['java', 'py', 'js', 'ts', 'cpp', 'go', 'html', 'css', 'json', 'sh', 'sql', 'md'].includes(ext)) {
+      bgColor = 'rgba(139, 92, 246, 0.08)';
+      textColor = '#a78bfa';
+    } else if (['dmg', 'pkg', 'exe', 'msi', 'iso'].includes(ext)) {
+      bgColor = 'rgba(244, 244, 245, 0.06)';
+      textColor = 'var(--text-primary)';
+    }
+
+    return (
+      <div 
+        className="grid-thumbnail-ext-badge-wrapper"
+        style={{
+          width: '52px',
+          height: '52px',
+          borderRadius: '14px',
+          background: bgColor,
+          border: `1px solid ${textColor}1a`, // 微透磨砂描边
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
+          transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          zIndex: 2,
+          padding: '4px'
+        }}
+      >
+        <span style={{ 
+          fontSize: displayExt.length > 3 ? '0.68rem' : '0.75rem', 
+          fontWeight: 800, 
+          color: textColor, 
+          fontFamily: 'var(--font-mono), monospace',
+          letterSpacing: '0.02em',
+          lineHeight: 1
+        }}>
+          {displayExt}
+        </span>
+      </div>
+    );
+  };
+
   // 专属流光高端 Badge
   const renderDeviceBadge = (deviceInfo: string) => {
     let icon = <HelpCircle size={11} />;
@@ -1458,20 +1522,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                               />
                             </>
                           ) : (
-                            <div className="grid-thumbnail-icon-shell" style={{
-                              width: '46px',
-                              height: '46px',
-                              borderRadius: '12px',
-                              background: getFileIconBg(file.fileName),
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
-                              transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                              zIndex: 2
-                            }}>
-                              {getFileIcon(file.fileName)}
-                            </div>
+                            renderFileExtIcon(file.fileName)
                           )}
 
                           {/* 悬浮预览小 Badge */}
