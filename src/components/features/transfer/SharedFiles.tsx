@@ -652,6 +652,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
   // 收纳盒状态
   const [boxes, setBoxes] = useState<SharedBox[]>([]);
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>('all'); // 'all', 'lobby', or boxId
+  const [boxesViewMode, setBoxesViewMode] = useState<'scroll' | 'grid'>('scroll'); 
   const [isCreateBoxModalOpen, setIsCreateBoxModalOpen] = useState(false);
   const [newBoxName, setNewBoxName] = useState('');
   const [newBoxDescription, setNewBoxDescription] = useState('');
@@ -1212,15 +1213,21 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
     >
       
       {/* 顶部智能 Control Hub */}
-      <div className="control-hub-panel" style={{
+      <div className="control-hub-panel hud-frame" style={{
         padding: '16px 20px',
         borderRadius: '16px',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
         backdropFilter: 'blur(20px)',
+        position: 'relative',
         transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
       }}>
+        {/* HUD 四角 brackets */}
+        <span className="hud-corner tl" />
+        <span className="hud-corner tr" />
+        <span className="hud-corner bl" />
+        <span className="hud-corner br" />
         {/* 第一排：标题、搜索和视图切换 */}
         <div className="control-hub-top-row" style={{
           display: 'flex',
@@ -1445,7 +1452,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
             onClick={() => {
               if (status !== 'uploading' && allowUpload) fileInputRef.current?.click();
             }}
-            className={`drop-zone-cabin ${isDragOver && allowUpload ? 'drag-over' : ''} ${(status === 'uploading' || !allowUpload) ? 'disabled' : ''}`}
+            className={`drop-zone-cabin hud-frame ${isDragOver && allowUpload ? 'drag-over' : ''} ${(status === 'uploading' || !allowUpload) ? 'disabled' : ''}`}
             style={{
               padding: '40px 24px',
               borderRadius: '20px',
@@ -1463,6 +1470,21 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
               opacity: allowUpload ? 1 : 0.85
             }}
           >
+            {/* HUD 四角 brackets */}
+            <span className="hud-corner tl" />
+            <span className="hud-corner tr" />
+            <span className="hud-corner bl" />
+            <span className="hud-corner br" />
+
+            {/* mDNS 信号发射动效波纹圈 */}
+            {isDragOver && allowUpload && (
+              <>
+                <div className="mdns-pulse-ring ring-1" />
+                <div className="mdns-pulse-ring ring-2" />
+                <div className="mdns-pulse-ring ring-3" />
+              </>
+            )}
+
             {/* 炫光水滴流体发光层 */}
             <div className="drop-zone-glow-aura" />
             
@@ -1695,14 +1717,79 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           gap: '16px'
         }}>
           
-          {/* 1. 收纳盒卡片网格 (Interactive Box Decks) */}
-          <div className="boxes-deck-grid" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: '14px',
-            width: '100%',
-            marginBottom: '4px'
-          }}>
+          {/* 收纳盒栏头部控制区 */}
+          <div className="flex items-center justify-between w-full mb-1">
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-color)' }} />
+              收纳分类舱 (Interactive Decks)
+            </span>
+            <div className="boxes-view-switcher" style={{
+              display: 'flex',
+              padding: '2px',
+              borderRadius: '8px',
+              background: 'rgba(0,0,0,0.15)',
+              border: '1px solid rgba(255,255,255,0.04)'
+            }}>
+              <button
+                type="button"
+                onClick={() => setBoxesViewMode('scroll')}
+                className={`view-switch-btn ${boxesViewMode === 'scroll' ? 'active' : ''}`}
+                style={{
+                  border: 'none',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>横向滑轨坞</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setBoxesViewMode('grid')}
+                className={`view-switch-btn ${boxesViewMode === 'grid' ? 'active' : ''}`}
+                style={{
+                  border: 'none',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>平铺矩阵</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 1. 收纳盒卡片区 (Interactive Box Decks) */}
+          <div 
+            className={boxesViewMode === 'scroll' ? 'boxes-deck-scroller horizon-dock' : 'boxes-deck-grid'} 
+            style={boxesViewMode === 'scroll' ? {
+              display: 'flex',
+              gap: '14px',
+              width: '100%',
+              overflowX: 'auto',
+              paddingBottom: '8px',
+              marginBottom: '4px',
+              scrollbarWidth: 'thin'
+            } : {
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+              gap: '14px',
+              width: '100%',
+              marginBottom: '4px'
+            }}
+          >
             {/* 1.1 "全部文件" 盒子 */}
             <div 
               onClick={() => setSelectedBoxId('all')}
@@ -1719,6 +1806,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                 justifyContent: 'space-between',
                 gap: '12px',
                 position: 'relative',
+                flexShrink: 0,
+                width: boxesViewMode === 'scroll' ? '220px' : 'auto',
                 transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 boxShadow: selectedBoxId === 'all' ? '0 0 0 3px rgba(59, 130, 246, 0.08)' : 'none'
               }}
@@ -1767,6 +1856,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                 justifyContent: 'space-between',
                 gap: '12px',
                 position: 'relative',
+                flexShrink: 0,
+                width: boxesViewMode === 'scroll' ? '220px' : 'auto',
                 transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 boxShadow: dragOverBoxId === 'lobby'
                   ? '0 0 0 3px rgba(59, 130, 246, 0.12)'
@@ -1823,6 +1914,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                     gap: '12px',
                     position: 'relative',
                     overflow: 'hidden',
+                    flexShrink: 0,
+                    width: boxesViewMode === 'scroll' ? '220px' : 'auto',
                     transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                     boxShadow: dragOverBoxId === box.id
                       ? '0 0 0 3px rgba(59, 130, 246, 0.12)'
@@ -1897,6 +1990,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                 justifyContent: 'center',
                 gap: '8px',
                 background: 'transparent',
+                flexShrink: 0,
+                width: boxesViewMode === 'scroll' ? '220px' : 'auto',
                 transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 minHeight: '112px'
               }}
@@ -1909,34 +2004,68 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
           </div>
 
           {filteredFiles.length === 0 ? (
-            <div className="orbit-empty-state" style={{ 
+            <div className="orbit-empty-state hud-frame" style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center', 
               justifyContent: 'center', 
-              padding: '90px 24px',
+              padding: '60px 24px',
               borderRadius: '20px',
-              border: '1px dashed rgba(255, 255, 255, 0.06)'
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
+              <span className="hud-corner tl" />
+              <span className="hud-corner tr" />
+              <span className="hud-corner bl" />
+              <span className="hud-corner br" />
+              
+              {/* 精密物理雷达扫描舱 */}
+              <div className="radar-scanner-wrapper" style={{
+                position: 'relative',
+                width: '180px',
+                height: '180px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.04)',
                 marginBottom: '16px'
               }}>
-                <File size={24} style={{ color: 'var(--text-muted)' }} />
+                {/* 刻度同心圆 */}
+                <div className="radar-circle rc-1" />
+                <div className="radar-circle rc-2" />
+                <div className="radar-circle rc-3" />
+                
+                {/* 雷达扫描扇形扫面 */}
+                <div className="radar-sweep-beam" />
+                
+                {/* 十字准星与刻度线 */}
+                <div className="radar-cross-axis x-axis" />
+                <div className="radar-cross-axis y-axis" />
+                <span className="radar-center-dot" />
+                
+                {/* 闪烁的被发现对等体标点 */}
+                <span className="radar-ping-dot pd-1" />
+                <span className="radar-ping-dot pd-2" />
               </div>
-              <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                资源池里空空如也
+
+              <h3 style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="radar-signal-pulse" />
+                超视距 P2P 邻居检索中...
               </h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', maxWidth: '320px', lineHeight: 1.4 }}>
-                暂无匹配该分类或关键字的文件。松开文件于页面任意位置，即可极速完成第一份投递！
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textAlign: 'center', maxWidth: '340px', lineHeight: 1.4, marginBottom: '16px' }}>
+                当前收纳盒或资源池暂无匹配项。本对等体信道已就绪，松开文件拖入页面任意处即可直接落盘共享！
               </p>
+
+              {/* 等宽终端微缩滚屏流 */}
+              <div className="radar-console-terminal">
+                <div className="console-line-scroller">
+                  <div>[ multicast listener 224.0.0.251:5353 - bound ]</div>
+                  <div>[ mDNS beacon broadcast sent - awaiting response ]</div>
+                  <div>[ scanning interface: zero-conf active ]</div>
+                  <div>[ P2P transport layer: physical write-ready ]</div>
+                  <div>[ session: peer search loop triggered ]</div>
+                </div>
+              </div>
             </div>
           ) : (
             <>
@@ -1963,7 +2092,7 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                         draggable="true"
                         onDragStart={(e) => handleFileDragStart(e, file.id)}
                         onDragEnd={handleFileDragEnd}
-                        className={`orbit-grid-card ${draggedFileId === file.id ? 'dragging-file' : ''}`}
+                        className={`orbit-grid-card hud-frame ${draggedFileId === file.id ? 'dragging-file' : ''}`}
                         style={{
                           borderRadius: '16px',
                           display: 'flex',
@@ -1974,6 +2103,11 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
                           zIndex: activeMoveMenuFileId === file.id ? 50 : 1,
                         }}
                       >
+                        {/* HUD 四角 brackets */}
+                        <span className="hud-corner tl" />
+                        <span className="hud-corner tr" />
+                        <span className="hud-corner bl" />
+                        <span className="hud-corner br" />
                         {/* 上半部：毛玻璃底图与格式图标展示区 */}
                         <div 
                           className="grid-card-thumbnail-wrapper"
@@ -3131,8 +3265,265 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
         </DialogContent>
       </Dialog>
 
-      {/* 亮暗双色主题高精美 Glassmorphism 全局及微交互 CSS */}
       <style jsx global>{`
+        /* ================= 0.0 全局 HUD Brackets 折角刻度系统 ================= */
+        .hud-frame {
+          position: relative !important;
+        }
+        .hud-corner {
+          position: absolute !important;
+          width: 8px !important;
+          height: 8px !important;
+          pointer-events: none !important;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          z-index: 10 !important;
+        }
+        .hud-corner.tl {
+          top: 4px !important;
+          left: 4px !important;
+          border-top: 1.5px solid rgba(99, 102, 241, 0.45) !important;
+          border-left: 1.5px solid rgba(99, 102, 241, 0.45) !important;
+        }
+        .hud-corner.tr {
+          top: 4px !important;
+          right: 4px !important;
+          border-top: 1.5px solid rgba(99, 102, 241, 0.45) !important;
+          border-right: 1.5px solid rgba(99, 102, 241, 0.45) !important;
+        }
+        .hud-corner.bl {
+          bottom: 4px !important;
+          left: 4px !important;
+          border-bottom: 1.5px solid rgba(99, 102, 241, 0.45) !important;
+          border-left: 1.5px solid rgba(99, 102, 241, 0.45) !important;
+        }
+        .hud-corner.br {
+          bottom: 4px !important;
+          right: 4px !important;
+          border-bottom: 1.5px solid rgba(99, 102, 241, 0.45) !important;
+          border-right: 1.5px solid rgba(99, 102, 241, 0.45) !important;
+        }
+
+        /* 亮色模式下的对准刻度折角线颜色 */
+        [data-theme='light'] .hud-corner {
+          border-color: rgba(99, 102, 241, 0.35) !important;
+        }
+
+        /* 悬停微动效：四角折角向内收缩对准，产生精密聚焦瞄准的极致逼格 */
+        .hud-frame:hover .hud-corner.tl {
+          top: 7px !important;
+          left: 7px !important;
+          border-color: var(--accent-color) !important;
+        }
+        .hud-frame:hover .hud-corner.tr {
+          top: 7px !important;
+          right: 7px !important;
+          border-color: var(--accent-color) !important;
+        }
+        .hud-frame:hover .hud-corner.bl {
+          bottom: 7px !important;
+          left: 7px !important;
+          border-color: var(--accent-color) !important;
+        }
+        .hud-frame:hover .hud-corner.br {
+          bottom: 7px !important;
+          right: 7px !important;
+          border-color: var(--accent-color) !important;
+        }
+
+        /* ================= 0.1 物理收纳盒滑轨坞 (Horizon Dock) 自定义细滚动条 ================= */
+        .boxes-deck-scroller {
+          display: flex !important;
+          gap: 14px !important;
+          width: 100% !important;
+          overflow-x: auto !important;
+          padding-bottom: 8px !important;
+          scrollbar-width: thin !important;
+          scroll-behavior: smooth !important;
+        }
+        .boxes-deck-scroller::-webkit-scrollbar {
+          height: 4px !important;
+        }
+        .boxes-deck-scroller::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.01) !important;
+          border-radius: 99px !important;
+        }
+        .boxes-deck-scroller::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.08) !important;
+          border-radius: 99px !important;
+        }
+        .boxes-deck-scroller::-webkit-scrollbar-thumb:hover {
+          background: rgba(99, 102, 241, 0.3) !important;
+        }
+
+        [data-theme='light'] .boxes-deck-scroller::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.06) !important;
+        }
+        [data-theme='light'] .boxes-deck-scroller::-webkit-scrollbar-thumb:hover {
+          background: rgba(99, 102, 241, 0.25) !important;
+        }
+
+        /* ================= 0.2 战术搜寻雷达空状态 (Tactical Radar Searcher) ================= */
+        .radar-scanner-wrapper {
+          border: 1px solid rgba(255, 255, 255, 0.03) !important;
+          border-radius: 50% !important;
+          box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.03) !important;
+        }
+        [data-theme='light'] .radar-scanner-wrapper {
+          border-color: rgba(0, 0, 0, 0.03) !important;
+          box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.02) !important;
+        }
+
+        .radar-circle {
+          position: absolute !important;
+          border: 1px dashed rgba(255, 255, 255, 0.05) !important;
+          border-radius: 50% !important;
+        }
+        [data-theme='light'] .radar-circle {
+          border-color: rgba(99, 102, 241, 0.12) !important;
+        }
+        .rc-1 { width: 170px !important; height: 170px !important; }
+        .rc-2 { width: 110px !important; height: 110px !important; }
+        .rc-3 { width: 50px !important; height: 50px !important; }
+
+        /* 雷达十字对准轴线 */
+        .radar-cross-axis {
+          position: absolute !important;
+          background: rgba(255, 255, 255, 0.05) !important;
+        }
+        [data-theme='light'] .radar-cross-axis {
+          background: rgba(99, 102, 241, 0.15) !important;
+        }
+        .radar-cross-axis.x-axis {
+          width: 170px !important;
+          height: 1px !important;
+        }
+        .radar-cross-axis.y-axis {
+          width: 1px !important;
+          height: 170px !important;
+        }
+        .radar-center-dot {
+          position: absolute !important;
+          width: 4px !important;
+          height: 4px !important;
+          border-radius: 50% !important;
+          background: var(--accent-color) !important;
+          box-shadow: 0 0 8px var(--accent-color) !important;
+        }
+
+        /* 扇形扫描面动效 */
+        .radar-sweep-beam {
+          position: absolute !important;
+          width: 170px !important;
+          height: 170px !important;
+          border-radius: 50% !important;
+          background: conic-gradient(from 0deg, rgba(99, 102, 241, 0.15) 0deg, rgba(99, 102, 241, 0.01) 80deg, transparent 90deg) !important;
+          animation: radar-sweep 5s linear infinite !important;
+        }
+        [data-theme='light'] .radar-sweep-beam {
+          background: conic-gradient(from 0deg, rgba(99, 102, 241, 0.18) 0deg, rgba(99, 102, 241, 0.01) 90deg, transparent 100deg) !important;
+        }
+
+        @keyframes radar-sweep {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* 闪烁的雷达标点 */
+        .radar-ping-dot {
+          position: absolute !important;
+          width: 5px !important;
+          height: 5px !important;
+          border-radius: 50% !important;
+          background: #10b981 !important;
+          box-shadow: 0 0 8px #10b981 !important;
+          animation: radar-dot-blink 2.2s infinite alternate !important;
+        }
+        .radar-ping-dot.pd-1 { top: 50px !important; left: 60px !important; animation-delay: 0.2s !important; }
+        .radar-ping-dot.pd-2 { bottom: 65px !important; right: 40px !important; animation-delay: 1.1s !important; }
+
+        @keyframes radar-dot-blink {
+          0% { opacity: 0.15; transform: scale(0.9); }
+          60% { opacity: 0.95; transform: scale(1.1); }
+          100% { opacity: 0.15; transform: scale(0.9); }
+        }
+
+        /* 检索状态心跳呼吸 */
+        .radar-signal-pulse {
+          width: 6px !important;
+          height: 6px !important;
+          border-radius: 50% !important;
+          background: var(--accent-color) !important;
+          display: inline-block !important;
+          animation: beacon-heartbeat 1.8s infinite alternate cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+        }
+        @keyframes beacon-heartbeat {
+          0% { opacity: 0.3; transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.2); }
+          100% { opacity: 1; transform: scale(1.05); box-shadow: 0 0 8px 4px rgba(99, 102, 241, 0.15); }
+        }
+
+        /* 终端微缩滚屏 console 流 */
+        .radar-console-terminal {
+          width: 100% !important;
+          max-width: 320px !important;
+          height: 38px !important;
+          overflow: hidden !important;
+          background: rgba(0, 0, 0, 0.3) !important;
+          border: 1px solid rgba(255, 255, 255, 0.04) !important;
+          border-radius: 8px !important;
+          padding: 4px 8px !important;
+          font-family: var(--font-mono), monospace !important;
+          font-size: 0.62rem !important;
+          color: #a78bfa !important;
+          text-align: left !important;
+          opacity: 0.85 !important;
+          pointer-events: none !important;
+        }
+        [data-theme='light'] .radar-console-terminal {
+          background: rgba(15, 23, 42, 0.03) !important;
+          border-color: rgba(99, 102, 241, 0.12) !important;
+          color: #4f46e5 !important;
+        }
+
+        .console-line-scroller {
+          animation: console-scroll 12s steps(5, end) infinite !important;
+        }
+        @keyframes console-scroll {
+          0%, 100% { transform: translateY(0); }
+          20% { transform: translateY(-7.2px); }
+          40% { transform: translateY(-14.4px); }
+          60% { transform: translateY(-21.6px); }
+          80% { transform: translateY(-28.8px); }
+        }
+
+        /* ================= 0.3 太空投递舱 drag-over 状态 P2P 信道扩散特效 ================= */
+        .mdns-pulse-ring {
+          position: absolute !important;
+          border: 1px solid rgba(99, 102, 241, 0.18) !important;
+          border-radius: 50% !important;
+          width: 180px !important;
+          height: 180px !important;
+          animation: mdns-wave-expand 2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite !important;
+          pointer-events: none !important;
+          z-index: 1 !important;
+        }
+        .mdns-pulse-ring.ring-1 { animation-delay: 0s !important; }
+        .mdns-pulse-ring.ring-2 { animation-delay: 0.6s !important; }
+        .mdns-pulse-ring.ring-3 { animation-delay: 1.2s !important; }
+
+        @keyframes mdns-wave-expand {
+          0% { transform: scale(0.6); opacity: 1; }
+          100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        /* 投递舱图标磁吸式悬停微移动画 */
+        .drop-zone-cabin:hover .cloud-upload-icon-anim {
+          animation: upload-shake 1.2s ease-in-out infinite alternate !important;
+        }
+        @keyframes upload-shake {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-3px); }
+        }
+
         /* ================= 1. 顶部 Control Hub 配色与特效 ================= */
         .control-hub-panel {
           background: rgba(30, 30, 35, 0.45) !important;
