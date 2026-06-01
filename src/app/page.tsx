@@ -775,8 +775,14 @@ export default function Home() {
 
   // 初始化拉取系统配置
   const fetchConfig = async () => {
+    const token = localStorage.getItem('share_home_token') || '';
+    if (!token || role !== 'admin') return;
     try {
-      const res = await fetch('/api/config');
+      const res = await fetch('/api/config', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       if (data.success) {
         setStoragePath(data.storagePath);
@@ -788,7 +794,15 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchConfig();
+    if (role === 'admin') {
+      fetchConfig();
+    }
+  }, [role]);
+
+  useEffect(() => {
+    if (role === 'admin') {
+      fetchConfig();
+    }
 
     // 订阅物理文件迁移进度 WebSocket 事件
     const socket = SocketClient.getInstance();
@@ -877,9 +891,13 @@ export default function Home() {
     setConfigStatus('saving');
     
     try {
+      const token = localStorage.getItem('share_home_token') || '';
       const res = await fetch('/api/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ 
           storagePath: storagePath.trim(),
           migrate: realMigrate
@@ -929,8 +947,12 @@ export default function Home() {
   const handleSelectDirectory = async () => {
     setIsSelectingDir(true);
     try {
+      const token = localStorage.getItem('share_home_token') || '';
       const res = await fetch('/api/config/select-directory', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       const data = await res.json();
       if (data.success) {
