@@ -252,12 +252,20 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
 
   // 知识库目录栏折叠状态 (持久化偏好缓存)
   const [isKbSidebarCollapsed, setIsKbSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const isMobile = window.innerWidth < 768;
-      const saved = isMobile ? true : localStorage.getItem('kb_sidebar_collapsed') === 'true';
+      const checkMobile = () => {
+        setIsMobile(window.innerWidth < 768);
+      };
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      
+      const saved = window.innerWidth < 768 ? true : localStorage.getItem('kb_sidebar_collapsed') === 'true';
       setIsKbSidebarCollapsed(saved);
+      
+      return () => window.removeEventListener('resize', checkMobile);
     }
   }, []);
 
@@ -1717,6 +1725,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
 
   return (
     <Card style={{ 
+      position: 'relative',
       display: 'flex', 
       flexDirection: 'row', 
       gap: '0px', 
@@ -1729,13 +1738,40 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
       borderRadius: 'var(--radius-lg)'
     }}>
       
+      {/* 移动端覆盖在主编辑区上的毛玻璃半透明目录遮罩层 */}
+      {isMobile && !isKbSidebarCollapsed && (
+        <div 
+          onClick={toggleKbSidebar}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 38,
+            borderRadius: 'var(--radius-lg)',
+            transition: 'all 0.25s ease-out'
+          }}
+        />
+      )}
+
       {/* 1. 云文档知识库左侧目录列表栏 */}
       <div style={{
-        width: isKbSidebarCollapsed ? '0px' : '280px',
+        position: isMobile ? 'absolute' : 'relative',
+        left: isMobile ? '0px' : 'auto',
+        top: isMobile ? '0px' : 'auto',
+        zIndex: isMobile ? 40 : 1,
+        width: isKbSidebarCollapsed ? '0px' : (isMobile ? '260px' : '280px'),
+        minWidth: isKbSidebarCollapsed ? '0px' : (isMobile ? '260px' : '280px'),
+        flexShrink: 0,
+        boxShadow: isMobile && !isKbSidebarCollapsed ? '4px 0 24px rgba(0,0,0,0.4)' : 'none',
         borderRight: isKbSidebarCollapsed ? 'none' : '1px solid var(--border-color)',
-        display: 'flex',
+        display: isMobile && isKbSidebarCollapsed ? 'none' : 'flex',
         flexDirection: 'column',
-        background: 'var(--kb-sidebar-bg)',
+        background: isMobile ? 'rgba(20, 20, 23, 0.95)' : 'var(--kb-sidebar-bg)',
+        backdropFilter: isMobile ? 'blur(16px)' : 'none',
         height: '100%',
         transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out, border-color 0.3s',
         opacity: isKbSidebarCollapsed ? 0 : 1,

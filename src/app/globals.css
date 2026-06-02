@@ -1047,6 +1047,21 @@ code[class*="language-"] {
     width: auto !important;
     flex: none !important;
   }
+
+  /* markdown 编辑富文本工具条单行横向滚动极速适配 */
+  .kb-markdown-toolbar {
+    white-space: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important; /* Firefox */
+    padding: 6px 12px !important; /* 缩小 Padding */
+  }
+  .kb-markdown-toolbar::-webkit-scrollbar {
+    display: none !important; /* Safari & Chrome */
+  }
+  .kb-markdown-toolbar button {
+    flex-shrink: 0 !important;
+  }
 }
 
 @layer base {
