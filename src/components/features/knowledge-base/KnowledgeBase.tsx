@@ -1885,7 +1885,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
               overflow: 'hidden'
             }}>
               {/* 控制工具条 */}
-              <div style={{
+              <div className="kb-control-bar" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -2242,7 +2242,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
             /* 2. 原本的 Markdown 文档编辑工作台 */
             <>
               {/* 编辑工作台控制栏 */}
-              <div style={{
+              <div className="kb-control-bar" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -2318,6 +2318,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
               <div style={{ display: 'flex', gap: '4px', background: 'rgba(255, 255, 255, 0.03)', padding: '2px', borderRadius: '6px' }}>
                 <button
                   onClick={() => changeViewMode('split')}
+                  className="kb-split-view-btn"
                   style={{
                     padding: '5px 12px',
                     fontSize: '0.75rem',
@@ -2586,7 +2587,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
             </div>
 
             {/* 主体视窗联动区 */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', flexDirection: 'row' }}>
+            <div className="kb-editor-preview-container" style={{ flex: 1, display: 'flex', overflow: 'hidden', flexDirection: 'row' }}>
               
               {/* 左侧：编辑编辑区 (在 read 模式下隐藏) */}
               {viewMode !== 'read' && (
@@ -2599,7 +2600,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
                   transition: 'all 0.2s'
                 }}>
                   {/* 格式工具栏 (Markdown Toolbar) */}
-                  <div style={{
+                  <div className="kb-markdown-toolbar" style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
