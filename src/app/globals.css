@@ -801,6 +801,36 @@ code[class*="language-"] {
   .kb-toc-container {
     display: none !important;
   }
+
+  /* 云文档移动端控制栏折行 */
+  .kb-control-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 12px 16px !important;
+  }
+  
+  .kb-control-bar > div {
+    width: 100% !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  
+  /* 分栏在小屏幕下变为上下排布 */
+  .kb-editor-preview-container {
+    flex-direction: column !important;
+  }
+  
+  .kb-editor-preview-container > div {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+  
+  /* markdown 编辑工具条强制单行横滚 */
+  .kb-markdown-toolbar {
+    white-space: nowrap !important;
+  }
 }
 
 /* 雷达自适应移动端等比缩小 */
@@ -819,6 +849,31 @@ code[class*="language-"] {
   
   /* 隐藏雷达外角的多余刻度文案，避免挤压 */
   .radar-hud-deco {
+    display: none !important;
+  }
+
+  /* 共享中心文件列表流式重排，避免在手机极窄屏下文件名和多列操作堆叠挤爆 */
+  .orbit-list-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+  
+  .orbit-list-row > div:first-child {
+    width: 100% !important;
+    flex: none !important;
+  }
+  
+  .orbit-list-row > div:nth-child(2) {
+    width: 100% !important;
+    justify-content: space-between !important;
+    padding-top: 8px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.04) !important;
+  }
+  
+  /* 手机端隐藏“分栏”切换按钮，强力引导单栏高专注阅读书写 */
+  .kb-split-view-btn {
     display: none !important;
   }
 }
