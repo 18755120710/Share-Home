@@ -93,9 +93,12 @@ try {
 
 log('正在睡眠 2 秒等待父进程树优雅退出释放全部全局包文件锁...');
 setTimeout(() => {
-  log('开始执行全局包物理重装 npm install -g share-home@latest...');
+  log('正在通过 Windows UAC 原生管理员授权执行全局包升级安装...');
   
-  const child = spawn('npm.cmd', ['install', '-g', 'share-home@latest'], {
+  const child = spawn('powershell.exe', [
+    '-Command',
+    "Start-Process cmd -ArgumentList '/c npm install -g share-home@latest' -Verb RunAs -Wait"
+  ], {
     shell: true,
     stdio: 'pipe'
   });
@@ -189,33 +192,52 @@ setTimeout(() => {
         return;
       }
 
-      // Unix 平台（Darwin, Linux 等）继续使用原有原地高效率热更新
-      const cmd = 'npm';
-      const args = ['install', '-g', 'share-home@latest'];
+      // Unix 平台（Darwin, Linux 等）原生提权物理热更新
+      let child;
+      if (platform === 'darwin') {
+        socketService.broadcast('system:update-log', {
+          type: 'log',
+          text: '🔑 [SYSTEM] 检测到 macOS 平台，正在唤起系统管理员凭证窗口进行提权安装...'
+        });
+        child = spawn('osascript', [
+          '-e',
+          'do shell script "npm install -g share-home@latest" with administrator privileges'
+        ]);
+      } else if (platform === 'linux') {
+        socketService.broadcast('system:update-log', {
+          type: 'log',
+          text: '🔑 [SYSTEM] 检测到 Linux 平台，正在尝试使用 pkexec 提权安装...'
+        });
+        child = spawn('pkexec', ['npm', 'install', '-g', 'share-home@latest']);
+      } else {
+        child = spawn('npm', ['install', '-g', 'share-home@latest'], {
+          shell: true
+        });
+      }
 
-      const child = spawn(cmd, args, {
-        shell: platform === 'darwin' || true
-      });
+      if (child.stdout) {
+        child.stdout.on('data', (data) => {
+          const text = data.toString().trim();
+          if (text) {
+            socketService.broadcast('system:update-log', {
+              type: 'log',
+              text: `[NPM] ${text}`
+            });
+          }
+        });
+      }
 
-      child.stdout.on('data', (data) => {
-        const text = data.toString().trim();
-        if (text) {
-          socketService.broadcast('system:update-log', {
-            type: 'log',
-            text: `[NPM] ${text}`
-          });
-        }
-      });
-
-      child.stderr.on('data', (data) => {
-        const text = data.toString().trim();
-        if (text && !text.includes('npm warn') && !text.includes('deprecated') && !text.includes('notice')) {
-          socketService.broadcast('system:update-log', {
-            type: 'log',
-            text: `[WARN] ${text}`
-          });
-        }
-      });
+      if (child.stderr) {
+        child.stderr.on('data', (data) => {
+          const text = data.toString().trim();
+          if (text && !text.includes('npm warn') && !text.includes('deprecated') && !text.includes('notice')) {
+            socketService.broadcast('system:update-log', {
+              type: 'log',
+              text: `[WARN] ${text}`
+            });
+          }
+        });
+      }
 
       child.on('close', (code) => {
         if (code === 0) {
