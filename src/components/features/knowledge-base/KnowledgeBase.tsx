@@ -255,7 +255,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('kb_sidebar_collapsed') === 'true';
+      const isMobile = window.innerWidth < 768;
+      const saved = isMobile ? true : localStorage.getItem('kb_sidebar_collapsed') === 'true';
       setIsKbSidebarCollapsed(saved);
     }
   }, []);
@@ -709,6 +710,11 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
     setContentInput(doc.content);
     setContentPreview(doc.content);
     setSaveStatus('saved');
+
+    // 移动端安全折叠：选择文档后自动隐藏左侧侧边栏，为编辑区空出 100% 空间
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setIsKbSidebarCollapsed(true);
+    }
   };
 
   interface TOCItem {
