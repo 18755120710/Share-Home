@@ -878,6 +878,121 @@ code[class*="language-"] {
   }
 }
 
+/* ==================== 移动端深层次响应式极客 UI 适配 ==================== */
+@media (max-width: 767px) {
+  /* 设备权限表转换为响应式卡片流布局 */
+  .responsive-device-table-wrapper table,
+  .responsive-device-table-wrapper tbody,
+  .responsive-device-table-wrapper tr,
+  .responsive-device-table-wrapper td {
+    display: block !important;
+    width: 100% !important;
+  }
+  
+  .responsive-device-table-wrapper thead {
+    display: none !important;
+  }
+  
+  .responsive-device-table-wrapper tr {
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 16px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    background: rgba(255, 255, 255, 0.01) !important;
+    border: 1px solid rgba(255, 255, 255, 0.04) !important;
+    border-radius: 12px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .responsive-device-table-wrapper td {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 8px 0 !important;
+    border: none !important;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.04) !important;
+  }
+  
+  .responsive-device-table-wrapper td:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+  
+  /* 注入左侧标识标签以保障数据 scannability 可读性 */
+  .responsive-device-table-wrapper td:nth-child(1)::before {
+    content: "伙伴设备" !important;
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+    font-weight: 700 !important;
+  }
+  .responsive-device-table-wrapper td:nth-child(2)::before {
+    content: "IP / 系统" !important;
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+    font-weight: 700 !important;
+  }
+  .responsive-device-table-wrapper td:nth-child(3)::before {
+    content: "身份授权" !important;
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+    font-weight: 700 !important;
+  }
+  .responsive-device-table-wrapper td:nth-child(4)::before {
+    content: "权限开关" !important;
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+    font-weight: 700 !important;
+  }
+  .responsive-device-table-wrapper td:nth-child(5)::before {
+    content: "当前状态" !important;
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+    font-weight: 700 !important;
+  }
+  
+  /* 对权限开关中的 flex 进行微调防止溢出 */
+  .responsive-device-table-wrapper td:nth-child(4) > div {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    max-width: 70% !important;
+  }
+
+  /* 系统配置二级子导航横向滑屏，防折行换行 */
+  .workspace-container div[class*="border-b md:border-b-0 md:border-r"] {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important; /* Firefox */
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    width: 100% !important;
+  }
+  .workspace-container div[class*="border-b md:border-b-0 md:border-r"]::-webkit-scrollbar {
+    display: none !important; /* Safari & Chrome */
+  }
+  .workspace-container div[class*="border-b md:border-b-0 md:border-r"] button {
+    flex-shrink: 0 !important;
+  }
+
+  /* 配置面板表单输入行防横向撑爆溢出，强行垂直平铺 */
+  .workspace-container div[class*="min-w-[320px]"] {
+    min-width: 0 !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .workspace-container div[class*="min-w-[320px]"] button,
+  .workspace-container div[class*="min-w-[320px]"] input {
+    width: 100% !important;
+  }
+}
+
 @layer base {
   .theme {
     --font-heading: var(--font-sans);

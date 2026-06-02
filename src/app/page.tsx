@@ -2127,7 +2127,7 @@ export default function Home() {
                   </ShadcnButton>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-border/60">
+                <div className="overflow-x-auto rounded-xl border border-border/60 responsive-device-table-wrapper">
                   <table className="w-full min-w-[760px] text-sm">
                     <thead className="bg-muted/20 text-muted-foreground">
                       <tr>
