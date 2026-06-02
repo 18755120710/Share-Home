@@ -1358,7 +1358,8 @@ export const SharedFiles: React.FC<SharedFilesProps> = ({ uploadPublicFile, allo
             display: 'flex',
             gap: '8px',
             overflowX: 'auto',
-            paddingBottom: '2px'
+            paddingBottom: '2px',
+            whiteSpace: 'nowrap'
           }}>
             <button 
               onClick={() => setSelectedType('all')} 
