@@ -70,6 +70,7 @@ export default function Home() {
 
   // 用户管理特权面板状态
   const [devicesList, setDevicesList] = useState<any[]>([]);
+  const onlineDevices = devicesList.filter((device) => device.online);
   const [isUpdatingDevicePerm, setIsUpdatingDevicePerm] = useState<string | null>(null);
   const [newGuestKeyInput, setNewGuestKeyInput] = useState('');
   const [guestKeyStatus, setGuestKeyStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -2139,13 +2140,13 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody>
-                      {devicesList.length === 0 ? (
+                      {onlineDevices.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="px-4 py-10 text-center text-xs text-muted-foreground">
-                            暂无已登记设备。普通伙伴登录或访问工作台后会出现在这里。
+                            暂无在线设备。在线的普通伙伴登录或访问工作台后会出现在这里。
                           </td>
                         </tr>
-                      ) : devicesList.map((device) => (
+                      ) : onlineDevices.map((device) => (
                         <tr key={device.id} className="border-t border-border/40">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
