@@ -1093,7 +1093,7 @@ export default function Home() {
     const isLoading = authStatus === 'loading';
 
     return (
-      <div className="min-h-screen w-full bg-[var(--bg-app)] text-[var(--text-primary)] px-5 py-8 sm:px-8 lg:px-12">
+      <div className="h-screen w-full overflow-y-auto bg-[var(--bg-app)] text-[var(--text-primary)] px-5 py-8 sm:px-8 lg:px-12">
         <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-[1180px] gap-8 lg:grid-cols-[1fr_420px] lg:items-center lg:gap-12">
           <section className="flex flex-col justify-center">
             <div className="flex items-center gap-4">
