@@ -1770,7 +1770,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ peers, self, allow
         borderRight: isKbSidebarCollapsed ? 'none' : '1px solid var(--border-color)',
         display: isMobile && isKbSidebarCollapsed ? 'none' : 'flex',
         flexDirection: 'column',
-        background: isMobile ? 'rgba(20, 20, 23, 0.95)' : 'var(--kb-sidebar-bg)',
+        background: isMobile ? 'var(--kb-mobile-sidebar-bg, rgba(20, 20, 23, 0.95))' : 'var(--kb-sidebar-bg)',
         backdropFilter: isMobile ? 'blur(16px)' : 'none',
         height: '100%',
         transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out, border-color 0.3s',

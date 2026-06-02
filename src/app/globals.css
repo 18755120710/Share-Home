@@ -75,6 +75,7 @@
 
   /* 知识库专属变量 (暗色) */
   --kb-sidebar-bg: rgba(0, 0, 0, 0.15);
+  --kb-mobile-sidebar-bg: rgba(20, 20, 23, 0.95);
   --kb-item-selected-bg: rgba(255, 255, 255, 0.04);
   --kb-item-selected-border: rgba(255, 255, 255, 0.05);
   --kb-item-hover-bg: rgba(255, 255, 255, 0.02);
@@ -144,6 +145,7 @@
 
   /* 知识库专属变量 (亮色) */
   --kb-sidebar-bg: #f8fafc;
+  --kb-mobile-sidebar-bg: rgba(255, 255, 255, 0.95);
   --kb-item-selected-bg: rgba(59, 130, 246, 0.08);
   --kb-item-selected-border: rgba(59, 130, 246, 0.15);
   --kb-item-hover-bg: rgba(9, 9, 11, 0.02);
