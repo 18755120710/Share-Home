@@ -418,13 +418,14 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
                   pointerEvents: 'none'
                 }}>
                   <span style={{ 
+                    position: 'absolute',
+                    bottom: '22%',
                     color: 'var(--radar-accent-text)', 
                     fontSize: '0.78rem', 
                     letterSpacing: '0.2em',
                     fontFamily: 'var(--font-mono), monospace',
                     fontWeight: 600,
                     animation: 'radar-blink 2.2s ease-in-out infinite',
-                    marginTop: '130px'
                   }}>
                     SCANNING FOR ACTIVE TERMINALS...
                   </span>
