@@ -242,21 +242,24 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
         }}>
           
           {/* 左栏：3D/2D 动效雷达扫描视窗：大厂精致格栅背景 */}
-          <div style={{ 
-            flex: '1 1 500px', 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            background: 'var(--radar-bg-outer)',
-            borderRadius: '16px',
-            border: '1px solid var(--border-color)',
-            padding: '40px 24px',
-            position: 'relative',
-            boxShadow: 'var(--radar-inner-shadow, inset 0 4px 40px rgba(0,0,0,0.15))',
-            minHeight: '520px',
-            overflow: 'hidden'
-          }}>
+          <div 
+            className="radar-disk-outer-container"
+            style={{ 
+              flex: '1 1 auto', 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              background: 'var(--radar-bg-outer)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              padding: '40px 24px',
+              position: 'relative',
+              boxShadow: 'var(--radar-inner-shadow, inset 0 4px 40px rgba(0,0,0,0.15))',
+              minHeight: '520px',
+              overflow: 'hidden'
+            }}
+          >
             
             {/* 四个角落的军工级HUD科技线条装饰 */}
             <div style={{ position: 'absolute', top: '16px', left: '16px', width: '16px', height: '16px', borderTop: '2px solid var(--radar-corner-border)', borderLeft: '2px solid var(--radar-corner-border)' }} />
@@ -265,24 +268,27 @@ export const PeerList: React.FC<PeerListProps> = ({ peers, self, onSendFile }) =
             <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '16px', height: '16px', borderBottom: '2px solid var(--radar-corner-border)', borderRight: '2px solid var(--radar-corner-border)' }} />
 
             {/* 四角高精度的数字/字符刻度 */}
-            <div style={{ position: 'absolute', top: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>SYS_STATUS: NOMINAL</div>
-            <div style={{ position: 'absolute', top: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>GRID_REF: 48-T9_L</div>
-            <div style={{ position: 'absolute', bottom: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>BANDWIDTH: UNLIMITED</div>
-            <div style={{ position: 'absolute', bottom: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>DISC: mDNS_NODE</div>
+            <div className="radar-hud-deco" style={{ position: 'absolute', top: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>SYS_STATUS: NOMINAL</div>
+            <div className="radar-hud-deco" style={{ position: 'absolute', top: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>GRID_REF: 48-T9_L</div>
+            <div className="radar-hud-deco" style={{ position: 'absolute', bottom: '16px', left: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>BANDWIDTH: UNLIMITED</div>
+            <div className="radar-hud-deco" style={{ position: 'absolute', bottom: '16px', right: '38px', fontSize: '0.62rem', fontFamily: 'var(--font-mono), monospace', color: 'var(--radar-accent-text)', letterSpacing: '0.1em' }}>DISC: mDNS_NODE</div>
 
             {/* 雷达大圆盘容器 - 升级为 430px 更加大气 */}
-            <div style={{ 
-              width: '430px', 
-              height: '430px', 
-              borderRadius: '50%', 
-              position: 'relative', 
-              background: 'var(--radar-bg-inner)',
-              border: '2px solid var(--radar-border)',
-              boxShadow: '0 0 60px var(--radar-peer-shadow), inset 0 0 30px var(--radar-peer-shadow)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
+            <div 
+              className="radar-disk-container"
+              style={{ 
+                width: '430px', 
+                height: '430px', 
+                borderRadius: '50%', 
+                position: 'relative', 
+                background: 'var(--radar-bg-inner)',
+                border: '2px solid var(--radar-border)',
+                boxShadow: '0 0 60px var(--radar-peer-shadow), inset 0 0 30px var(--radar-peer-shadow)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
               
               {/* 旋转 Conic 扫描光束效果（自适应换肤，完美契合设计） */}
               <div style={{
