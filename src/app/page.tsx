@@ -1095,7 +1095,7 @@ export default function Home() {
     return (
       <div className="h-screen w-full overflow-y-auto bg-[var(--bg-app)] text-[var(--text-primary)] px-5 py-8 sm:px-8 lg:px-12">
         <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-[1180px] gap-8 lg:grid-cols-[1fr_420px] lg:items-center lg:gap-12">
-          <section className="flex flex-col justify-center">
+          <section className="flex flex-col justify-center order-last lg:order-none">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/10">
                 <Radio size={21} className="text-primary" />
@@ -1128,7 +1128,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="flex flex-col justify-center border-t border-border/70 pt-8 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
+          <section className="flex flex-col justify-center border-t border-border/70 pt-8 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0 order-first lg:order-none">
             <div className="mb-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/10">
