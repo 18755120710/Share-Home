@@ -28,12 +28,21 @@ import {
   Info, Cpu, Link, Server, Sun, Moon, ArrowUpDown, X, Bell,
   History, ArrowRight, CheckCircle2, XCircle, Ban,
   ChevronLeft, ChevronRight, ChevronDown, KeyRound, LogOut,
-  Users, ShieldCheck, Lock, UserRound, Eye, EyeOff
+  Users, ShieldCheck, Lock, UserRound, Eye, EyeOff, Menu
 } from 'lucide-react';
 
 type ActiveTab = 'transfer' | 'share' | 'knowledge' | 'settings' | 'history-transfer' | 'history-share' | 'history-document' | 'users' | 'admin-settings';
 
 export default function Home() {
+  // 移动端侧边栏开启状态
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // 统一 Tab 切换处理函数，在移动端切换时自动关闭抽屉
+  const handleTabChange = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    setIsMobileSidebarOpen(false);
+  };
+
   // ==================== 局域网安全与权限管理状态 ====================
   const [authStatus, setAuthStatus] = useState<'loading' | 'uninitialized' | 'unauthorized' | 'authorized'>('loading');
   const [role, setRole] = useState<'admin' | 'guest' | null>(null);
@@ -1331,7 +1340,7 @@ export default function Home() {
     <div className="app-container">
       
       {/* 1. 左侧大厂极简侧边导航栏 (Sidebar) */}
-      <aside className={`sidebar-container ${isSidebarCollapsed ? 'collapsed' : ''} bg-sidebar border-r border-border/40 flex flex-col justify-between flex-shrink-0 z-10 duration-300`}>
+      <aside className={`sidebar-container ${isSidebarCollapsed ? 'collapsed' : ''} ${isMobileSidebarOpen ? 'open' : ''} bg-sidebar border-r border-border/40 flex flex-col justify-between flex-shrink-0 z-10 duration-300`}>
         {/* 顶部 Logo & 品牌区 */}
         <div>
           <div className={`sidebar-logo-group flex ${isSidebarCollapsed ? 'flex-col justify-center py-5 px-2 gap-3' : 'flex-row justify-between py-6 px-5 gap-0'} items-center border-b border-border/40 relative`}>
@@ -1362,7 +1371,7 @@ export default function Home() {
           {/* 导航菜单列表 */}
           <nav className="sidebar-nav p-4 flex flex-col gap-1.5">
             <button
-              onClick={() => setActiveTab('transfer')}
+              onClick={() => handleTabChange('transfer')}
               className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
                 activeTab === 'transfer'
                   ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
@@ -1374,7 +1383,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => setActiveTab('share')}
+              onClick={() => handleTabChange('share')}
               className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
                 activeTab === 'share'
                   ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
@@ -1386,7 +1395,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => setActiveTab('knowledge')}
+              onClick={() => handleTabChange('knowledge')}
               className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
                 activeTab === 'knowledge'
                   ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
@@ -1403,7 +1412,7 @@ export default function Home() {
                   onClick={() => {
                     setIsRecordMenuExpanded(!isRecordMenuExpanded);
                     if (!activeTab.startsWith('history-')) {
-                      setActiveTab('history-transfer'); // 点击大类默认切换到第一个子菜单
+                      handleTabChange('history-transfer'); // 点击大类默认切换到第一个子菜单
                     }
                   }}
                   className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
@@ -1416,7 +1425,7 @@ export default function Home() {
                   <span className="sidebar-nav-text">记录中心</span>
                   {!isSidebarCollapsed && (
                     <ChevronDown 
-                      size={12} 
+                       size={12} 
                       className={`ml-auto opacity-60 transition-transform duration-300 ${
                         isRecordMenuExpanded ? 'rotate-180' : 'rotate-0'
                       }`}
@@ -1428,7 +1437,7 @@ export default function Home() {
                 {isRecordMenuExpanded && !isSidebarCollapsed && (
                   <div className="flex flex-col gap-1 pl-5 mt-1.5 border-l border-border/40 ml-4 animate-in fade-in duration-200">
                     <button
-                      onClick={() => setActiveTab('history-transfer')}
+                      onClick={() => handleTabChange('history-transfer')}
                       className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
                         activeTab === 'history-transfer'
                           ? 'text-primary font-semibold'
@@ -1442,7 +1451,7 @@ export default function Home() {
                     </button>
 
                     <button
-                      onClick={() => setActiveTab('history-share')}
+                      onClick={() => handleTabChange('history-share')}
                       className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
                         activeTab === 'history-share'
                           ? 'text-primary font-semibold'
@@ -1456,7 +1465,7 @@ export default function Home() {
                     </button>
 
                     <button
-                      onClick={() => setActiveTab('history-document')}
+                      onClick={() => handleTabChange('history-document')}
                       className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-[11px] transition-all duration-150 ${
                         activeTab === 'history-document'
                           ? 'text-primary font-semibold'
@@ -1474,7 +1483,7 @@ export default function Home() {
             )}
 
             <button
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleTabChange('settings')}
               className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
                 activeTab === 'settings'
                   ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
@@ -1488,7 +1497,7 @@ export default function Home() {
             {role === 'admin' && (
               <>
                 <button
-                  onClick={() => setActiveTab('users')}
+                  onClick={() => handleTabChange('users')}
                   className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
                     activeTab === 'users'
                       ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
@@ -1500,7 +1509,7 @@ export default function Home() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('admin-settings')}
+                  onClick={() => handleTabChange('admin-settings')}
                   className={`sidebar-nav-btn flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-lg text-xs transition-all duration-200 ${
                     activeTab === 'admin-settings'
                       ? 'bg-primary/10 border border-primary/20 text-primary font-semibold shadow-sm shadow-primary/5'
@@ -1551,45 +1560,56 @@ export default function Home() {
         </div>
       </aside>
 
+      {/* 移动端侧边栏遮罩 Overlay */}
+      <div 
+        className={`sidebar-overlay ${isMobileSidebarOpen ? 'show' : ''}`}
+        onClick={() => setIsMobileSidebarOpen(false)}
+      />
+
       {/* 2. 右侧主工作面板工作区 (Workspace) */}
       <main className="workspace-container fade-in">
         
         {/* 顶部自发现网络拉取与刷新状态栏 */}
-        <header style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid var(--border-color)',
-          paddingBottom: '16px'
-        }}>
-          <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              {activeTab === 'transfer' && '文件传输工作台'}
-              {activeTab === 'share' && '公共共享中心'}
-              {activeTab === 'knowledge' && '知识协作云文档'}
-              {activeTab.startsWith('history-') && '操作与协作记录中心'}
-              {activeTab === 'settings' && '全局系统配置'}
-              {activeTab === 'users' && '用户与权限管理'}
-              {activeTab === 'admin-settings' && '管理员账号设置'}
-            </h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-              {activeTab === 'transfer' && '安全、无压缩的局域网零阻碍点对点极速传输'}
-              {activeTab === 'share' && '长效、大文件零压缩合并存储的局域网公共共享空间'}
-              {activeTab === 'knowledge' && '支持富文本与代码的局域网去中心化物理落盘云文档'}
-              {activeTab.startsWith('history-') && '局域网互传历史、共享上传审计以及云协作审计日志'}
-              {activeTab === 'settings' && '修改默认存储路径以及查看本端硬件和网络特征'}
-              {activeTab === 'users' && '管理普通伙伴登录密钥以及每台设备的共享与文档权限'}
-              {activeTab === 'admin-settings' && '在线更新管理员的用户名以及登录密码，增强系统安全性'}
-            </p>
+        <header className="flex flex-col md:flex-row md:items-center justify-between border-b border-border/40 pb-4 gap-4 w-full">
+          <div className="flex items-center min-w-0 w-full md:w-auto">
+            {/* 移动端汉堡菜单触发按钮 */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden p-2 -ml-2 mr-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all cursor-pointer flex items-center justify-center shrink-0 border-none bg-transparent"
+              title="打开侧边菜单"
+            >
+              <Menu size={20} />
+            </button>
+            
+            <div className="min-w-0">
+              <h2 className="text-base md:text-lg font-bold text-[var(--text-primary)] tracking-tight truncate leading-tight">
+                {activeTab === 'transfer' && '文件传输工作台'}
+                {activeTab === 'share' && '公共共享中心'}
+                {activeTab === 'knowledge' && '知识协作云文档'}
+                {activeTab.startsWith('history-') && '操作与协作记录中心'}
+                {activeTab === 'settings' && '全局系统配置'}
+                {activeTab === 'users' && '用户与权限管理'}
+                {activeTab === 'admin-settings' && '管理员账号设置'}
+              </h2>
+              <p className="text-[10px] md:text-xs text-[var(--text-secondary)] mt-0.5 truncate hidden sm:block">
+                {activeTab === 'transfer' && '安全、无压缩的局域网零阻碍点对点极速传输'}
+                {activeTab === 'share' && '长效、大文件零压缩合并存储的局域网公共共享空间'}
+                {activeTab === 'knowledge' && '支持富文本与代码的局域网去中心化物理落盘云文档'}
+                {activeTab.startsWith('history-') && '局域网互传历史、共享上传审计以及云协作审计日志'}
+                {activeTab === 'settings' && '修改默认存储路径以及查看本端硬件和网络特征'}
+                {activeTab === 'users' && '管理普通伙伴登录密钥以及每台设备的共享与文档权限'}
+                {activeTab === 'admin-settings' && '在线更新管理员的用户名以及登录密码，增强系统安全性'}
+              </p>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-start md:justify-end shrink-0">
             <span style={{
               fontSize: '0.7rem',
               color: isConnected ? 'var(--success-color)' : 'var(--text-muted)',
               background: isConnected ? 'var(--success-glow)' : 'transparent',
               border: `1px solid ${isConnected ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-color)'}`,
-              padding: '4px 10px',
+              padding: '6px 12px',
               borderRadius: '20px',
               fontWeight: 600,
               display: 'flex',
@@ -1603,7 +1623,7 @@ export default function Home() {
                 background: isConnected ? 'var(--success-color)' : 'var(--text-muted)',
                 display: 'inline-block'
               }} />
-              {isConnected ? '局域网信道在线' : '离线状态'}
+              {isConnected ? '在线' : '离线'}
             </span>
 
             {/* 传输任务触发按钮 */}
@@ -1640,7 +1660,7 @@ export default function Home() {
                   color: activeTasksCount > 0 ? 'var(--accent-color)' : 'var(--text-secondary)',
                 }} 
               />
-              <span>传输任务</span>
+              <span>传输</span>
               
               {/* 任务徽标 (Badge) */}
               {activeTasksCount > 0 && (
@@ -1664,7 +1684,7 @@ export default function Home() {
 
             <Button variant="secondary" onClick={refreshPeers} style={{ padding: '8px 12px' }}>
               <RefreshCw size={14} />
-              刷新雷达
+              <span className="hidden sm:inline">刷新</span>
             </Button>
 
             {/* 自动检测升级呼吸铃铛 (仅管理员在登录态后可见) */}
@@ -1690,10 +1710,10 @@ export default function Home() {
             <button
               onClick={handleLogout}
               title="退出当前登录"
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border/60 bg-muted/20 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border/60 bg-muted/20 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all shrink-0"
             >
               <LogOut size={14} />
-              <span>{role === 'admin' ? '管理员' : '伙伴'}</span>
+              <span className="hidden sm:inline">{role === 'admin' ? '管理员' : '伙伴'}</span>
             </button>
           </div>
         </header>
