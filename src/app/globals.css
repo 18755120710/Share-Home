@@ -991,6 +991,44 @@ code[class*="language-"] {
   .workspace-container div[class*="min-w-[320px]"] input {
     width: 100% !important;
   }
+
+  /* 极速对等直传历史 HUD 窄屏折流重组 */
+  .orbit-history-row .flex-wrap {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  
+  /* 隐藏中间大体积 SVG 水管管道，保留轻量级状态徽章 */
+  .orbit-history-pipe {
+    min-width: 0 !important;
+    flex: none !important;
+    align-self: flex-start !important;
+    margin-left: 50px !important; /* 物理对齐左侧发送端头像后文字的左边界 */
+    margin-top: -4px !important;
+    margin-bottom: -4px !important;
+  }
+  .orbit-history-pipe svg {
+    display: none !important;
+  }
+  .orbit-history-pipe > div {
+    padding: 3px 8px !important;
+    font-size: 10px !important;
+  }
+  
+  /* 接收端在窄屏下左对齐排列，形成直立向下的信道流动效果 */
+  .orbit-history-receiver {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding-left: 50px !important;
+    flex: none !important;
+    width: 100% !important;
+    flex-direction: row-reverse !important; /* 头像与文字物理调换位置，使头像靠左 */
+  }
+  .orbit-history-receiver > div:first-child {
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
 }
 
 @layer base {

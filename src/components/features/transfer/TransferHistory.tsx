@@ -423,12 +423,12 @@ export default function TransferHistory({
               return (
                 <div
                   key={task.id}
-                  className="group py-5 px-1 hover:px-4 hover:bg-muted/10 border-b border-border/15 last:border-b-0 flex flex-col gap-4 transition-all duration-150 rounded-lg relative overflow-hidden"
+                  className="group py-5 px-1 hover:px-4 hover:bg-muted/10 border-b border-border/15 last:border-b-0 flex flex-col gap-4 transition-all duration-150 rounded-lg relative overflow-hidden orbit-history-row"
                 >
                   {/* 对等互传核心：左中右大厂双翼布局 */}
                   <div className="flex items-center justify-between gap-4 flex-wrap">
                     {/* 左侧：发送端 */}
-                    <div className="flex items-center gap-3 min-w-[170px] flex-1">
+                    <div className="flex items-center gap-3 min-w-[170px] flex-1 orbit-history-sender">
                       {renderAvatar(senderName, task.senderAvatar)}
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -443,9 +443,9 @@ export default function TransferHistory({
                     </div>
 
                     {/* 中间：SVG 高科技管道流动线 */}
-                    <div className="flex flex-col items-center gap-1 flex-2 min-w-[150px] relative">
+                    <div className="flex flex-col items-center gap-1 flex-2 min-w-[150px] relative orbit-history-pipe">
                       {/* SVG 精细虚线流动管道 */}
-                      <svg width="100%" height="8" viewBox="0 0 200 8" fill="none" xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
+                      <svg width="100%" height="8" viewBox="0 0 200 8" fill="none" xmlns="http://www.w3.org/2050/svg" className="overflow-visible">
                         <path 
                           d="M0 4H200" 
                           stroke={isCompleted ? 'var(--success-color)' : isRejected ? 'var(--warning-color)' : 'var(--error-color)'} 
@@ -485,7 +485,7 @@ export default function TransferHistory({
                     </div>
 
                     {/* 右侧：接收端 */}
-                    <div className="flex items-center gap-3 min-w-[170px] flex-1 justify-end text-right">
+                    <div className="flex items-center gap-3 min-w-[170px] flex-1 justify-end text-right orbit-history-receiver">
                       <div className="flex flex-col gap-0.5 items-end">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={`${rOs.className} text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1`}>
