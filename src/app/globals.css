@@ -1029,6 +1029,24 @@ code[class*="language-"] {
     align-items: flex-start !important;
     text-align: left !important;
   }
+
+  /* 审计日志列表行移动端流式重组，防止多列在小屏挤压错位 */
+  .orbit-log-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 14px 8px !important;
+  }
+  .orbit-log-time-shell {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-left: 50px !important; /* 精确物理对齐左侧头像后文字的左边界 */
+    border-top: 1px dashed rgba(255, 255, 255, 0.05) !important;
+    padding-top: 8px !important;
+    width: auto !important;
+    flex: none !important;
+  }
 }
 
 @layer base {

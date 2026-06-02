@@ -322,7 +322,7 @@ export default function RecordCenter({
                           onNavigateToDoc(docId);
                         }
                       }}
-                      className={`group py-5 px-1 hover:px-4 hover:bg-muted/10 border-b border-border/15 last:border-b-0 flex items-center justify-between gap-4 transition-all duration-150 rounded-lg ${
+                      className={`group py-5 px-1 hover:px-4 hover:bg-muted/10 border-b border-border/15 last:border-b-0 flex items-center justify-between gap-4 transition-all duration-150 rounded-lg orbit-log-row ${
                         subTab === 'document' && docId ? 'cursor-pointer' : 'cursor-default'
                       }`}
                     >
@@ -365,7 +365,7 @@ export default function RecordCenter({
                       </div>
 
                       {/* 右侧：操作时间戳及高能跳转提示 */}
-                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0 orbit-log-time-shell">
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
                           <Clock size={10} className="opacity-75" />
                           {formatDateTime(log.timestamp)}
